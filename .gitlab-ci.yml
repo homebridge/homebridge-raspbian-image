@@ -1,0 +1,3 @@
+test:
+  script:
+    - echo "test"
