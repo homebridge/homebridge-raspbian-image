@@ -3,7 +3,7 @@ arch: arm64
 language: bash
 
 before_install:
-  - sudo apt-get install -y coreutils quilt parted debootstrap zerofree zip dosfstools bsdtar libcap2-bin grep rsync xz-utils file git curl jq
+  - sudo apt-get install -y coreutils quilt parted debootstrap zerofree zip dosfstools bsdtar libcap2-bin grep rsync xz-utils file git curl jq qemu-user-static
 
 script:
   - if [[ -f work/.cache/cache.tar ]]; then sudo tar -xf work/.cache/cache.tar ; fi
