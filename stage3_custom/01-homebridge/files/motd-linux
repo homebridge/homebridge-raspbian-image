@@ -1,0 +1,8 @@
+#!/bin/sh
+
+printf "\nThe programs included with the Debian GNU/Linux system are free software;\n"
+printf "the exact distribution terms for each program are described in the\n"
+printf "individual files in /usr/share/doc/*/copyright.\n"
+
+printf "Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent\n"
+printf "permitted by applicable law.\n"

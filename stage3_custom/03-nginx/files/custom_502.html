@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>502 - Homebridge Starting...</title>
+<style>
+  body {
+    margin: 0;
+    color: #FFFFFF;
+    background-color: #421367;
+    font-family: 'Arial';
+    font-size: 22px;
+  }
+
+  .center-me {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    height: 100vh;
+  }
+
+  .text-center {
+    text-align: center;
+  }
+
+  .text-italic {
+    font-style: italic;
+  }
+
+  .logo {
+    max-width: 20vw;
+  }
+</style>
+
+<script>
+(async function () {
+  const check = setInterval(async () => {
+    const response = await fetch('/');
+    if (response.status === 200) {
+      clearInterval(check);
+      location.reload(true);
+    }
+  }, 1000);
+}());
+
+(async function () {
+  setInterval(async () => {
+    const response = await fetch('/startup-status.json?ts=' + new Date().toISOString());
+    if (response.status === 200) {
+      try {
+        const body = await response.json();
+        document.getElementById('statusMessage').innerHTML = body.message;
+      } catch (e) {
+        // do nothing
+        console.error(e);
+      }
+    }
+  }, 1700);
+}());
+</script>
+
+</head>
+<body>
+  <div class="center-me">
+    <div class="text-center">
+      <img class="logo" src="https://user-images.githubusercontent.com/3979615/70615050-c7561600-1c5f-11ea-8fc5-94a7c0569147.png">
+      <h1>Homebridge</h1>
+    </div>
+    <div id="statusMessage" class="text-center text-italic">
+	Starting now...
+    </div>
+  </div>
+</body>
+</html>

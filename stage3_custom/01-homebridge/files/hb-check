@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -e
+
+update_status() {
+	jq -n --arg key message --arg value "$1" '{($key):$value}' > /usr/share/nginx/html/status.json
+}
+
+update_status "Checking system..."
+
+CURRENT_ARCH=$(uname -m)
+BUILD_ARCH=$(cat /etc/homebridge-arch)
+
+# ensure the arch is correct, rebuild if required
+if [ $CURRENT_ARCH != $BUILD_ARCH ]; then
+	echo "Current: $CURRENT_ARCH"
+	echo "Build: $BUILD_ARCH"
+	MODEL=$(tr -d '\0' </proc/device-tree/model)
+	update_status "<p>Rebuilding Homebridge for $MODEL</p><p>This may take 5-10 minutes, please wait...</p>"
+	echo "Rebuild Required"
+        cd "/usr/local/lib/node_modules"
+        /usr/local/bin/npm --unsafe-perm rebuild
+        echo $(uname -m) | sudo tee /etc/homebridge-arch
+fi
+
+# ensure the config.json exists
+if [ ! -f "/var/lib/homebridge/config.json" ]; then
+	update_status "Creating initial config.json..."
+	/usr/local/sbin/hb-config-setup
+fi
+
+# fix permissions
+update_status "Fixing permissions..."
+chown -R pi:pi /var/lib/homebridge
+
+update_status "Starting now..."
+

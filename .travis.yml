@@ -1,0 +1,34 @@
+arch: arm64
+
+language: bash
+
+before_install:
+  - sudo apt-get install -y coreutils quilt parted debootstrap zerofree zip dosfstools bsdtar libcap2-bin grep rsync xz-utils file git curl jq
+
+script:
+  - if [[ -f work/.cache/cache.tar ]]; then sudo tar -xf work/.cache/cache.tar ; fi
+  - if [[ -d work/Raspbian-Homebridge/stage0/rootfs ]]; then touch stage0/SKIP ; fi
+  - if [[ -d work/Raspbian-Homebridge/stage1/rootfs ]]; then touch stage1/SKIP ; fi
+  - if [[ -d work/Raspbian-Homebridge/stage2/rootfs ]]; then touch stage2/SKIP ; fi
+  - sudo CLEAN=1 ./build.sh -c config
+  - sudo chown -R $USER:$USER deploy
+  - sudo mv deploy/image_Raspbian-Homebridge.zip deploy/Raspbian-Homebridge.zip
+  - rm -rf stage0/SKIP stage1/SKIP stage2/SKIP
+  - sudo tar -cf work/.cache/cache.tar work/Raspbian-Homebridge/stage0 work/Raspbian-Homebridge/stage1 work/Raspbian-Homebridge/stage2
+
+cache:
+  timeout: 1000
+  directories:
+    - $TRAVIS_BUILD_DIR/work/.cache
+  before_cache:
+    - ls -la $TRAVIS_BUILD_DIR/work/.cache
+    - sudo chown -R $USER:$USER $TRAVIS_BUILD_DIR/work/.cache
+
+# deploy:
+#   provider: releases
+#   api_key:
+#     secure: tbc
+#   file: deploy/Raspbian-Homebridge.zip
+#   skip_cleanup: true
+#   on:
+#     tags: true

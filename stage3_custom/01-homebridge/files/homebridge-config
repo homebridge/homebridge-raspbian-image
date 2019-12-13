@@ -1,0 +1,366 @@
+#!/bin/sh
+
+INTERACTIVE=True
+ASK_TO_REBOOT=0
+
+is_pi () {
+  ARCH=$(dpkg --print-architecture)
+  if [ "$ARCH" = "armhf" ] ; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+is_pione() {
+   if grep -q "^Revision\s*:\s*00[0-9a-fA-F][0-9a-fA-F]$" /proc/cpuinfo; then
+      return 0
+   elif grep -q "^Revision\s*:\s*[ 123][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]0[0-36][0-9a-fA-F]$" /proc/cpuinfo ; then
+      return 0
+   else
+      return 1
+   fi
+}
+
+is_pitwo() {
+   grep -q "^Revision\s*:\s*[ 123][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]04[0-9a-fA-F]$" /proc/cpuinfo
+   return $?
+}
+
+is_pizero() {
+   grep -q "^Revision\s*:\s*[ 123][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]0[9cC][0-9a-fA-F]$" /proc/cpuinfo
+   return $?
+}
+
+is_pifour() {
+   grep -q "^Revision\s*:\s*[ 123][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]11[0-9a-fA-F]$" /proc/cpuinfo
+   return $?
+}
+
+get_pi_type() {
+   if is_pione; then
+      echo 1
+   elif is_pitwo; then
+      echo 2
+   else
+      echo 0
+   fi
+}
+
+is_live() {
+    grep -q "boot=live" $CMDLINE
+    return $?
+}
+
+is_ssh() {
+  if pstree -p | egrep --quiet --extended-regexp ".*sshd.*\($$\)"; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+is_fkms() {
+  if grep -q okay /proc/device-tree/soc/v3d@7ec00000/status 2> /dev/null || grep -q okay /proc/device-tree/soc/firmwarekms@7e600000/status 2> /dev/null ; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+deb_ver () {
+  ver=`cat /etc/debian_version | cut -d . -f 1`
+  echo $ver
+}
+
+calc_wt_size() {
+  # NOTE: it's tempting to redirect stderr to /dev/null, so supress error
+  # output from tput. However in this case, tput detects neither stdout or
+  # stderr is a tty and so only gives default 80, 24 values
+  WT_HEIGHT=17
+  WT_WIDTH=$(tput cols)
+
+  if [ -z "$WT_WIDTH" ] || [ "$WT_WIDTH" -lt 60 ]; then
+    WT_WIDTH=80
+  fi
+  if [ "$WT_WIDTH" -gt 178 ]; then
+    WT_WIDTH=120
+  fi
+  WT_MENU_HEIGHT=$(($WT_HEIGHT-7))
+}
+
+do_finish() {
+  if [ $ASK_TO_REBOOT -eq 1 ]; then
+    whiptail --yesno "Would you like to reboot now?" 20 60 2
+    if [ $? -eq 0 ]; then # yes
+      sync
+      reboot
+    fi
+  fi
+  exit 0
+}
+
+do_stop_services() {
+  systemctl stop homebridge homebridge-config-ui-x
+}
+
+do_start_services() {
+  systemctl start homebridge homebridge-config-ui-x
+}
+
+do_restart_services() {
+  whiptail --yesno "Would you like to restart Homebridge now?" 10 60 2
+  RET=$?
+  if [ $RET -eq 0 ]; then
+    printf "Restarting Homebridge...\n"
+    systemctl restart homebridge homebridge-config-ui-x
+  fi
+}
+
+do_homebridge_update() {
+  printf "Updating Homebridge, please wait...\n"
+  npm install -g homebridge@latest homebridge-config-ui-x@latest
+  whiptail --msgbox "Homebridge is up-to-date." 10 60 1
+  do_restart_services
+}
+
+do_nodejs_update() {
+  printf "Updating Node.js to LTS, please wait...\n"
+
+  INDEX=$(curl -s https://nodejs.org/dist/index.json)
+  LTS=$(echo $INDEX | jq -r 'map(select(.lts))[0].version')
+  CURRENT=$(node -v)
+
+  echo "Installed: $CURRENT"
+  echo "Current Node.js LTS: $LTS"
+
+  if [ $LTS != $CURRENT ]; then
+    echo "Updating Node.js to $LTS..."
+
+    PREFIX=$(npm -g prefix || echo "/usr/local")
+    sudo rm -rf "$PREFIX/lib/node_modules/npm"
+    curl -Lsf "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz" | sudo tar xzf - -C /usr/local --strip-components=1 --no-same-owner
+
+    echo "Node.js $(node -v)"
+    echo "npm $(npm -v)"
+
+    echo "Node.js updated to $LTS"
+
+    echo "Rebuilding modules..."
+    cd "$PREFIX/lib/node_modules"
+    sudo npm --unsafe-perm rebuild
+
+    whiptail --msgbox "Node.js upgraded from $CURRENT to $LTS." 10 60 1
+    do_restart_services
+  else
+    whiptail --msgbox "Node.js $CURRENT is already up-to-date" 10 60 1
+  fi
+}
+
+do_reset_pairings() {
+  whiptail --yesno "After you reset Homebridge you will need to manually remove your existing connection in the iOS Home app.\n\nAre you sure you want to reset Homebridge?" 20 60 2
+  RET=$?
+  if [ $RET -eq 0 ]; then
+    do_stop_services
+    rm -rf /var/lib/homebridge/persist
+    rm -rf /var/lib/homebridge/accessories
+    do_start_services
+  fi
+}
+
+do_view_logs() {
+  journalctl -o cat -n 1000 -f -u homebridge -u homebridge-config-ui-x
+}
+
+do_restore_config() {
+  whiptail --yesno "This will remove all custom Homebridge config and restore it to the factory default. You will need to manually remove any existing connections to this instance in the iOS Home app.\n\nAre you sure you want to proceed?" 20 60 2
+  RET=$?
+  if [ $RET -eq 0 ]; then
+    do_stop_services
+    rm -rf /var/lib/homebridge/persist
+    rm -rf /var/lib/homebridge/accessories
+    rm -rf /var/lib/homebridge/config.json
+    /usr/local/sbin/hb-check
+    do_start_services
+  fi
+}
+
+do_install_ffmpeg() {
+  apt-get update
+  apt-get install ffmpeg
+  exit 0
+}
+
+do_install_pihole() {
+  whiptail --title "Warning" --yesno "Installing Pi-Hole will prevent you from accessing the Homebridge UI on port 80.\n\nYou will still be able to access the Homebridge UI on port 8581.\n\nAre you sure you want to continue?" 20 60 1
+  RET=$?
+  if [ $RET -eq 0 ]; then
+    rm -rf /etc/nginx/sites-enabled/homebridge.local
+    nginx -s reload
+    printf "To re-enable the Homebridge UI on port 80 run\n\nln -s /etc/nginx/sites-available/homebridge.local /etc/nginx/sites-enabled/homebridge.local\n\n"
+    printf "Starting Pi-hole installer...\n"
+    curl -sSL https://install.pi-hole.net | bash
+    exit 0
+  fi
+}
+
+do_install_nodered() {
+  whiptail --title "Warning" --yesno "This will install Node-RED on your system.\n\nAre you sure you want to continue?" 20 60 1
+  RET=$?
+  if [ $RET -eq 0 ]; then
+    npm install -g --unsafe-perm node-red node-red-node-pi-gpio node-red-node-random node-red-node-ping node-red-contrib-play-audio node-red-node-smooth node-red-node-serialport
+    cat > /etc/systemd/system/nodered.service <<EOL
+# systemd service file to start Node-RED
+
+[Unit]
+Description=Node-RED graphical event wiring tool
+Wants=network.target
+Documentation=http://nodered.org/docs/hardware/raspberrypi.html
+
+[Service]
+Type=simple
+# Run as normal pi user - change to the user name you wish to run Node-RED as
+User=pi
+Group=pi
+WorkingDirectory=/home/pi
+
+Nice=5
+Environment="NODE_OPTIONS=--max_old_space_size=256"
+# uncomment and edit next line if you need an http proxy
+#Environment="HTTP_PROXY=my.httpproxy.server.address"
+# uncomment the next line for a more verbose log output
+#Environment="NODE_RED_OPTIONS=-v"
+#ExecStart=/usr/bin/env node $NODE_OPTIONS red.js $NODE_RED_OPTIONS
+ExecStart=/usr/bin/env node-red-pi $NODE_OPTIONS $NODE_RED_OPTIONS
+# Use SIGINT to stop
+KillSignal=SIGINT
+# Auto restart on crash
+Restart=on-failure
+# Tag things in the log
+SyslogIdentifier=Node-RED
+#StandardOutput=syslog
+
+[Install]
+WantedBy=multi-user.target
+EOL
+
+systemctl daemon-reload
+systemctl enable nodered.service
+systemctl start nodered.service
+
+printf "\nNode-RED has been installed\n"
+printf "  Access Node-RED in your browser by going to http://$(hostname -f).local:1880 or http://{your ip address }:1880\n\n"
+exit 0
+  fi
+}
+
+do_extra_packages() {
+  FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+    "A1 FFMPEG" "Install FFMPEG with OMX support" \
+    "A2 Pi-hole" "Install Pi-hole, a dns based ad-blocking service" \
+    "A3 Node-RED" "Install Node-RED" \
+    3>&1 1>&2 2>&3)
+  RET=$?
+  if [ $RET -eq 1 ]; then
+    return 0
+  elif [ $RET -eq 0 ]; then
+    case "$FUN" in
+      A1\ *) do_install_ffmpeg ;;
+      A2\ *) do_install_pihole ;;
+      A3\ *) do_install_nodered ;;
+      *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+    esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+  fi
+}
+
+do_configure_raspbian() {
+  raspi-config
+}
+
+do_about() {
+  whiptail --msgbox "\
+This tool provides a straight-forward way of managing
+Homebridge on a Raspberry Pi. Although it can be run at
+any time, some of the options may have difficulties
+if you have heavily customised your installation.\
+" 20 70 1
+}
+
+# Everything else needs to be run as root
+if [ $(id -u) -ne 0 ]; then
+  printf "Script must be run as root. Try 'sudo homebridge-config'\n"
+  exit 1
+fi
+
+#
+# Interactive use loop
+#
+if [ "$INTERACTIVE" = True ]; then
+  [ -e $CONFIG ] || touch $CONFIG
+  calc_wt_size
+  while true; do
+    if is_pi ; then
+      FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (homebridge-config)" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
+        "1 Update Homebridge" "Update Homebridge to the latest version" \
+        "2 Upgrade Node.js" "Upgrade Node.js to the latest LTS version" \
+        "3 Reset Pairings" "Unpair from Homekit and clear accessories and persist cache" \
+        "4 Restore Config" "Restores the Homebridge config the factory default" \
+        "5 Restart Homebridge" "Restarts the Homebridge service" \
+        "6 View Logs" "View Homebridge Logs" \
+        "7 Extra Packages" "Select additional components or packages to install" \
+        "8 Configure OS" "Open the Raspbian Configuration Tool" \
+        "9 Update" "Update this tool to the latest version" \
+        "10 About" "Information about this configuration tool" \
+        3>&1 1>&2 2>&3)
+    else
+      FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
+        "1 Update Homebridge" "Update Homebridge to the latest version" \
+        "2 Upgrade Node.js" "Upgrade Node.js to the latest LTS version" \
+        "3 Reset Pairings" "Unpair from Homekit and clear accessories and persist cache" \
+        "4 Restore Config" "Restores the Homebridge config the factory default" \
+        "5 Restart Homebridge" "Restarts the Homebridge service" \
+        "6 View Logs" "View Homebridge Logs" \
+        "7 Extra Packages" "Select additional components or packages to install" \
+        "8 Configure OS" "Open the Raspbian Configuration Tool" \
+        "9 Update" "Update this tool to the latest version" \
+        "10 About" "Information about this configuration tool" \
+        3>&1 1>&2 2>&3)
+    fi
+    RET=$?
+    if [ $RET -eq 1 ]; then
+      do_finish
+    elif [ $RET -eq 0 ]; then
+      if is_pi ; then
+        case "$FUN" in
+          1\ *) do_homebridge_update ;;
+          2\ *) do_nodejs_update ;;
+          3\ *) do_reset_pairings ;;
+          4\ *) do_restore_config ;;
+          5\ *) do_restart_services ;;
+          6\ *) do_view_logs ;;
+          7\ *) do_extra_packages ;;
+          8\ *) do_configure_raspbian ;;
+          9\ *) do_update ;;
+          10\ *) do_about ;;
+          *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+        esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+      else
+        case "$FUN" in
+          1\ *) do_homebridge_update ;;
+          2\ *) do_nodejs_update ;;
+          3\ *) do_reset_pairings ;;
+          4\ *) do_restore_config ;;
+          5\ *) do_restart_services ;;
+          6\ *) do_view_logs ;;
+          7\ *) do_extra_packages ;;
+          8\ *) do_configure_raspbian ;;
+	  9\ *) do_update ;;
+          10\ *) do_about ;;
+          *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+        esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+      fi
+    else
+      exit 1
+    fi
+  done
+fi

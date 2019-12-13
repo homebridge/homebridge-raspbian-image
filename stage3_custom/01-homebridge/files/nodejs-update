@@ -1,0 +1,31 @@
+#!/bin/bash
+
+set -e
+
+INDEX=$(curl -s https://nodejs.org/dist/index.json)
+LTS=$(echo $INDEX | jq -r 'map(select(.lts))[0].version')
+CURRENT=$(node -v)
+
+echo "Installed: $CURRENT"
+echo "Current Node.js LTS: $LTS"
+
+if [ $LTS != $CURRENT ]; then
+	echo "Updating Node.js to $LTS..."
+
+	PREFIX=$(npm -g prefix || echo "/usr/local")
+	sudo rm -rf "$PREFIX/lib/node_modules/npm"
+	curl -Lsf "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz" | sudo tar xzf - -C /usr/local --strip-components=1 --no-same-owner
+
+	echo "Node.js $(node -v)"
+	echo "npm $(npm -v)"
+
+	echo "Node.js updated to $LTS"
+
+	echo "Rebuilding modules..."
+	cd "$PREFIX/lib/node_modules"
+	sudo npm --unsafe-perm rebuild
+
+	echo "Update Complete"
+else
+	echo "Node.js is already up-to-date"
+fi
