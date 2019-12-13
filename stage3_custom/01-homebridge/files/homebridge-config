@@ -200,6 +200,9 @@ do_install_pihole() {
     printf "To re-enable the Homebridge UI on port 80 run\n\nln -s /etc/nginx/sites-available/homebridge.local /etc/nginx/sites-enabled/homebridge.local\n\n"
     printf "Starting Pi-hole installer...\n"
     curl -sSL https://install.pi-hole.net | bash
+    # make sure pi hole starts after the wifi-connect service
+    sed -i '/After=/c\After=wifi-connect.service network-online.target' /lib/systemd/system/lighttpd.service
+    systemctl daemon-reload
     exit 0
   fi
 }
