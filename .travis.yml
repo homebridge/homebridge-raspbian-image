@@ -1,5 +1,3 @@
-arch: arm64
-
 language: bash
 
 before_install:
