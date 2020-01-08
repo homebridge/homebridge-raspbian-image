@@ -7,45 +7,33 @@
 #
 # Copy service files
 #
-
-install -m 644 files/homebridge.service "${ROOTFS_DIR}/etc/systemd/system/"
-install -m 644 files/homebridge-config-ui-x.service "${ROOTFS_DIR}/etc/systemd/system/"
 install -m 644 files/hb-check.service "${ROOTFS_DIR}/etc/systemd/system/"
-install -m 644 files/env "${ROOTFS_DIR}/etc/default/homebridge"
 
 #
 # Executables Files
 #
-install -m 644 files/homebridge-config "${ROOTFS_DIR}/usr/local/sbin/"
-install -m 644 files/hb-check "${ROOTFS_DIR}/usr/local/sbin/"
-install -m 644 files/hb-config-setup "${ROOTFS_DIR}/usr/local/sbin/"
+install -m 755 files/homebridge-config "${ROOTFS_DIR}/usr/local/sbin/"
+install -m 755 files/hb-check "${ROOTFS_DIR}/usr/local/sbin/"
+
+# Pre-start files
+install -v -d "${ROOTFS_DIR}/etc/hb-service/homebridge/prestart.d"
+install -m 755 files/20-hb-nginx-check "${ROOTFS_DIR}/etc/hb-service/homebridge/prestart.d/"
 
 #
 # MOTD
 #
-install -m 644 files/issue "${ROOTFS_DIR}/etc/issue"
-install -m 644 files/motd-linux "${ROOTFS_DIR}/etc/update-motd.d/15-linux"
-install -m 644 files/motd-homebridge "${ROOTFS_DIR}/etc/update-motd.d/20-homebridge"
-
-#
-# Make homebridge config directory
-#
-install -v -d -o 1000 -g 1000 "${ROOTFS_DIR}/var/lib/homebridge"
+install -m 755 files/issue "${ROOTFS_DIR}/etc/issue"
+install -m 755 files/motd-linux "${ROOTFS_DIR}/etc/update-motd.d/15-linux"
+install -m 755 files/motd-homebridge "${ROOTFS_DIR}/etc/update-motd.d/20-homebridge"
 
 on_chroot << EOF
 # install homebridge and homebridge-config-ui-x
-npm install -g --unsafe-perm homebridge homebridge-config-ui-x
+npm install -g --unsafe-perm homebridge homebridge-config-ui-x@test
+
+hb-service install --user pi
 
 # correct ownership
 chown -R pi:pi /var/lib/homebridge
-
-# make executable
-chmod +x /usr/local/sbin/homebridge-config
-chmod +x /usr/local/sbin/hb-check
-chmod +x /usr/local/sbin/hb-config-setup
-
-chmod +x /etc/update-motd.d/15-linux
-chmod +x /etc/update-motd.d/20-homebridge
 
 # empty motd
 > /etc/motd
@@ -56,9 +44,11 @@ chmod +x /etc/update-motd.d/20-homebridge
 # store the build arch
 echo "armv7l" > /etc/homebridge-arch
 
+# set ui port for use in motd message
+echo "8581" > /etc/hb-ui-port
+
 systemctl daemon-reload
 systemctl enable homebridge
-systemctl enable homebridge-config-ui-x
 systemctl enable hb-check
 EOF
 

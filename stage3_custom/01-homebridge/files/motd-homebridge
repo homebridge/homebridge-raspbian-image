@@ -8,6 +8,7 @@ NC='\033[0m'
 MODEL=$(tr -d '\0' </proc/device-tree/model)
 
 IP=$(hostname -I)
+UI_PORT=$(cat /etc/hb-ui-port)
 
 printf "\n${RED}*** Homebridge Raspbian - $MODEL ***${NC}\n\n"
 
@@ -16,13 +17,13 @@ printf "homebridge-config-ui-x was created by oznu and licensed under the MIT Li
 
 printf "To configure Homebridge browse to the one of the following addresses from another device on your network:" | fold -s
 printf "\n\n"
-printf "${BOLD}*${NC} ${GREEN}http://$(hostname).local:8581${NC}\n"
+printf "${BOLD}*${NC} ${GREEN}http://$(hostname).local:${UI_PORT}${NC}\n"
 
 for ip in $IP; do
   if [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    printf "${BOLD}*${NC} ${GREEN}http://$ip:8581${NC}\n"
+    printf "${BOLD}*${NC} ${GREEN}http://$ip:${UI_PORT}${NC}\n"
   else
-    printf "${BOLD}*${NC} ${GREEN}http://[$ip]:8581${NC}\n"
+    printf "${BOLD}*${NC} ${GREEN}http://[$ip]:${UI_PORT}${NC}\n"
   fi
 done
 
@@ -31,9 +32,8 @@ printf "\nAll Homebridge configuration can be completed via the Homebridge Web U
 printf "\n${BOLD}Homebridge storage path:${NC} ${GREEN}/var/lib/homebridge${NC}\n"
 printf "${BOLD}Homebridge config.json path:${NC} ${GREEN}/var/lib/homebridge/config.json${NC}\n"
 
-printf "\n${BOLD}Restart Homebridge CMD:${NC} ${GREEN}sudo systemctl restart homebridge${NC}\n"
-printf "${BOLD}Restart UI CMD:${NC} ${GREEN}sudo systemctl restart homebridge-config-ui-x${NC}\n"
-printf "${BOLD}View Logs CMD:${NC} ${GREEN}journalctl -f -n 100 -u homebridge -u homebridge-config-ui-x${NC}\n"
+printf "\n${BOLD}Restart Homebridge CMD:${NC} ${GREEN}sudo hb-serivce restart${NC}\n"
+printf "${BOLD}View Logs CMD:${NC} ${GREEN}sudo hb-service logs${NC}\n"
 
 printf "\n${BOLD}Manage Homebridge:${NC} ${GREEN}sudo homebridge-config${NC}\n"
 

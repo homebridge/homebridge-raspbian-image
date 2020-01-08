@@ -1,6 +1,6 @@
 [Unit]
 Description=hb-check service
-Before=homebridge-config-ui-x.service homebridge.service
+Before=homebridge.service
 After=nginx.service
 
 [Service]

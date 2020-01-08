@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# try and find the port the UI is running on
+
+if [ -z "$UIX_STORAGE_PATH" ]; then
+  echo "UIX_STORAGE_PATH not set"
+  exit 0
+fi
+
+if [ -f $UIX_STORAGE_PATH/config.json ]; then
+  UI_PORT=$($(which node) <<EOL
+const fs = require('fs');
+const path = require('path');
+
+const homebridgeConfigPath = '$UIX_STORAGE_PATH/config.json';
+
+try {
+  let config = fs.readFileSync(homebridgeConfigPath, 'utf-8');
+  config = JSON.parse(config);
+  if (Array.isArray(config.platforms) && config.platforms.length) {
+    const uiConfig = config.platforms.find(x => x.platform === 'config');
+    if (uiConfig && uiConfig.port) {
+      console.log(uiConfig.port);
+    } else {
+      process.exit(1);
+    }
+  } else {
+    process.exit(1);
+  }
+} catch (e) {
+  console.error(e);
+  process.exit(1);
+}
+EOL
+)
+
+  RET=$?
+  if [ $RET -eq 0 ]; then
+    # store the port in /etc/hb-ui-port for usage in motd login banner
+    echo "$UI_PORT" > /etc/hb-ui-port
+  else
+    printf "Could not determine Homebrdige Config UI X port\n"
+    exit 0;
+  fi
+else
+  UI_PORT=8581
+fi
+
+# update the nginx config
+if [ -f /etc/nginx/sites-available/homebridge.local ]; then
+  printf "Setting port $UI_PORT in /etc/nginx/sites-available/homebridge.local\n"
+  sed -i "/proxy_pass/c\    proxy_pass                  http://127.0.0.1:${UI_PORT};" /etc/nginx/sites-available/homebridge.local
+  if systemctl is-active --quiet nginx.service; then
+    printf "Reloading nginx...\n"
+    nginx -s reload
+  fi
+fi
+
+exit 0

@@ -13,7 +13,6 @@ if [ $LTS != $CURRENT ]; then
 	echo "Updating Node.js to $LTS..."
 
 	PREFIX=$(npm -g prefix || echo "/usr/local")
-	sudo rm -rf "$PREFIX/lib/node_modules/npm"
 	curl -Lsf "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz" | sudo tar xzf - -C /usr/local --strip-components=1 --no-same-owner
 
 	echo "Node.js $(node -v)"

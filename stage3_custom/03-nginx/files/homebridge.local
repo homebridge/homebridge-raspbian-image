@@ -1,7 +1,35 @@
 server {
-  listen 80;
-  listen [::]:80;
-  server_name _;
+  # http://
+  listen 80;                  # http IPv4
+  listen [::]:80;             # http IPv6
+
+  # https://
+  listen 443 ssl http2;       # https IPv4
+  listen [::]:443 ssl http2;  # https IPv6
+
+  # replace the _ with your domain name if required
+  # eg.
+  # server_name example.com;
+  server_name _; # replace with your domain
+
+  # path to ssl certificate file
+  # If using Let's Encrypt replace this path with the location of the "fullchain.pem" file for your domain
+  # eg.
+  # ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+  ssl_certificate /etc/nginx/ssl/homebridge.local.crt;
+
+  # path to ssl private key file
+  # If using Let's Encrypt replace this path with the location of the "privkey.pem" file for your domain
+  # eg.
+  # ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+  ssl_certificate_key /etc/nginx/ssl/homebridge.local.key; # replace with path to
+
+  ssl_session_cache           builtin:1000  shared:SSL:10m;
+  ssl_protocols               TLSv1.2 TLSv1.3;
+  ssl_ciphers                 ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+  ssl_prefer_server_ciphers   off;
+  # ssl_stapling                on;
+  # ssl_stapling_verify         on;
 
   error_page 502 /custom_502.html;
 

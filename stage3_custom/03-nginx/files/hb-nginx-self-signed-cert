@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ -e /etc/nginx/sites-available/homebridge.local ]; then
+        mkdir -p /etc/nginx/ssl
+	if [ ! -f /etc/nginx/ssl/homebridge.local.crt ] || [ ! -f /etc/nginx/ssl/homebridge.local.key ]; then
+		openssl req -new -newkey rsa:2048 -days 1000 -nodes -x509 -subj '/CN=homebridge.local' -keyout /etc/nginx/ssl/homebridge.local.key -out /etc/nginx/ssl/homebridge.local.crt
+	fi
+fi

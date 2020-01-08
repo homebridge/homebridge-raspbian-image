@@ -3,6 +3,11 @@
 INTERACTIVE=True
 ASK_TO_REBOOT=0
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BOLD='\e[1m'
+NC='\033[0m'
+
 is_pi () {
   ARCH=$(dpkg --print-architecture)
   if [ "$ARCH" = "armhf" ] ; then
@@ -89,6 +94,20 @@ calc_wt_size() {
   WT_MENU_HEIGHT=$(($WT_HEIGHT-7))
 }
 
+get_web_addresses() {
+  IP=$(hostname -I)
+
+  printf "  ${BOLD}*${NC} ${GREEN}$1://$(hostname).local:$2$3${NC}\n"
+
+  for ip in $IP; do
+    if expr "$ip" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null; then
+      printf "  ${BOLD}*${NC} ${GREEN}$1://$ip:$2$3${NC}\n"
+    else
+      printf "  ${BOLD}*${NC} ${GREEN}$1://[$ip]:$2$3${NC}\n"
+    fi
+  done
+}
+
 do_finish() {
   if [ $ASK_TO_REBOOT -eq 1 ]; then
     whiptail --yesno "Would you like to reboot now?" 20 60 2
@@ -101,11 +120,11 @@ do_finish() {
 }
 
 do_stop_services() {
-  systemctl stop homebridge homebridge-config-ui-x
+  systemctl stop homebridge
 }
 
 do_start_services() {
-  systemctl start homebridge homebridge-config-ui-x
+  systemctl start homebridge
 }
 
 do_restart_services() {
@@ -113,7 +132,7 @@ do_restart_services() {
   RET=$?
   if [ $RET -eq 0 ]; then
     printf "Restarting Homebridge...\n"
-    systemctl restart homebridge homebridge-config-ui-x
+    systemctl restart homebridge
   fi
 }
 
@@ -169,7 +188,7 @@ do_reset_pairings() {
 }
 
 do_view_logs() {
-  journalctl -o cat -n 1000 -f -u homebridge -u homebridge-config-ui-x
+  hb-service logs
 }
 
 do_restore_config() {
@@ -186,32 +205,45 @@ do_restore_config() {
 }
 
 do_install_ffmpeg() {
-  apt-get update
-  apt-get install ffmpeg
-  exit 0
+  whiptail --title "Warning" --yesno "This will install FFMPEG with support for OMX hardware transcoding on your Raspberry Pi.\n\nThis version of FFMPEG is not compiled with support for the libfdk-aac audio codec, you should set the \"acodec\" option to use the \"libopus\" codec instead.\n\nAre you sure you want to continue?" 20 60 1
+  RET=$?
+  if [ $RET -eq 0 ]; then
+    apt update
+    apt install ffmpeg
+    printf "\n${BOLD}ffmpeg with omx support has been installed${NC}\n"
+    exit 0
+  fi
 }
 
 do_install_pihole() {
-  whiptail --title "Warning" --yesno "Installing Pi-Hole will prevent you from accessing the Homebridge UI on port 80.\n\nYou will still be able to access the Homebridge UI on port 8581.\n\nAre you sure you want to continue?" 20 60 1
+  whiptail --title "Warning" --yesno "Installing Pi-Hole will prevent you from accessing the Homebridge UI on port 80.\n\nYou will still be able to access the Homebridge UI on port $(cat /etc/hb-ui-port) and via:\n\n* http://homebrige.local:$(cat /etc/hb-ui-port)\n* https://homebridge.local\n\nAre you sure you want to continue?" 20 60 1
   RET=$?
   if [ $RET -eq 0 ]; then
-    rm -rf /etc/nginx/sites-enabled/homebridge.local
-    nginx -s reload
-    printf "To re-enable the Homebridge UI on port 80 run\n\nln -s /etc/nginx/sites-available/homebridge.local /etc/nginx/sites-enabled/homebridge.local\n\n"
+    if [ -f /etc/nginx/sites-available/homebridge.local ]; then
+      sed -i "/listen 80;/c\  # listen 80;                  # http IPv4 - disabled by Pi-Hole installer" /etc/nginx/sites-available/homebridge.local
+      sed -i "/listen \[::\]:80;/c\  # listen \[::\]:80;             # http IPv6 - disabled by Pi-Hole installer" /etc/nginx/sites-available/homebridge.local
+      nginx -s reload
+    fi
     printf "Starting Pi-hole installer...\n"
     curl -sSL https://install.pi-hole.net | bash
-    # make sure pi hole starts after the wifi-connect service
-    sed -i '/After=/c\After=wifi-connect.service network-online.target' /lib/systemd/system/lighttpd.service
-    systemctl daemon-reload
+
+    printf "\n${BOLD}Pi-hole has been installed${NC}\n"
+    printf "Access Pi-hole in your browser by going to:\n"
+    get_web_addresses http 80 /admin
+
+    printf "\nYou can still access the Homebridge UI by going to:\n"
+    get_web_addresses http $(cat /etc/hb-ui-port)
+    get_web_addresses https 443
+    printf "\n"
     exit 0
   fi
 }
 
 do_install_nodered() {
-  whiptail --title "Warning" --yesno "This will install Node-RED on your system.\n\nAre you sure you want to continue?" 20 60 1
+  whiptail --title "Warning" --yesno "This will install Node-RED on your system as a service running on port 1880.\n\nAre you sure you want to continue?" 20 60 1
   RET=$?
   if [ $RET -eq 0 ]; then
-    npm install -g --unsafe-perm node-red node-red-node-pi-gpio node-red-node-random node-red-node-ping node-red-contrib-play-audio node-red-node-smooth node-red-node-serialport
+    npm install -g --unsafe-perm node-red node-red-node-pi-gpio node-red-node-random node-red-node-ping node-red-contrib-play-audio node-red-node-smooth node-red-node-serialport node-red-contrib-homebridge-automation
     cat > /etc/systemd/system/nodered.service <<EOL
 # systemd service file to start Node-RED
 
@@ -247,21 +279,45 @@ SyslogIdentifier=Node-RED
 WantedBy=multi-user.target
 EOL
 
-systemctl daemon-reload
-systemctl enable nodered.service
-systemctl start nodered.service
+    systemctl daemon-reload
+    systemctl enable nodered.service
+    systemctl start nodered.service
 
-printf "\nNode-RED has been installed\n"
-printf "  Access Node-RED in your browser by going to http://$(hostname -f).local:1880 or http://{your ip address }:1880\n\n"
-exit 0
+    printf "\n${BOLD}Node-RED has been installed${NC}\n"
+    printf "Access Node-RED in your browser by going to:\n"
+    get_web_addresses http 1880
+    printf "\n"
+    exit 0
+  fi
+}
+
+do_install_unifi() {
+  whiptail --title "Warning" --yesno "This will install the UniFi Controller software which uses the following ports:\n\n* 8080\n* 8443\n* 8880\n* 8853\n* 6798\n* 27117\n\nAre you sure you want to continue?" 20 60 1
+  RET=$?
+  if [ $RET -eq 0 ]; then
+    # add unifi repo
+    echo 'deb http://www.ubnt.com/downloads/unifi/debian stable ubiquiti' | sudo tee /etc/apt/sources.list.d/100-ubnt-unifi.list
+    # add unifi gpg key
+    wget -O /etc/apt/trusted.gpg.d/unifi-repo.gpg https://dl.ubnt.com/unifi/unifi-repo.gpg
+    # install packages
+    apt update
+    apt install -y openjdk-8-jre-headless haveged
+    apt install -y unifi
+
+    printf "\n${BOLD}UniFi Controller has been installed${NC}\n"
+    printf "Access the UniFi Controller in your browser by going to:\n"
+    get_web_addresses https 8443
+    printf "\n"
+    exit 0
   fi
 }
 
 do_extra_packages() {
-  FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+  FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (homebridge-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
     "A1 FFMPEG" "Install FFMPEG with OMX support" \
     "A2 Pi-hole" "Install Pi-hole, a dns based ad-blocking service" \
     "A3 Node-RED" "Install Node-RED" \
+    "A4 UniFi Controller" "Install the Ubiquiti UniFi Controller software" \
     3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -eq 1 ]; then
@@ -271,6 +327,7 @@ do_extra_packages() {
       A1\ *) do_install_ffmpeg ;;
       A2\ *) do_install_pihole ;;
       A3\ *) do_install_nodered ;;
+      A4\ *) do_install_unifi ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi

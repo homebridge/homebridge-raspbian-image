@@ -29,9 +29,5 @@ if [ ! -f "/var/lib/homebridge/config.json" ]; then
 	/usr/local/sbin/hb-config-setup
 fi
 
-# fix permissions
-update_status "Fixing permissions..."
-chown -R pi:pi /var/lib/homebridge
-
 update_status "Starting now..."
 

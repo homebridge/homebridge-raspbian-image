@@ -1,7 +1,7 @@
 [Unit]
 Description=WiFi Captive Portal
 After=NetworkManager.service
-Before=nginx.service homebridge.service homebridge-config-ui-x.service homebridge-arch-check.service
+Before=nginx.service homebridge.service hb-check.service
 
 [Service]
 Type=oneshot
