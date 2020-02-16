@@ -14,7 +14,7 @@ NAME='WiFi Connect Raspbian Installer'
 INSTALL_BIN_DIR="$WFC_INSTALL_ROOT/sbin"
 INSTALL_UI_DIR="$WFC_INSTALL_ROOT/share/wifi-connect/ui"
 
-WFC_VERSION="4.2.5"
+WFC_VERSION="4.2.13"
 RELEASE_URL="https://github.com/balena-io/wifi-connect/releases/download/v$WFC_VERSION/wifi-connect-v$WFC_VERSION-linux-rpi.tar.gz"
 
 CONFIRMATION=true
@@ -106,7 +106,9 @@ install_wfc() {
 
     _download_dir=$(ensure mktemp -d)
 
-    ensure curl -Ls "$RELEASE_URL" | tar -xz -C "$_download_dir"
+    ensure wget "$RELEASE_URL" -O wifi-connect.tar.gz
+    ensure tar fxz wifi-connect.tar.gz -C "$_download_dir"
+    ensure rm -rf wifi-connect.tar.gz
 
     ensure sudo mv "$_download_dir/wifi-connect" $INSTALL_BIN_DIR
 
