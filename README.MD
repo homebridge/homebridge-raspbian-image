@@ -64,13 +64,17 @@ If you enter your WiFi credentials incorrectly the **Homebridge WiFi Setup** hot
 
 ## Managing Homebridge
 
-The *Homebridge Raspberry Pi Image* allows you to manage your Homebridge install using [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x).
+The [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) web interface will allow you to install, remove and update plugins, and modify the Homebridge config.json and manage other aspects of your Homebridge service.
+
+The default user is `admin` with password `admin`.
 
 If you're using macOS, Linux or a mobile device, you should be able to access the UI via http://homebridge.local.
 
 If you're using Windows, or `http://homebridge.local` does not work, login to your routers "connected devices" page to find the IP address that was assigned to the Raspberry Pi.
 
 As a last resort, if you plug a monitor into your Raspberry Pi, the IP address will be displayed on the screen once it has finished booting.
+
+Once you've found your IP address, login to the web interface by going to `http://<ip address of your server>`.
 
 <p align="center">
   <img width="600px" src="https://user-images.githubusercontent.com/3979615/71886653-b16d3f80-3190-11ea-9ff8-49dc4ae4fff0.png">
