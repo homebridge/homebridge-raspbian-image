@@ -32,7 +32,7 @@ printf "\nAll Homebridge configuration can be completed via the Homebridge Web U
 printf "\n${BOLD}Homebridge storage path:${NC} ${GREEN}/var/lib/homebridge${NC}\n"
 printf "${BOLD}Homebridge config.json path:${NC} ${GREEN}/var/lib/homebridge/config.json${NC}\n"
 
-printf "\n${BOLD}Restart Homebridge CMD:${NC} ${GREEN}sudo hb-serivce restart${NC}\n"
+printf "\n${BOLD}Restart Homebridge CMD:${NC} ${GREEN}sudo hb-service restart${NC}\n"
 printf "${BOLD}View Logs CMD:${NC} ${GREEN}sudo hb-service logs${NC}\n"
 
 printf "\n${BOLD}Manage Homebridge:${NC} ${GREEN}sudo homebridge-config${NC}\n"
