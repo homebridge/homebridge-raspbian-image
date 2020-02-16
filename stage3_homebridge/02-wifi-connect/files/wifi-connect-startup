@@ -15,7 +15,7 @@ until ip route | grep "default"; do
        fi
 
        printf 'Starting WiFi Connect\n'
-       /usr/local/sbin/wifi-connect --portal-ssid="Homebridge WiFi Setup" --activity-timeout=600
+       /usr/local/sbin/wifi-connect --portal-ssid="Homebridge WiFi Setup" --activity-timeout=1800
        printf 'WiFi Connection Established...\n'
 
        if [ ${has_pihole} -eq 1 ]; then
