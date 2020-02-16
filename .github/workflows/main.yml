@@ -1,4 +1,4 @@
-name: Build Raspberry Pi Homebridge Image
+name: CI
 
 on:
   push:
