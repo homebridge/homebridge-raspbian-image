@@ -1,6 +1,8 @@
-<span align="center">
-  
+<p align="center">
 <img src="https://user-images.githubusercontent.com/3979615/62948461-bae3bd00-be27-11e9-81b5-05c65c388a1e.png" height="120">
+</p>
+
+<span align="center">
 
 # Homebridge Raspberry Pi Image
 
@@ -19,8 +21,7 @@ The project provides a free [Raspbian](https://www.raspberrypi.org/downloads/ras
 
 ## Download
 
-Dowloading the *Homebridge Raspberry Pi Image* is completely free.
-
+Downloading the *Homebridge Raspberry Pi Image* is completely free.
 
 <span align="center">
   
@@ -31,12 +32,10 @@ Dowloading the *Homebridge Raspberry Pi Image* is completely free.
 ## Flashing to SD Card
 
 The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is to use [Etcher](https://www.balena.io/etcher/).
-
-<span align="center">
-  <br>
+  
+<p align="center">
     <img src="https://user-images.githubusercontent.com/3979615/74602030-a5ae5a80-50f8-11ea-885c-2e019105d318.gif" height="120">
-  <br> <br>
-</span>
+</p>
 
 1. Download and install the latest version of [Etcher](https://www.balena.io/etcher/).
 2. Open Etcher and select the `Homebridge-Raspbian-v0.0.0.zip` file you have [downloaded](https://github.com/oznu/pi-gen/releases/latest). There is no need to extract the `.zip` file first.
@@ -92,6 +91,12 @@ This will ensure your Raspberry Pi  is running the latest LTS version of Node.js
 ## SSH Access
 
 SSH is enabled by default. The default username is `pi` with password `raspberry`.
+
+## Security and Privacy
+
+This project is open source and the build logs for each version are available on the [GitHub Actions](https://github.com/oznu/pi-gen/actions) page for this project.
+
+The image built by this project, as well as the Homebridge and Homebridge Config UI X software components, do not contain any *analytics*, *call home* or similar features that would allow the project maintainers or other third parties to track you.
 
 ## Configuration Reference
 
