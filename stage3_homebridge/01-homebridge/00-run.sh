@@ -37,7 +37,7 @@ hb-service install --user pi
 rm -rf /var/lib/homebridge/config.json
 
 # correct ownership
-chown -R homebridge:homebridge /var/lib/homebridge
+chown -R pi:pi /var/lib/homebridge
 
 # empty motd
 > /etc/motd
