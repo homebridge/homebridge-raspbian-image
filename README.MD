@@ -2,6 +2,10 @@
   
 <img src="https://user-images.githubusercontent.com/3979615/62948461-bae3bd00-be27-11e9-81b5-05c65c388a1e.png" height="120">
 
+</span>
+
+<span align="center">
+
 # Homebridge Raspberry Pi Image
 
 [![Build](https://github.com/oznu/pi-gen/workflows/CI/badge.svg)](https://github.com/oznu/pi-gen/actions)
@@ -32,11 +36,13 @@ Dowloading the *Homebridge Raspberry Pi Image* is completely free.
 
 The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is to use [Etcher](https://www.balena.io/etcher/).
 
-<span align="center">
   <br>
+  
+<span align="center">
     <img src="https://user-images.githubusercontent.com/3979615/74602030-a5ae5a80-50f8-11ea-885c-2e019105d318.gif" height="120">
-  <br> <br>
 </span>
+
+  <br> <br>
 
 1. Download and install the latest version of [Etcher](https://www.balena.io/etcher/).
 2. Open Etcher and select the `Homebridge-Raspbian-v0.0.0.zip` file you have [downloaded](https://github.com/oznu/pi-gen/releases/latest). There is no need to extract the `.zip` file first.
