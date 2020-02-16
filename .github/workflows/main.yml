@@ -1,6 +1,9 @@
-name: CI
+name: Build Raspberry Pi Homebridge Image
 
-on: [push]
+on:
+  push:
+    tags:
+    - 'v*'
 
 jobs:
   build:
@@ -23,7 +26,7 @@ jobs:
         release_name: Release ${{ github.ref }}
         draft: false
         prerelease: false
-    - name: Upload Release Asset
+    - name: Upload Image
       id: upload-release-asset 
       uses: actions/upload-release-asset@v1
       env:
