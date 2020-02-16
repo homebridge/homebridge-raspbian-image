@@ -66,7 +66,7 @@ If you enter your WiFi credentials incorrectly the **Homebridge WiFi Setup** hot
 
 The [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) web interface will allow you to install, remove and update plugins, and modify the Homebridge config.json and manage other aspects of your Homebridge service.
 
-The default user is `admin` with password `admin`.
+**The default user is `admin` with password `admin`.**
 
 If you're using macOS, Linux or a mobile device, you should be able to access the UI via http://homebridge.local.
 
@@ -118,4 +118,6 @@ This table contains important information about your setup. You can use the info
 | **Systemd Env File**          | `/etc/default/homebridge`                |
 | **Default SSH Username**      | `pi`                                     |
 | **Default SSH Password**      | `raspberry`                              |
+| **Default Web Username**      | `admin`                                  |
+| **Default Web Password**      | `admin`                                  |
 
