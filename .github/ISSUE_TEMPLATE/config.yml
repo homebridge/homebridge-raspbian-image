@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Homebridge Reddit
+    url: https://www.reddit.com/r/homebridge/
+    about: A place to discuss Homebridge, get help with it, ask questions about it, post plugins, and more.
+contact_links:
+  - name: Homebridge Slack Community
+    url: https://slackin-znyruquwmv.now.sh/
+    about: A place to discuss and collaborate with other Homebridge users and developers.
