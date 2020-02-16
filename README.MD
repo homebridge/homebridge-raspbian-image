@@ -29,7 +29,7 @@ Downloading the *Homebridge Raspberry Pi Image* is completely free.
   
 </span>
 
-## Flashing to SD Card
+## Flash to SD Card
 
 The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is to use [Etcher](https://www.balena.io/etcher/).
   
@@ -100,7 +100,7 @@ SSH is enabled by default. The default username is `pi` with password `raspberry
 
 This project is open source and the build logs for each version are available on the [GitHub Actions](https://github.com/oznu/pi-gen/actions) page for this project.
 
-The image built by this project, as well as the Homebridge and Homebridge Config UI X software components, do not contain any *analytics*, *call home* or similar features that would allow the project maintainers or other third parties to track you.
+The image built by this project, as well as the Homebridge and Homebridge Config UI X software components, do not contain any *analytics*, *call home*, or similar features that would allow the project maintainers to track you or the usage of this image.
 
 ## Configuration Reference
 
