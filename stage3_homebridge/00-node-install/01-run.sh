@@ -16,7 +16,9 @@ echo "Installing Node.js $LTS..."
 set -e
 set -x
 
-curl -Lsf "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz" | tar xzf - -C /usr/local --strip-components=1 --no-same-owner
+wget "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz"
+tar xzf "node-$LTS-linux-armv6l.tar.gz" -C /usr/local --strip-components=1 --no-same-owner
+rm -rf node-$LTS-linux-armv6l.tar.gz
 
 node -v
 npm -v
