@@ -92,6 +92,12 @@ This will ensure your Raspberry Pi  is running the latest LTS version of Node.js
 
 SSH is enabled by default. The default username is `pi` with password `raspberry`.
 
+## Security and Privacy
+
+This project is open source and the build logs for each version are available on the [GitHub Actions](https://github.com/oznu/pi-gen/actions) page for this project.
+
+The image built by this project, as well as the Homebridge and Homebridge Config UI X software components, do not contain any *analytics*, *call home* or similar features that would allow the project maintainers or other third parties to track you.
+
 ## Configuration Reference
 
 This table contains important information about your setup. You can use the information provided here as a reference when configuring or troubleshooting your environment after setting up Homebridge using the instructions below.
