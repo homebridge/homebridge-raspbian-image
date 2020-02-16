@@ -1,6 +1,6 @@
 ---
 name: Support Request
-about: Ask for help related Homebridge Raspberry Pi Image. If you are having an issue with a certain plugin please raise the issue on the plugins project page instead. 
+about: Ask for help related Homebridge Raspberry Pi Image. If you are having an issue with a certain plugin, please raise the issue on that plugins project page instead. 
 title: ''
 labels: question
 assignees: ''
@@ -9,7 +9,7 @@ assignees: ''
 
 <!-- You must use the issue template below when submitting a support request -->
 
-<!-- If you are having an issue with a certain plugin please raise this issue on the plugins project page instead.  -->
+<!-- If you are having an issue with a certain plugin, please raise the issue on that plugins project page instead.  -->
 
 **Describe Your Problem:**
 <!-- A clear and concise description of what problem you are trying to solve. -->

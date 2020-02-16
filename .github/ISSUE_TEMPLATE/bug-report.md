@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Raise a bug related Homebridge Raspberry Pi Image.
+about: Raise a bug related to Homebridge Raspberry Pi Image. If you are having an issue with a certain plugin please raise the issue on that plugins project page instead.
 title: ''
 labels: bug
 assignees: ''
@@ -9,7 +9,7 @@ assignees: ''
 
 <!-- You must use the issue template below when submitting a bug -->
 
-<!-- If you are having an issue with a certain plugin please raise the issue on the plugins project page instead.  -->
+<!-- If you are having an issue with a certain plugin, please raise the issue on that plugins project page instead. -->
 
 **Describe The Bug:**
 <!-- A clear and concise description of what the bug is. -->
