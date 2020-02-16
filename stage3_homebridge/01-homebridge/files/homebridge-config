@@ -336,6 +336,12 @@ do_configure_raspbian() {
   raspi-config
 }
 
+do_update() {
+  whiptail --msgbox "\
+This feature has not been implimented yet.
+" 20 70 1
+}
+
 do_about() {
   whiptail --msgbox "\
 This tool provides a straight-forward way of managing
@@ -362,8 +368,8 @@ if [ "$INTERACTIVE" = True ]; then
       FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (homebridge-config)" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
         "1 Update Homebridge" "Update Homebridge to the latest version" \
         "2 Upgrade Node.js" "Upgrade Node.js to the latest LTS version" \
-        "3 Reset Pairings" "Unpair from Homekit and clear accessories and persist cache" \
-        "4 Restore Config" "Restores the Homebridge config the factory default" \
+        "3 Reset Bridge" "Unpair from Homekit and clear accessories and persist cache" \
+        "4 Restore Config" "Restores the Homebridge config to the factory default" \
         "5 Restart Homebridge" "Restarts the Homebridge service" \
         "6 View Logs" "View Homebridge Logs" \
         "7 Extra Packages" "Select additional components or packages to install" \
