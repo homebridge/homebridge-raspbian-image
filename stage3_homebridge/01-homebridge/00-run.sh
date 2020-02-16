@@ -30,7 +30,11 @@ on_chroot << EOF
 # install homebridge and homebridge-config-ui-x
 npm install -g --unsafe-perm homebridge@latest homebridge-config-ui-x@latest
 
+# setup homebridge using hb-service
 hb-service install --user homebridge
+
+# remove the default config.json that was created
+rm -rf /var/lib/homebridge/config.json
 
 # correct ownership
 chown -R homebridge:homebridge /var/lib/homebridge
