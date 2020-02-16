@@ -199,7 +199,6 @@ do_restore_config() {
     rm -rf /var/lib/homebridge/persist
     rm -rf /var/lib/homebridge/accessories
     rm -rf /var/lib/homebridge/config.json
-    /usr/local/sbin/hb-check
     do_start_services
   fi
 }

@@ -28,18 +28,19 @@ install -m 755 files/motd-homebridge "${ROOTFS_DIR}/etc/update-motd.d/20-homebri
 
 on_chroot << EOF
 # install homebridge and homebridge-config-ui-x
-npm install -g --unsafe-perm homebridge homebridge-config-ui-x@test
+npm install -g --unsafe-perm homebridge@latest homebridge-config-ui-x@latest
 
-hb-service install --user pi
+hb-service install --user homebridge
 
 # correct ownership
-chown -R pi:pi /var/lib/homebridge
+chown -R homebridge:homebridge /var/lib/homebridge
 
 # empty motd
 > /etc/motd
 
 # make a symlink to the main config directory
 [ -e /home/pi/.homebridge ] || ln -fs /var/lib/homebridge /home/pi/.homebridge
+[ -e /root/.homebridge ] || ln -fs /var/lib/homebridge /root/.homebridge
 
 # store the build arch
 echo "armv7l" > /etc/homebridge-arch

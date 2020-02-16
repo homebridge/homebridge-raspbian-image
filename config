@@ -2,4 +2,4 @@ IMG_DATE="Raspbian"
 IMG_NAME="Homebridge"
 HOSTNAME="homebridge"
 ENABLE_SSH=1
-STAGE_LIST="stage0 stage1 stage2 stage3_custom"
+STAGE_LIST="stage0 stage1 stage2 stage3_homebridge"

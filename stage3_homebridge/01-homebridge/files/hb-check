@@ -23,11 +23,5 @@ if [ $CURRENT_ARCH != $BUILD_ARCH ]; then
         echo $(uname -m) | sudo tee /etc/homebridge-arch
 fi
 
-# ensure the config.json exists
-if [ ! -f "/var/lib/homebridge/config.json" ]; then
-	update_status "Creating initial config.json..."
-	/usr/local/sbin/hb-config-setup
-fi
-
 update_status "Starting now..."
 
