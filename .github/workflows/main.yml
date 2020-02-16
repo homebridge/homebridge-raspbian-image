@@ -9,5 +9,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Run a one-line script
-      run: echo "Hello, world!"
+    - name: Install Dependencies
+      run: apt-get install coreutils quilt parted qemu-user-static debootstrap zerofree zip dosfstools bsdtar libcap2-bin grep rsync xz-utils file git curl
+    - name: Build Image
+      run: sudo CLEAN=1 ./build.sh -c config
