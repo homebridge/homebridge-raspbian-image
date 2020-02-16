@@ -11,3 +11,4 @@ make
 ntpdate
 jq
 libavahi-compat-libdnssd-dev
+git
