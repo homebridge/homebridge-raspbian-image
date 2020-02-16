@@ -21,8 +21,7 @@ The project provides a free [Raspbian](https://www.raspberrypi.org/downloads/ras
 
 ## Download
 
-Dowloading the *Homebridge Raspberry Pi Image* is completely free.
-
+Downloading the *Homebridge Raspberry Pi Image* is completely free.
 
 <span align="center">
   
