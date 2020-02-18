@@ -13,15 +13,17 @@
 
 This project provides a free [Raspbian](https://www.raspberrypi.org/downloads/raspbian/) based Raspberry Pi image with [Homebridge](https://github.com/nfarina/homebridge) and [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) pre-installed.
 
-* Built on Raspbian Lite (no desktop)
 * Works on all Raspberry Pi models
+* Built on Raspbian Lite (no desktop)
+* Includes `ffmpeg` pre-compiled with audio support (libfdk-aac) and hardware decoding (h264_omx)
 * Simple WiFi Setup
-* SSL pre-configured (self-signed certificate generated on your device)
-* System config command called `homebridge-config` which helps you keep Node.js up-to-date and install additional optional software such as *Pi Hole*, *Node-RED* and the *UniFI Controller*.
+* Includes a user friendly, easy to use web based GUI to configure Homebridge and monitor your Raspberry Pi
+
+This image also provides config command called `homebridge-config` which helps you keep Node.js up-to-date, perform maintentance on your Homebridge server, and install additional optional software such as *Pi Hole*, *Node-RED* and the *UniFI Controller*.
 
 ## Download
 
-Downloading the *Homebridge Raspberry Pi Image* is completely free.
+Downloading the *Homebridge Raspberry Pi Image* is completely free (no sign up required).
 
 <span align="center">
   
@@ -68,11 +70,14 @@ The [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) web
 
 **The default user is `admin` with password `admin`.**
 
-If you're using macOS, Linux or a mobile device, you should be able to access the UI via http://homebridge.local.
+If you're using macOS or a mobile device, you should be able to access the UI via http://homebridge.local.
 
-If you're using Windows, or `http://homebridge.local` does not work, login to your routers "connected devices" page to find the IP address that was assigned to the Raspberry Pi.
+If you're using Windows, or `http://homebridge.local` does not work for you, you will need to find the IP address of your Raspberry Pi another way:
 
-As a last resort, if you plug a monitor into your Raspberry Pi, the IP address will be displayed on the screen once it has finished booting.
+1. Login to your router and find the "connected devices" or "dhcp clients" page to find the IP address that was assigned to the Raspberry Pi.
+2. Use an iPhone to access `http://homebridge.local`, once you login using the default username and password (admin/admin) you can find the IP address under System Information.
+3. Download the [Fing](https://www.fing.com/) app for [iOS](https://itunes.apple.com/us/app/fing-network-scanner/id430921107?mt=8) or [Android](https://play.google.com/store/apps/details?id=com.overlook.android.fing&hl=en_GB) to scan your network to find the IP address of your Raspberry Pi.
+4. As a last resort, if you plug a monitor into your Raspberry Pi, the IP address will be displayed on the attached screen once it has finished booting.
 
 Once you've found your IP address, login to the web interface by going to `http://<ip address of your server>`.
 
