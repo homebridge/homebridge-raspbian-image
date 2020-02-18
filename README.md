@@ -15,8 +15,8 @@ This project provides a free [Raspbian](https://www.raspberrypi.org/downloads/ra
 
 * Works on all Raspberry Pi models
 * Built on Raspbian Lite (no desktop)
-* Includes `ffmpeg` pre-compiled with audio support (libfdk-aac) and hardware decoding (h264_omx)
 * Simple WiFi Setup
+* Includes `ffmpeg` pre-compiled with audio support (libfdk-aac) and hardware decoding (h264_omx)
 * Includes a user friendly, easy to use web based GUI to configure Homebridge and monitor your Raspberry Pi
 
 This image also provides config command called `homebridge-config` which helps you keep Node.js up-to-date, perform maintentance on your Homebridge server, and install additional optional software such as *Pi Hole*, *Node-RED* and the *UniFI Controller*.
