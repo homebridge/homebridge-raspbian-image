@@ -21,7 +21,7 @@ This project provides a free [Raspbian](https://www.raspberrypi.org/downloads/ra
 
 This image also provides config command called `homebridge-config` which helps you keep Node.js up-to-date, perform maintentance on your Homebridge server, and install additional optional software such as *Pi Hole*, *Node-RED* and the *UniFI Controller*.
 
-The image has the Homebridge service installed using the [standard configuration](https://github.com/nfarina/homebridge/wiki/Install-Homebridge-on-Raspbian) as documented on the Homebridge wiki.
+The Homebridge service is installed using the method described in offical [Raspberry Pi Installation Guide](https://github.com/nfarina/homebridge/wiki/Install-Homebridge-on-Raspbian) on the Homebridge project wiki.
 
 ## Download
 
