@@ -124,6 +124,7 @@ This table contains important information about your setup. You can use the info
 | **View Logs Command**         | `sudo hb-service logs`                   |
 | **Systemd Service File**      | `/etc/systemd/system/homebridge.service` |
 | **Systemd Env File**          | `/etc/default/homebridge`                |
+| **Default Hostname**          | `homebridge.local`                       |
 | **Default SSH Username**      | `pi`                                     |
 | **Default SSH Password**      | `raspberry`                              |
 | **Default Web Username**      | `admin`                                  |
