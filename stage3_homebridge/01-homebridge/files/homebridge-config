@@ -324,13 +324,34 @@ do_configure_raspbian() {
 }
 
 do_update() {
-  whiptail --msgbox "\
-This feature has not been implimented yet.
-" 20 70 1
+  tempDir=$(mktemp -d)
+  #scriptUrl=https://github.com/oznu/pi-gen/blob/master/stage3_homebridge/01-homebridge/files/homebridge-config
+  scriptUrl=https://gist.githubusercontent.com/oznu/4288af1496ac12fe5eadcd3f422d44ab/raw/homebridge-config
+
+  # download the update to a temporary directory
+  scriptUrl=$scriptUrl?$(date --iso-8601)
+  printf "Downloading homebridge-config update...\n$scriptUrl\n"
+  curl -fL# $scriptUrl > $tempDir/homebridge-config
+
+  # check the download was a success
+  RET=$?
+  if [ $RET -ne 0 ]; then
+    whiptail --title "Error" --msgbox "An error occured while attempting to update the homebridge-config tool." 20 60 1
+  else
+    # syntax check the script is a valid bash script
+    if bash -n $tempDir/homebridge-config; then
+      chmod +x $tempDir/homebridge-config
+      mv $tempDir/homebridge-config /usr/local/sbin/homebridge-config
+      whiptail --title "Success" --msgbox "The homebridge-config tool has been updated and will now exit." 20 60 1
+      exit 0
+    else
+      whiptail --title "Error" --msgbox "The downloaded script was corrupted and did not pass the syntax check." 20 60 1
+    fi
+  fi
 }
 
 do_about() {
-  whiptail --msgbox "\
+  whiptail --title "About" --msgbox "\
 This tool provides a straight-forward way of managing
 Homebridge on a Raspberry Pi. Although it can be run at
 any time, some of the options may have difficulties
