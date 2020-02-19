@@ -203,17 +203,6 @@ do_restore_config() {
   fi
 }
 
-do_install_ffmpeg() {
-  whiptail --title "Warning" --yesno "This will install FFMPEG with support for OMX hardware transcoding on your Raspberry Pi.\n\nThis version of FFMPEG is not compiled with support for the libfdk-aac audio codec, you should set the \"acodec\" option to use the \"libopus\" codec instead.\n\nAre you sure you want to continue?" 20 60 1
-  RET=$?
-  if [ $RET -eq 0 ]; then
-    apt update
-    apt install ffmpeg
-    printf "\n${BOLD}ffmpeg with omx support has been installed${NC}\n"
-    exit 0
-  fi
-}
-
 do_install_pihole() {
   whiptail --title "Warning" --yesno "Installing Pi-Hole will prevent you from accessing the Homebridge UI on port 80.\n\nYou will still be able to access the Homebridge UI on port $(cat /etc/hb-ui-port) and via:\n\n* http://homebrige.local:$(cat /etc/hb-ui-port)\n* https://homebridge.local\n\nAre you sure you want to continue?" 20 60 1
   RET=$?
@@ -313,20 +302,18 @@ do_install_unifi() {
 
 do_extra_packages() {
   FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (homebridge-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-    "A1 FFMPEG" "Install FFMPEG with OMX support" \
-    "A2 Pi-hole" "Install Pi-hole, a dns based ad-blocking service" \
-    "A3 Node-RED" "Install Node-RED" \
-    "A4 UniFi Controller" "Install the Ubiquiti UniFi Controller software" \
+    "A1 Pi-hole" "Install Pi-hole, a dns based ad-blocking service" \
+    "A2 Node-RED" "Install Node-RED" \
+    "A3 UniFi Controller" "Install the Ubiquiti UniFi Controller software" \
     3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -eq 1 ]; then
     return 0
   elif [ $RET -eq 0 ]; then
     case "$FUN" in
-      A1\ *) do_install_ffmpeg ;;
-      A2\ *) do_install_pihole ;;
-      A3\ *) do_install_nodered ;;
-      A4\ *) do_install_unifi ;;
+      A1\ *) do_install_pihole ;;
+      A2\ *) do_install_nodered ;;
+      A3\ *) do_install_unifi ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
@@ -372,7 +359,7 @@ if [ "$INTERACTIVE" = True ]; then
         "4 Restore Config" "Restores the Homebridge config to the factory default" \
         "5 Restart Homebridge" "Restarts the Homebridge service" \
         "6 View Logs" "View Homebridge Logs" \
-        "7 Extra Packages" "Select additional components or packages to install" \
+        "7 Extra Packages" "Optional packages, eg. Pi-Hole, Node-RED, UniFi Controller" \
         "8 Configure OS" "Open the Raspbian Configuration Tool" \
         "9 Update" "Update this tool to the latest version" \
         "10 About" "Information about this configuration tool" \
@@ -385,7 +372,7 @@ if [ "$INTERACTIVE" = True ]; then
         "4 Restore Config" "Restores the Homebridge config the factory default" \
         "5 Restart Homebridge" "Restarts the Homebridge service" \
         "6 View Logs" "View Homebridge Logs" \
-        "7 Extra Packages" "Select additional components or packages to install" \
+        "7 Extra Packages" "Optional packages, eg. Pi-Hole, Node-RED, UniFi Controller" \
         "8 Configure OS" "Open the Raspbian Configuration Tool" \
         "9 Update" "Update this tool to the latest version" \
         "10 About" "Information about this configuration tool" \
