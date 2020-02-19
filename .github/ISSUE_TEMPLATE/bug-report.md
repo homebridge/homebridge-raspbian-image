@@ -7,9 +7,18 @@ assignees: ''
 
 ---
 
-<!-- You must use the issue template below when submitting a bug -->
+<!--
+You must use the issue template below when submitting a bug
+-->
 
-<!-- If you are having an issue with a certain plugin, please raise the issue on that plugin's project page instead. -->
+<!--
+If you are having an issue with a certain plugin, please raise the issue on that plugin's project page instead.
+-->
+
+<!--
+The Homebridge Raspberry Pi image is just Raspbian Linux with Homebridge installed as a service.
+If you are facing an issue that is not Homebridge related you should look elsewhere for support.
+-->
 
 **Describe The Bug:**
 <!-- A clear and concise description of what the bug is. -->
@@ -37,7 +46,5 @@ Remove any sensitive information.
 * **NPM Version**: <!-- npm -v -->
 * **Homebridge Version**: <!-- homebridge -V -->
 * **Homebridge Config UI X Plugin Version**: <!-- hb-service -v -->
-* **Operating System**: <!-- Raspbian / Ubuntu / Debian / Windows / macOS / Docker -->
-
 
 <!-- Click the "Preview" tab before you submit to ensure the formatting is correct. -->
