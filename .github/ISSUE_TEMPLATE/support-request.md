@@ -17,7 +17,7 @@ If you are having an issue with a certain plugin, please raise the issue on that
 
 <!--
 The Homebridge Raspberry Pi image is just Raspbian Linux with Homebridge installed as a service.
-If you are facing an issue that is not Homebridge related you should raise your bug elsewhere.
+If you are facing an issue that is not Homebridge related you should look elsewhere for support.
 -->
 
 **Describe Your Problem:**
