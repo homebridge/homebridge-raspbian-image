@@ -31,8 +31,6 @@ jobs:
         export IMAGE_SHA256_CHECKSUM=$(shasum -a 256 deploy/image_Raspbian-Homebridge.zip | awk '{print $1}')
         echo "$IMAGE_SHA256_CHECKSUM deploy/image_Raspbian-Homebridge.zip"
         echo ::set-output name=IMAGE_SHA256_CHECKSUM::${IMAGE_SHA256_CHECKSUM}
-        export IMAGE_SIZE=$(du -m "deploy/image_Raspbian-Homebridge.zip" | cut -f1)
-        echo ::set-output name=IMAGE_SIZE::${IMAGE_SIZE}
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -46,7 +44,7 @@ jobs:
 
           <span align="center">
 
-          ### [Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip (${{ steps.get_version.outputs.IMAGE_SIZE }} MB)](https://github.com/oznu/homebridge-raspbian-image/releases/download/${{ steps.get_version.outputs.VERSION }}/Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip)
+          ### [Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip](https://github.com/oznu/homebridge-raspbian-image/releases/download/${{ steps.get_version.outputs.VERSION }}/Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip)
 
           </span>
 
