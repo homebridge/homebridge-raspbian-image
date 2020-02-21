@@ -9,8 +9,9 @@ MODEL=$(tr -d '\0' </proc/device-tree/model)
 
 IP=$(hostname -I)
 UI_PORT=$(cat /etc/hb-ui-port)
+IMAGE_VERSION=$(cat /etc/hb-release)
 
-printf "\n${RED}*** Homebridge Raspbian - $MODEL ***${NC}\n\n"
+printf "\n${RED}*** Homebridge Raspbian $IMAGE_VERSION - $MODEL ***${NC}\n\n"
 
 printf "homebridge was created by nfarina and licensed under the Apache License 2.0.\n" | fold -s
 printf "homebridge-config-ui-x was created by oznu and licensed under the MIT License.\n\n" | fold -s

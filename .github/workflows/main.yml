@@ -24,7 +24,7 @@ jobs:
        sudo apt-get install -y coreutils quilt parted debootstrap zerofree zip dosfstools bsdtar libcap2-bin grep rsync xz-utils file git curl
        sudo apt-get install -y qemu-user-static:i386
     - name: Build Image
-      run: sudo CLEAN=1 ./build.sh -c config
+      run: sudo CLEAN=1 BUILD_VERSION=${{ steps.get_version.outputs.VERSION }} ./build.sh -c config
     - name: Calculate Checksum
       id: get_sha256_checksum
       run: |

@@ -26,6 +26,11 @@ install -m 755 files/issue "${ROOTFS_DIR}/etc/issue"
 install -m 755 files/motd-linux "${ROOTFS_DIR}/etc/update-motd.d/15-linux"
 install -m 755 files/motd-homebridge "${ROOTFS_DIR}/etc/update-motd.d/20-homebridge"
 
+#
+# Set Version
+#
+echo "$BUILD_VERSION" > "${ROOTFS_DIR}/etc/hb-release"
+
 on_chroot << EOF
 # install homebridge and homebridge-config-ui-x
 npm install -g --unsafe-perm homebridge@latest homebridge-config-ui-x@latest
