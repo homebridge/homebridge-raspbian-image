@@ -351,12 +351,25 @@ do_update() {
 }
 
 do_about() {
+  IMAGE_VERSION=$(cat /etc/hb-release)
+
   whiptail --title "About" --msgbox "\
-This tool provides a straight-forward way of managing
-Homebridge on a Raspberry Pi. Although it can be run at
-any time, some of the options may have difficulties
-if you have heavily customised your installation.\
-" 20 70 1
+This tool provides a straight-forward way of managing Homebridge on a Raspberry Pi. Although it can be run at any time, some of the options may have difficulties if you have heavily customised your installation.
+
+Image Version: $IMAGE_VERSION
+
+Homebridge - @nfarina
+https://github.com/nfarina/homebridge
+
+Homebridge Config UI X - @oznu
+https://github.com/oznu/homebridge-config-ui-x
+
+Homebridge Raspbian Image - @oznu
+https://github.com/oznu/homebridge-raspbian-image
+
+
+\
+" 20 80 1
 }
 
 # Everything else needs to be run as root
@@ -386,7 +399,7 @@ if [ "$INTERACTIVE" = True ]; then
         "10 About" "Information about this configuration tool" \
         3>&1 1>&2 2>&3)
     else
-      FUN=$(whiptail --title "Raspberry Pi Software Configuration Tool (raspi-config)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
+      FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (homebridge-config)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
         "1 Update Homebridge" "Update Homebridge to the latest version" \
         "2 Upgrade Node.js" "Upgrade Node.js to the latest LTS version" \
         "3 Reset Pairings" "Unpair from Homekit and clear accessories and persist cache" \
