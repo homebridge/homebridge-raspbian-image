@@ -24,7 +24,13 @@ jobs:
        sudo apt-get install -y coreutils quilt parted debootstrap zerofree zip dosfstools bsdtar libcap2-bin grep rsync xz-utils file git curl
        sudo apt-get install -y qemu-user-static:i386
     - name: Build Image
-      run: sudo CLEAN=1 ./build.sh -c config
+      run: sudo CLEAN=1 BUILD_VERSION=${{ steps.get_version.outputs.VERSION }} ./build.sh -c config
+    - name: Calculate Checksum
+      id: get_sha256_checksum
+      run: |
+        export IMAGE_SHA256_CHECKSUM=$(shasum -a 256 deploy/image_Raspbian-Homebridge.zip | awk '{print $1}')
+        echo "$IMAGE_SHA256_CHECKSUM deploy/image_Raspbian-Homebridge.zip"
+        echo ::set-output name=IMAGE_SHA256_CHECKSUM::${IMAGE_SHA256_CHECKSUM}
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -33,8 +39,25 @@ jobs:
       with:
         tag_name: ${{ github.ref }}
         release_name: ${{ github.ref }}
+        body: |
+          Click the link below to start your download:
+
+          <span align="center">
+
+          ### [Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip](https://github.com/oznu/homebridge-raspbian-image/releases/download/${{ steps.get_version.outputs.VERSION }}/Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip)
+
+          </span>
+
+          ---
+
+          * **SHA-256:** ${{ steps.get_sha256_checksum.outputs.IMAGE_SHA256_CHECKSUM }}
+          * **Base Image:**
+          * **Kernel version:**
+          * **Node.js Version:**
+          * **Homebridge Version:**
+          * **Homebridge Config UI X Version:**
         draft: false
-        prerelease: false
+        prerelease: true
     - name: Upload Image
       id: upload-release-asset 
       uses: actions/upload-release-asset@v1
