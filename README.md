@@ -67,6 +67,8 @@ After a minute or so, use your phone to scan for new WiFi networks, you should t
 
 If you enter your WiFi credentials incorrectly the **Homebridge WiFi Setup** hotspot will reappear allowing you to try again.
 
+![how-it-works](https://user-images.githubusercontent.com/3979615/75397237-7e525b80-594a-11ea-9be0-4f064b6a4178.png)
+
 ## Managing Homebridge
 
 The [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) web interface will allow you to install, remove and update plugins, and modify the Homebridge config.json and manage other aspects of your Homebridge service.
