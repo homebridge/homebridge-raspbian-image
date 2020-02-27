@@ -18,7 +18,7 @@ This project provides a free [Raspbian](https://www.raspberrypi.org/downloads/ra
 * Simple WiFi Setup
 * Includes `ffmpeg` pre-compiled with audio support (libfdk-aac) and hardware decoding (h264_omx)
 * Includes a user friendly, easy to use web based GUI to configure Homebridge and monitor your Raspberry Pi
-* Zero json config editing for over 50 popular plugins
+* Visual configuration for over 50 popular plugins (no manual config.json editing required)
 
 This image also provides config command called `homebridge-config` which helps you keep Node.js up-to-date, perform maintentance on your Homebridge server, and install additional optional software such as *Pi Hole*, *Node-RED* and the *UniFI Controller*.
 
@@ -67,7 +67,7 @@ After a minute or so, use your phone to scan for new WiFi networks, you should t
 
 If you enter your WiFi credentials incorrectly the **Homebridge WiFi Setup** hotspot will reappear allowing you to try again.
 
-![how-it-works](https://user-images.githubusercontent.com/3979615/75397237-7e525b80-594a-11ea-9be0-4f064b6a4178.png)
+![wifi-connect-setup](https://user-images.githubusercontent.com/3979615/75397237-7e525b80-594a-11ea-9be0-4f064b6a4178.png)
 
 ## Managing Homebridge
 
