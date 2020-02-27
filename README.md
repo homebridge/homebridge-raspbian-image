@@ -108,9 +108,9 @@ SSH is enabled by default. The default username is `pi` with password `raspberry
 
 ## Security and Privacy
 
-This project is open source and the build logs for each version are available on the [GitHub Actions](https://github.com/oznu/homebridge-raspbian-image/actions) page for this project.
-
-The image built by this project, as well as the Homebridge and Homebridge Config UI X software components, do not contain any *analytics*, *call home*, or similar features that would allow the project maintainers to track you or the usage of this image.
+* **Privacy:** The *Homebridge Raspbian Image*, as well as the [Homebridge](https://github.com/nfarina/homebridge) and [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) software components, do not contain any *analytics*, *call home*, or similar features that would allow the project maintainers to track you or the usage of this image.
+* **Security:** The *Homebridge Raspbian Image* is kept up-to-date with the latest [offical Raspbian builds](https://github.com/RPi-Distro/pi-gen). To find out more, or to report a security issue or vulnerability, please see the project's [SECURITY](.github/SECURITY.md) policy.
+* **Transparency:** The *Homebridge Raspbian Image* project is open source and each image is built using the public GitHub Action runners. The build logs for each release are publicly available on the project's [GitHub Actions](https://github.com/oznu/homebridge-raspbian-image/actions) page and every release contains a SHA-256 checksum of the image you can use to verify the integrity of your download.
 
 ## Configuration Reference
 
