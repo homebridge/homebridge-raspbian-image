@@ -1,75 +1,490 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <!-- The styling of the page is taken from the homebridge.io website -->
+    <!-- The homebridge.io site was designed by Tait Brown and the homebridge logo by Gabriel Garcia -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>502 - Homebridge Starting...</title>
-<style>
-  body {
-    margin: 0;
-    color: #FFFFFF;
-    background-color: #421367;
-    font-family: 'Arial';
-    font-size: 22px;
-  }
-
-  .center-me {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    height: 100vh;
-  }
-
-  .text-center {
-    text-align: center;
-  }
-
-  .text-italic {
-    font-style: italic;
-  }
-
-  .logo {
-    max-width: 20vw;
-  }
-</style>
-
-<script>
-(async function () {
-  const check = setInterval(async () => {
-    const response = await fetch('/');
-    if (response.status === 200) {
-      clearInterval(check);
-      location.reload(true);
+  <style>
+    h1, h2, h3, h4, h5 {
+        font-weight: 600;
     }
-  }, 1000);
-}());
-
-(async function () {
-  setInterval(async () => {
-    const response = await fetch('/startup-status.json?ts=' + new Date().toISOString());
-    if (response.status === 200) {
-      try {
-        const body = await response.json();
-        document.getElementById('statusMessage').innerHTML = body.message;
-      } catch (e) {
-        // do nothing
-        console.error(e);
+    body, html {
+        padding: 0;
+        margin: 0;
+        font-family: "din-2014", system, sans-serif;
+        letter-spacing: 0.015em;
+    }
+    body {
+        background: #421367;
+    }
+    * {
+        box-sizing: border-box;
+    }
+    .container {
+        width: 100%;
+        max-width: 960px;
+        margin: 0 auto;
+        position: relative;
+    }
+    .info-block {
+        opacity: 0;
+        animation: infoBlockLoad ease 3s;
+        animation-iteration-count: 1; 
+        animation-fill-mode: forwards; 
+    }
+    @keyframes infoBlockLoad {
+    0% { 
+        opacity: 0; 
+    } 
+    100% { 
+        opacity: 1; 
+     } 
+    }
+    .Logo {
+        display: inline-block;
+        border-radius: 100%;
+        background: #FFF;
+        width: 133px;
+        height: 133px;
+        margin: 10px auto;
+        position: relative;
+        opacity: 0;
+        animation: appearUp 1.5s cubic-bezier(0.19, 1, 0.22, 1) forwards 1s;
+    }
+    .Logo__Featured svg {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        margin: auto;
+        width: 85px;
+        overflow: visible;
+    }
+    .Logo__Featured svg mask path {
+        stroke-dasharray: 1300;
+        stroke-dashoffset: 1300;
+        animation: dash 3s linear forwards;
+        animation-delay: 1.75s;
+    }
+    .Logo__Featured svg g#base path {
+        fill: #000;
+        opacity: 0.3;
+    }
+    .Logo__Featured svg g#draw path {
+        fill: #000;
+        opacity: 0.8;
+    }
+    @keyframes dash {
+        to {
+            stroke-dashoffset: 0;
+        }
+    }
+    #FirstBand path {
+        animation: loadUp 0.6s cubic-bezier(0.645, 0.045, 0.355, 1) forwards;
+    }
+    #FirstBand path:nth-child(1) {
+        animation-delay: 1.825s;
+    }
+    #FirstBand path:nth-child(2) {
+        animation-delay: 1.9s;
+    }
+    #FirstBand path:nth-child(3) {
+        animation-delay: 1.975s;
+    }
+    #FirstBand path:nth-child(4) {
+        animation-delay: 2.05s;
+    }
+    #FirstBand path:nth-child(5) {
+        animation-delay: 2.125s;
+    }
+    #SecondBand path {
+        animation: loadUp 0.6s cubic-bezier(0.645, 0.045, 0.355, 1) forwards;
+    }
+    #SecondBand path:nth-child(1) {
+        animation-delay: 3.033s;
+    }
+    #SecondBand path:nth-child(2) {
+        animation-delay: 3.066s;
+    }
+    #SecondBand path:nth-child(3) {
+        animation-delay: 3.099s;
+    }
+    #SecondBand path:nth-child(4) {
+        animation-delay: 3.132s;
+    }
+    #SecondBand path:nth-child(5) {
+        animation-delay: 3.165s;
+    }
+    @keyframes loadUp {
+        0% {
+            transform: translateY(0);
+            opacity: 0.25;
+        }
+        50% {
+            transform: translateY(-2px);
+        }
+        100% {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    @keyframes appearUp {
+        0% {
+            transform: translateY(25px);
+            opacity: 0;
+        }
+        100% {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    .Masthead {
+        color: #FFF;
+        text-align: center;
+        overflow: hidden;
+        position: relative;
+        width: 100%;
+    }
+    .Masthead .command {
+        position: absolute;
+        display: block;
+    }
+    .Masthead .command span {
+        transform-style: preserve-3d;
+        display: block;
+    }
+    .Masthead .command.__lvl1 {
+        font-size: 22px;
+        filter: blur(2px);
+    }
+    .Masthead .command.__lvl2 {
+        font-size: 16px;
+        filter: blur(3px);
+        opacity: .66;
+    }
+    .Masthead .command.__lvl3 {
+        font-size: 12px;
+        filter: blur(4px);
+        opacity: .45;
+    }
+    .Masthead .command.__lvl4 {
+        font-size: 8px;
+        filter: blur(6px);
+        opacity: .2;
+    }
+    .Masthead .command.__coffeeMachine {
+        left: 15%;
+        top: 10%;
+    }
+    .Masthead .command.__goodMorning {
+        right: 0;
+        top: -5%;
+    }
+    .Masthead .command.__tesla {
+        right: 10%;
+        top: 25%;
+    }
+    .Masthead .container {
+        padding: 1px 0;
+    }
+    .Masthead .command.__lvl1 span {
+        animation: 5s level-1 linear;
+    }
+    .Masthead .command.__lvl2 span {
+        animation: 8.5s level-2 linear;
+    }
+    .Masthead .command.__lvl3 span {
+        animation: 9.25s level-3 linear;
+    }
+    .Masthead .command.__lvl4 span {
+        animation: 11s level-4 linear;
+    }
+    .MastheadContent {
+        max-width: 640px;
+        margin: 180px auto;
+        position: relative;
+        z-index: 2;
+    }
+    @media only screen and (max-width: 600px) {
+      .MastheadContent {
+        margin: 100px auto;
       }
     }
-  }, 1700);
-}());
-</script>
+    .MastheadContent h1 {
+        font-size: 32px;
+        font-weight: 400;
+        margin: .5rem 0 0 0;
+    }
+    .MastheadContent h2 {
+        font-size: 20px;
+        font-weight: 400;
+        line-height: 1.5;
+        max-width: 480px;
+        margin: .5rem auto 2rem auto;
+        opacity: .66;
+    }
+    .MastheadContent input {
+        width: 400px;
+        padding: 8px;
+    }
+    #commandParallax {
+        position: absolute;
+        top: 0;
+        left: -200px;
+        right: -200px;
+        height: 100%;
+        opacity: .33;
+    }
+    @keyframes level-1 {
+        0% {
+            transform: translateY(0);
+            opacity: 0;
+        }
+        10% {
+            opacity: 1;
+        }
+        90% {
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(-140px);
+            opacity: 0;
+        }
+    }
+    @keyframes level-2 {
+        0% {
+            transform: translateY(0);
+            opacity: 0;
+        }
+        10% {
+            opacity: 1;
+        }
+        90% {
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(-80px);
+            opacity: 0;
+        }
+    }
+    @keyframes level-3 {
+        0% {
+            transform: translateY(0);
+            opacity: 0;
+        }
+        10% {
+            opacity: 1;
+        }
+        90% {
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+    }
+    @keyframes level-4 {
+        0% {
+            transform: translateY(0);
+            opacity: 0;
+        }
+        10% {
+            opacity: 1;
+        }
+        90% {
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(-30px);
+            opacity: 0;
+        }
+    }
+    </style>
 
+    <script>
+      (async function () {
+        const check = setInterval(async () => {
+          const response = await fetch('/');
+          if (response.status === 200) {
+            clearInterval(check);
+            location.reload(true);
+          }
+        }, 1000);
+      }());
+
+      (async function () {
+        setInterval(async () => {
+          const response = await fetch('/startup-status.json?ts=' + new Date().toISOString());
+          if (response.status === 200) {
+            try {
+              const body = await response.json();
+              document.getElementById('statusMessage').innerHTML = body.message;
+            } catch (e) {
+              // do nothing
+              console.error(e);
+            }
+          }
+        }, 1700);
+      }());
+    </script>
 </head>
+
 <body>
-  <div class="center-me">
-    <div class="text-center">
-      <img class="logo" src="https://user-images.githubusercontent.com/3979615/70615050-c7561600-1c5f-11ea-8fc5-94a7c0569147.png">
-      <h1>Homebridge</h1>
+
+  <section class="Masthead">
+    <div class="container" style="height: 100vh;">
+      <div class="MastheadContent">
+        <div class="Logo Logo__Featured">
+          <svg width="263" height="265" viewBox="0 0 263 265" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <mask id="mask0" mask-type="alpha" maskUnits="userSpaceOnUse" x="-12" y="-12" width="288" height="291">
+              <path
+                d="M117 269.5L173 212L131 170L83.5 208L59 183.5L128.5 115L204 180L228 157L131 62L31 152.5L6 128L128.5 5.5L183 52V23H221.5V90.5L266 137.5"
+                stroke="#FF0000" stroke-width="25" />
+            </mask>
+            <g id="draw" mask="url(#mask0)">
+              <path
+                d="M251.654 112.363C251.584 112.363 251.534 112.363 251.464 112.363L229.464 90.363C229.069 89.97 228.754 89.5027 228.54 88.9878C228.325 88.473 228.215 87.9207 228.214 87.363V36.613C228.206 31.4517 226.153 26.504 222.503 22.8544C218.853 19.2048 213.906 17.1509 208.744 17.143H195.004C189.841 17.1483 184.891 19.2009 181.239 22.8508C177.588 26.5007 175.532 31.4499 175.524 36.613V36.903L143.044 5.44298C139.358 1.91059 134.438 -0.0422705 129.333 0.000694207C124.227 0.0436589 119.341 2.07905 115.714 5.67298L5.71442 115.673C3.90298 117.481 2.46585 119.628 1.48529 121.991C0.504728 124.355 0 126.889 0 129.448C0 132.007 0.504728 134.541 1.48529 136.905C2.46585 139.268 3.90298 141.415 5.71442 143.223L16.1844 153.643C19.8237 157.268 24.7452 159.312 29.8818 159.333C35.0185 159.354 39.9562 157.349 43.6244 153.753L128.164 70.443C128.962 69.6516 130.041 69.2075 131.164 69.2075C132.288 69.2075 133.367 69.6516 134.164 70.443L216.994 153.283C217.783 154.082 218.226 155.16 218.226 156.283C218.226 157.406 217.783 158.484 216.994 159.283L206.814 169.463C206.015 170.252 204.937 170.694 203.814 170.694C202.691 170.694 201.614 170.252 200.814 169.463L142.654 113.103C138.969 109.547 134.036 107.58 128.915 107.625C123.795 107.67 118.897 109.723 115.274 113.343L59.4644 169.443C55.8304 173.098 53.7906 178.043 53.7906 183.198C53.7906 188.352 55.8304 193.297 59.4644 196.953L69.7944 207.283C73.4386 210.911 78.3677 212.954 83.51 212.967C88.6523 212.98 93.5918 210.963 97.2544 207.353L127.344 177.623C128.144 176.834 129.221 176.392 130.344 176.392C131.467 176.392 132.545 176.834 133.344 177.623L163.264 207.033C163.664 207.424 163.983 207.89 164.201 208.405C164.419 208.921 164.532 209.474 164.534 210.033C164.531 211.159 164.081 212.237 163.284 213.033L133.654 242.753C133.524 242.753 133.414 242.673 133.274 242.673C131.077 242.673 128.929 243.325 127.102 244.545C125.275 245.766 123.851 247.501 123.01 249.531C122.169 251.561 121.949 253.795 122.378 255.95C122.807 258.106 123.865 260.085 125.418 261.639C126.972 263.193 128.952 264.251 131.107 264.68C133.262 265.108 135.496 264.888 137.526 264.047C139.556 263.206 141.291 261.782 142.512 259.955C143.733 258.128 144.384 255.98 144.384 253.783C144.384 253.713 144.384 253.663 144.384 253.593L174.154 223.833C175.972 222.014 177.412 219.853 178.39 217.476C179.369 215.098 179.867 212.549 179.856 209.978C179.845 207.407 179.325 204.863 178.325 202.493C177.326 200.124 175.868 197.976 174.034 196.173L144.114 166.773C140.464 163.195 135.556 161.191 130.444 161.191C125.333 161.191 120.425 163.195 116.774 166.773L86.5844 196.543C85.7878 197.337 84.709 197.783 83.5844 197.783C82.4598 197.783 81.381 197.337 80.5844 196.543L70.2744 186.203C69.4854 185.404 69.043 184.326 69.043 183.203C69.043 182.08 69.4854 181.002 70.2744 180.203L126.124 124.103C126.913 123.301 127.987 122.845 129.112 122.833C130.237 122.822 131.32 123.257 132.124 124.043L190.274 180.543C193.956 184.085 198.877 186.046 203.985 186.009C209.094 185.972 213.985 183.938 217.614 180.343L227.804 170.153C231.45 166.498 233.497 161.546 233.497 156.383C233.497 151.22 231.45 146.268 227.804 142.613L144.934 59.743C141.295 56.116 136.372 54.0694 131.234 54.047C126.096 54.0245 121.156 56.0279 117.484 59.623L32.9444 142.903C32.1428 143.687 31.0659 144.126 29.9444 144.126C28.823 144.126 27.7461 143.687 26.9444 142.903L16.5144 132.443C15.7206 131.646 15.2748 130.568 15.2748 129.443C15.2748 128.318 15.7206 127.24 16.5144 126.443L126.514 16.443C127.306 15.6449 128.38 15.1918 129.504 15.1824C130.628 15.1731 131.71 15.6082 132.514 16.393L190.814 72.813V36.613C190.817 35.4866 191.266 34.4072 192.062 33.6107C192.859 32.8142 193.938 32.3656 195.064 32.363H208.804C209.932 32.3656 211.012 32.8139 211.81 33.6101C212.608 34.4063 213.059 35.4857 213.064 36.613V87.443C213.083 92.6034 215.13 97.5495 218.764 101.213L240.654 123.103C240.654 123.243 240.574 123.353 240.574 123.483C240.576 125.681 241.23 127.829 242.454 129.656C243.677 131.482 245.415 132.905 247.447 133.743C249.479 134.581 251.714 134.798 253.869 134.366C256.024 133.934 258.003 132.872 259.555 131.315C261.106 129.758 262.161 127.775 262.585 125.618C263.01 123.461 262.785 121.227 261.939 119.198C261.093 117.169 259.665 115.437 257.834 114.22C256.003 113.003 253.853 112.357 251.654 112.363V112.363Z"
+                fill="#211915" />
+            </g>
+            <g id="base">
+              <path
+                d="M251.654 112.363C251.584 112.363 251.534 112.363 251.464 112.363L229.464 90.363C229.069 89.97 228.754 89.5027 228.54 88.9878C228.325 88.473 228.215 87.9207 228.214 87.363V36.613C228.206 31.4517 226.153 26.504 222.503 22.8544C218.853 19.2048 213.906 17.1509 208.744 17.143H195.004C189.841 17.1483 184.891 19.2009 181.239 22.8508C177.588 26.5007 175.532 31.4499 175.524 36.613V36.903L143.044 5.44298C139.358 1.91059 134.438 -0.0422705 129.333 0.000694207C124.227 0.0436589 119.341 2.07905 115.714 5.67298L5.71442 115.673C3.90298 117.481 2.46585 119.628 1.48529 121.991C0.504728 124.355 0 126.889 0 129.448C0 132.007 0.504728 134.541 1.48529 136.905C2.46585 139.268 3.90298 141.415 5.71442 143.223L16.1844 153.643C19.8237 157.268 24.7452 159.312 29.8818 159.333C35.0185 159.354 39.9562 157.349 43.6244 153.753L128.164 70.443C128.962 69.6516 130.041 69.2075 131.164 69.2075C132.288 69.2075 133.367 69.6516 134.164 70.443L216.994 153.283C217.783 154.082 218.226 155.16 218.226 156.283C218.226 157.406 217.783 158.484 216.994 159.283L206.814 169.463C206.015 170.252 204.937 170.694 203.814 170.694C202.691 170.694 201.614 170.252 200.814 169.463L142.654 113.103C138.969 109.547 134.036 107.58 128.915 107.625C123.795 107.67 118.897 109.723 115.274 113.343L59.4644 169.443C55.8304 173.098 53.7906 178.043 53.7906 183.198C53.7906 188.352 55.8304 193.297 59.4644 196.953L69.7944 207.283C73.4386 210.911 78.3677 212.954 83.51 212.967C88.6523 212.98 93.5918 210.963 97.2544 207.353L127.344 177.623C128.144 176.834 129.221 176.392 130.344 176.392C131.467 176.392 132.545 176.834 133.344 177.623L163.264 207.033C163.664 207.424 163.983 207.89 164.201 208.405C164.419 208.921 164.532 209.474 164.534 210.033C164.531 211.159 164.081 212.237 163.284 213.033L133.654 242.753C133.524 242.753 133.414 242.673 133.274 242.673C131.077 242.673 128.929 243.325 127.102 244.545C125.275 245.766 123.851 247.501 123.01 249.531C122.169 251.561 121.949 253.795 122.378 255.95C122.807 258.106 123.865 260.085 125.418 261.639C126.972 263.193 128.952 264.251 131.107 264.68C133.262 265.108 135.496 264.888 137.526 264.047C139.556 263.206 141.291 261.782 142.512 259.955C143.733 258.128 144.384 255.98 144.384 253.783C144.384 253.713 144.384 253.663 144.384 253.593L174.154 223.833C175.972 222.014 177.412 219.853 178.39 217.476C179.369 215.098 179.867 212.549 179.856 209.978C179.845 207.407 179.325 204.863 178.325 202.493C177.326 200.124 175.868 197.976 174.034 196.173L144.114 166.773C140.464 163.195 135.556 161.191 130.444 161.191C125.333 161.191 120.425 163.195 116.774 166.773L86.5844 196.543C85.7878 197.337 84.709 197.783 83.5844 197.783C82.4598 197.783 81.381 197.337 80.5844 196.543L70.2744 186.203C69.4854 185.404 69.043 184.326 69.043 183.203C69.043 182.08 69.4854 181.002 70.2744 180.203L126.124 124.103C126.913 123.301 127.987 122.845 129.112 122.833C130.237 122.822 131.32 123.257 132.124 124.043L190.274 180.543C193.956 184.085 198.877 186.046 203.985 186.009C209.094 185.972 213.985 183.938 217.614 180.343L227.804 170.153C231.45 166.498 233.497 161.546 233.497 156.383C233.497 151.22 231.45 146.268 227.804 142.613L144.934 59.743C141.295 56.116 136.372 54.0694 131.234 54.047C126.096 54.0245 121.156 56.0279 117.484 59.623L32.9444 142.903C32.1428 143.687 31.0659 144.126 29.9444 144.126C28.823 144.126 27.7461 143.687 26.9444 142.903L16.5144 132.443C15.7206 131.646 15.2748 130.568 15.2748 129.443C15.2748 128.318 15.7206 127.24 16.5144 126.443L126.514 16.443C127.306 15.6449 128.38 15.1918 129.504 15.1824C130.628 15.1731 131.71 15.6082 132.514 16.393L190.814 72.813V36.613C190.817 35.4866 191.266 34.4072 192.062 33.6107C192.859 32.8142 193.938 32.3656 195.064 32.363H208.804C209.932 32.3656 211.012 32.8139 211.81 33.6101C212.608 34.4063 213.059 35.4857 213.064 36.613V87.443C213.083 92.6034 215.13 97.5495 218.764 101.213L240.654 123.103C240.654 123.243 240.574 123.353 240.574 123.483C240.576 125.681 241.23 127.829 242.454 129.656C243.677 131.482 245.415 132.905 247.447 133.743C249.479 134.581 251.714 134.798 253.869 134.366C256.024 133.934 258.003 132.872 259.555 131.315C261.106 129.758 262.161 127.775 262.585 125.618C263.01 123.461 262.785 121.227 261.939 119.198C261.093 117.169 259.665 115.437 257.834 114.22C256.003 113.003 253.853 112.357 251.654 112.363V112.363Z"
+                fill="#211915" />
+            </g>
+          </svg>
+        </div>
+        <div class="info-block">
+          <h1>Homebridge</h1>
+          <h2 id="statusMessage">Starting now...</h2>
+        </div>
+      </div>
+        <div id="commandParallax" class="center-me">
+          <!-- Commands rendered here -->
+        </div>
     </div>
-    <div id="statusMessage" class="text-center text-italic">
-	Starting now...
-    </div>
-  </div>
+  </section>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const DOMReady = function (a, b, c) { b = document, c = 'addEventListener'; b[c] ? b[c]('DOMContentLoaded', a) : window.attachEvent('onload', a) }
+
+      const sampleCommands = [
+        'Good Morning, Siri',
+        'Siri, turn on the coffee machine',
+        'Good Night!',
+        'Turn down the cinema room lights',
+        'Set the Netflix and Chill scene',
+        'Open the garage door',
+        'Start my robot vaccuum cleaner',
+        'Close the blinds, Siri!',
+        'Run "Aziz, Light"',
+        'Turn off the driveway lights',
+        'Set living room to 20 degrees',
+        'Siri, unlock the front door',
+        'Arm the alarm system',
+        'Siri, turn off the smoke alarm'
+      ];
+
+      const levels = [{
+        id: 1,
+        className: '__lvl1',
+        parallaxSpeed: 7
+      }, {
+        id: 2,
+        className: '__lvl2',
+        parallaxSpeed: 5.5
+      }, {
+        id: 3,
+        className: '__lvl3',
+        parallaxSpeed: 2.5
+      }, {
+        id: 4,
+        className: '__lvl4',
+        parallaxSpeed: 0.5
+      }];
+
+      initialise();
+
+      function initialise() {
+        DOMReady(function () {
+          for (var i = 0; i < 10; i++) {
+            createCommandHtml(true);
+          }
+        });
+        document.addEventListener('webkitAnimationEnd', onAnimationEnded);
+      }
+
+      function onAnimationEnded(e) {
+        var $e = e.target.parentNode;
+        var $anim = e.animationName;
+        if ($anim.match('level')) {
+          $e.parentNode.removeChild($e);
+          createCommandHtml();
+        }
+      }
+
+      // from lodash
+      function baseRandom(lower, upper) {
+        return lower + Math.floor(Math.random() * (upper - lower + 1));
+      }
+
+      // from lodash
+      function arraySample(array) {
+        var length = array.length;
+        return length ? array[baseRandom(0, length - 1)] : undefined;
+      }
+
+      // from lodash
+      function baseSample(collection) {
+        return arraySample(values(collection));
+      }
+
+      // from lodash
+      function sample(collection) {
+        var func = Array.isArray(collection) ? arraySample : baseSample;
+        return func(collection);
+      }
+
+      // from lodash
+      function baseRandom(lower, upper) {
+        return lower + Math.floor(Math.random() * (upper - lower + 1));
+      }
+
+      function createCommandHtml(firstRun) {
+        var output = document.getElementById('commandParallax');
+        var lvl = sample(levels);
+        var commandText = sample(sampleCommands);
+        var commandHtml = `
+          <span
+            class="command ${lvl.className} rellax"
+            style="${randomisePosition(firstRun)}"
+            data-rellax-speed="${lvl.parallaxSpeed}">
+              <span>${commandText}</span>
+          </span>
+        `;
+        output.insertAdjacentHTML('beforeend', commandHtml);
+      }
+
+      function randomisePosition(firstRun) {
+        var styles = {};
+        var x = baseRandom(5, 90);
+        var y = baseRandom(-5, 80);
+        styles.bottom = y + '%';
+        styles.left = x + '%';
+        if (firstRun) {
+          styles.animationDelay = baseRandom(-2.2, .8) + 's';
+        }
+        return Object.entries(styles).map(([key, value]) => {
+          return key + ': ' + value;
+        }).join('; ');
+      }
+    }());
+  </script>
+
 </body>
+
 </html>
