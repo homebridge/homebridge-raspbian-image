@@ -6,8 +6,8 @@
 
 # Homebridge Raspberry Pi Image
 
-[![Build](https://github.com/oznu/homebridge-raspbian-image/workflows/CI/badge.svg)](https://github.com/oznu/homebridge-raspbian-image/actions)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/oznu/homebridge-raspbian-image?label=Version)](https://github.com/oznu/homebridge-raspbian-image/releases/latest)
+[![Build](https://github.com/homebridge/homebridge-raspbian-image/workflows/CI/badge.svg)](https://github.com/homebridge/homebridge-raspbian-image/actions)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/homebridge/homebridge-raspbian-image?label=Version)](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
 
 </span>
 
@@ -30,7 +30,7 @@ Downloading the *Homebridge Raspberry Pi Image* is completely free (no sign up r
 
 <span align="center">
   
-### [Download Latest Version](https://github.com/oznu/homebridge-raspbian-image/releases/latest)
+### [Download Latest Version](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
   
 </span>
 
@@ -43,7 +43,7 @@ The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is 
 </p>
 
 1. Download and install the latest version of [Etcher](https://www.balena.io/etcher/).
-2. Open Etcher and select the `Homebridge-Raspbian-v0.0.0.zip` file you have [downloaded](https://github.com/oznu/homebridge-raspbian-image/releases/latest). There is no need to extract the `.zip` file first.
+2. Open Etcher and select the `Homebridge-Raspbian-v0.0.0.zip` file you have [downloaded](https://github.com/homebridge/homebridge-raspbian-image/releases/latest). There is no need to extract the `.zip` file first.
 3. Choose the drive your SD card has been inserted into.
 4. Click Flash.
 
@@ -110,7 +110,7 @@ SSH is enabled by default. The default username is `pi` with password `raspberry
 
 * **Privacy:** The *Homebridge Raspbian Image*, as well as the [Homebridge](https://github.com/nfarina/homebridge) and [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) software components, do not contain any *analytics*, *call home*, or similar features that would allow the project maintainers to track you or the usage of this image.
 * **Security:** The *Homebridge Raspbian Image* is kept up-to-date with the latest [offical Raspbian builds](https://github.com/RPi-Distro/pi-gen). To find out more, or to report a security issue or vulnerability, please see the project's [SECURITY](.github/SECURITY.md) policy.
-* **Transparency:** The *Homebridge Raspbian Image* project is open source and each image is built using the public GitHub Action runners. The build logs for each release are publicly available on the project's [GitHub Actions](https://github.com/oznu/homebridge-raspbian-image/actions) page and every release contains a SHA-256 checksum of the image you can use to verify the integrity of your download.
+* **Transparency:** The *Homebridge Raspbian Image* project is open source and each image is built using the public GitHub Action runners. The build logs for each release are publicly available on the project's [GitHub Actions](https://github.com/homebridge/homebridge-raspbian-image/actions) page and every release contains a SHA-256 checksum of the image you can use to verify the integrity of your download.
 
 ## Configuration Reference
 

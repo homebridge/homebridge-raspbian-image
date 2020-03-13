@@ -325,7 +325,7 @@ do_configure_raspbian() {
 
 do_update() {
   tempDir=$(mktemp -d)
-  #scriptUrl=https://raw.githubusercontent.com/oznu/homebridge-raspbian-image/master/stage3_homebridge/01-homebridge/files/homebridge-config
+  #scriptUrl=https://raw.githubusercontent.com/homebridge/homebridge-raspbian-image/master/stage3_homebridge/01-homebridge/files/homebridge-config
   scriptUrl=https://gist.githubusercontent.com/oznu/4288af1496ac12fe5eadcd3f422d44ab/raw/homebridge-config
 
   # download the update to a temporary directory
@@ -365,7 +365,7 @@ Homebridge Config UI X - @oznu
 https://github.com/oznu/homebridge-config-ui-x
 
 Homebridge Raspbian Image - @oznu
-https://github.com/oznu/homebridge-raspbian-image
+https://github.com/homebridge/homebridge-raspbian-image
 
 
 \

@@ -44,7 +44,7 @@ jobs:
 
           <span align="center">
 
-          ### [Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip](https://github.com/oznu/homebridge-raspbian-image/releases/download/${{ steps.get_version.outputs.VERSION }}/Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip)
+          ### [Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip](https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ steps.get_version.outputs.VERSION }}/Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip)
 
           </span>
 
