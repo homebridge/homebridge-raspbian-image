@@ -112,6 +112,16 @@ SSH is enabled by default. The default username is `pi` with password `raspberry
 * **Security:** The *Homebridge Raspbian Image* is kept up-to-date with the latest [offical Raspbian builds](https://github.com/RPi-Distro/pi-gen). To find out more, or to report a security issue or vulnerability, please see the project's [SECURITY](.github/SECURITY.md) policy.
 * **Transparency:** The *Homebridge Raspbian Image* project is open source and each image is built using the public GitHub Action runners. The build logs for each release are publicly available on the project's [GitHub Actions](https://github.com/homebridge/homebridge-raspbian-image/actions) page and every release contains a SHA-256 checksum of the image you can use to verify the integrity of your download.
 
+## Community
+
+The official Homebridge Discord server and Reddit community are where users can discuss Homebridge and ask for help.
+
+<span align="center">
+
+[![Homebridge Discord](https://discordapp.com/api/guilds/432663330281226270/widget.png?style=banner2)](https://discord.gg/kqNCe2D) [![Homebridge Reddit](.github/homebridge-reddit.svg?sanitize=true)](https://www.reddit.com/r/homebridge/)
+
+</span>
+
 ## Configuration Reference
 
 This table contains important information about your setup. You can use the information provided here as a reference when configuring or troubleshooting your environment after setting up Homebridge using the instructions below.
