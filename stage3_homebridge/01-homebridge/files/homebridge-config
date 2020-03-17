@@ -176,21 +176,6 @@ do_nodejs_update() {
   fi
 }
 
-do_reset_pairings() {
-  whiptail --yesno "After you reset Homebridge you will need to manually remove your existing connection in the iOS Home app.\n\nAre you sure you want to reset Homebridge?" 20 60 2
-  RET=$?
-  if [ $RET -eq 0 ]; then
-    do_stop_services
-    rm -rf /var/lib/homebridge/persist
-    rm -rf /var/lib/homebridge/accessories
-    do_start_services
-  fi
-}
-
-do_view_logs() {
-  hb-service logs
-}
-
 do_restore_config() {
   whiptail --yesno "This will remove all custom Homebridge config and restore it to the factory default. You will need to manually remove any existing connections to this instance in the iOS Home app.\n\nAre you sure you want to proceed?" 20 60 2
   RET=$?
@@ -319,6 +304,125 @@ do_extra_packages() {
   fi
 }
 
+do_configure_nginx() {
+  whiptail --title "Warning" --yesno "Using this tool will overwrite any manual changes you may have made to the Homebridge Nginx config file.\n\nAre you sure you wish to continue?" 20 60 1
+  RET=$?
+  if [ $RET -eq 0 ]; then
+    whiptail --title "Homebridge Raspbian Configuration Tool (homebridge-config)" --separate-output --checklist "\nNGINX Options:"  20 80 5 --cancel-button Cancel --ok-button Save \
+      "1" "Listen on port 80 - http://        " 1  \
+      "2" "Listen on port 443 - https://      " 1 \
+      "3" "Redirect http:// to https://       " 0 2>results
+
+    if [ $? -eq 0 ]; then
+       LISTEN_ON_PORT_80=false
+       LISTEN_ON_PORT_443=false
+       REDIRECT_HTTP_TO_HTTPS=false
+
+       while read choice
+       do
+         case "$choice" in
+           1) LISTEN_ON_PORT_80=true ;;
+           2) LISTEN_ON_PORT_443=true ;;
+           3) REDIRECT_HTTP_TO_HTTPS=true ;;
+           *) ;;
+         esac
+       done < results
+
+NGINX_PORT_80_CONFIG=""
+if [ "$LISTEN_ON_PORT_80" = "true" ]; then
+  NGINX_PORT_80_CONFIG="# http://\n  listen 80;                  # http IPv4\n  listen [::]:80;             # http IPv6\n"
+fi
+
+NGINX_PORT_443_CONFIG=""
+if [ "$LISTEN_ON_PORT_443" = "true" ]; then
+  NGINX_PORT_443_CONFIG="# https://\n  listen 443 ssl http2;       # https IPv4\n  listen [::]:443 ssl http2;  # https IPv6\n"
+fi
+
+NGINX_REDIRECT_HTTP_TO_HTTPS=""
+if [ "$REDIRECT_HTTP_TO_HTTPS" = "true" ] && [ "$LISTEN_ON_PORT_80" = "true" ]; then
+  NGINX_PORT_80_CONFIG=""
+  NGINX_REDIRECT_HTTP_TO_HTTPS="
+server {
+  listen 80;                  # http IPv4
+  listen [::]:80;             # http IPv6
+
+  # replace the _ with your domain name if required
+  # eg.
+  # server_name example.com;
+  server_name _;
+
+  return 302 https://\$host\$request_uri;
+}"
+fi
+
+NGINX_TEMPLATE="# this file was generated using the homebridge-config tool
+
+server {
+  $NGINX_PORT_80_CONFIG  
+  $NGINX_PORT_443_CONFIG
+  # replace the _ with your domain name if required
+  # eg.
+  # server_name example.com;
+  server_name _; # replace with your domain
+
+  # path to ssl certificate file
+  # If using Let's Encrypt replace this path with the location of the fullchain.pem file for your domain
+  # eg.
+  # ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+  ssl_certificate /etc/nginx/ssl/homebridge.local.crt;
+
+  # path to ssl private key file
+  # If using Let's Encrypt replace this path with the location of the privkey.pem file for your domain
+  # eg.
+  # ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+  ssl_certificate_key /etc/nginx/ssl/homebridge.local.key;
+
+  ssl_session_cache           builtin:1000  shared:SSL:10m;
+  ssl_protocols               TLSv1.2 TLSv1.3;
+  ssl_ciphers                 ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384;
+  ssl_prefer_server_ciphers   off;
+  # ssl_stapling                on;
+  # ssl_stapling_verify         on;
+
+  error_page 502 /custom_502.html;
+
+  location /startup-status.json {
+    alias /usr/share/nginx/html/status.json;
+  }
+
+  location / {
+    proxy_pass                  http://127.0.0.1:$(cat /etc/hb-ui-port);
+    proxy_http_version          1.1;
+    proxy_buffering             off;
+    proxy_set_header            Host \$host;
+    proxy_set_header            Upgrade \$http_upgrade;
+    proxy_set_header            Connection \"Upgrade\";
+    proxy_set_header            X-Real-IP \$remote_addr;
+    proxy_set_header            X-Forward-For \$proxy_add_x_forwarded_for;
+  }
+
+  location = /custom_502.html {
+    root /usr/share/nginx/html;
+    internal;
+  }
+}
+$NGINX_REDIRECT_HTTP_TO_HTTPS
+"
+
+       echo "$NGINX_TEMPLATE" > /etc/nginx/sites-available/homebridge.local
+       /usr/local/sbin/hb-nginx-self-signed-cert
+       nginx -s reload || systemctl restart nginx
+
+       if [ $? -eq 0 ]; then
+         whiptail --title "Success" --msgbox "NGINX has been configued successfully." 20 60 1  
+       else
+         whiptail --title "Error" --msgbox "An error occured while attempting to reload the NGINX config." 20 60 1
+       fi
+
+     fi
+  fi
+}
+
 do_configure_raspbian() {
   raspi-config
 }
@@ -387,29 +491,25 @@ if [ "$INTERACTIVE" = True ]; then
   while true; do
     if is_pi ; then
       FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (homebridge-config)" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
-        "1 Update Homebridge" "Update Homebridge to the latest version" \
-        "2 Upgrade Node.js" "Upgrade Node.js to the latest LTS version" \
-        "3 Reset Bridge" "Unpair from Homekit and clear accessories and persist cache" \
-        "4 Restore Config" "Restores the Homebridge config to the factory default" \
-        "5 Restart Homebridge" "Restarts the Homebridge service" \
-        "6 View Logs" "View Homebridge Logs" \
-        "7 Extra Packages" "Optional packages, eg. Pi-Hole, Node-RED, UniFi Controller" \
-        "8 Configure OS" "Open the Raspbian Configuration Tool" \
-        "9 Update" "Update this tool to the latest version" \
-        "10 About" "Information about this configuration tool" \
+        "1 Upgrade Node.js" "Upgrade Node.js to the latest LTS version" \
+        "2 Update Homebridge" "Update Homebridge to the latest version" \
+        "3 Restore Config" "Restores the Homebridge config to the factory default" \
+        "4 Extra Packages" "Optional packages, eg. Pi-Hole, Node-RED, UniFi Controller" \
+        "5 Nginx Options" "Configure Homebridge Nginx settings" \
+        "6 Configure OS" "Open the Raspbian Configuration Tool" \
+        "7 Update" "Update this tool to the latest version" \
+        "8 About" "Information about this configuration tool" \
         3>&1 1>&2 2>&3)
     else
       FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (homebridge-config)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
-        "1 Update Homebridge" "Update Homebridge to the latest version" \
-        "2 Upgrade Node.js" "Upgrade Node.js to the latest LTS version" \
-        "3 Reset Pairings" "Unpair from Homekit and clear accessories and persist cache" \
-        "4 Restore Config" "Restores the Homebridge config the factory default" \
-        "5 Restart Homebridge" "Restarts the Homebridge service" \
-        "6 View Logs" "View Homebridge Logs" \
-        "7 Extra Packages" "Optional packages, eg. Pi-Hole, Node-RED, UniFi Controller" \
-        "8 Configure OS" "Open the Raspbian Configuration Tool" \
-        "9 Update" "Update this tool to the latest version" \
-        "10 About" "Information about this configuration tool" \
+        "1 Upgrade Node.js" "Upgrade Node.js to the latest LTS version" \
+        "2 Update Homebridge" "Update Homebridge to the latest version" \
+        "3 Restore Config" "Restores the Homebridge config to the factory default" \
+        "4 Extra Packages" "Optional packages, eg. Pi-Hole, Node-RED, UniFi Controller" \
+	"5 Nginx Options" "Configure Homebridge Nginx settings" \
+        "6 Configure OS" "Open the Raspbian Configuration Tool" \
+        "7 Update" "Update this tool to the latest version" \
+        "8 About" "Information about this configuration tool" \
         3>&1 1>&2 2>&3)
     fi
     RET=$?
@@ -418,30 +518,26 @@ if [ "$INTERACTIVE" = True ]; then
     elif [ $RET -eq 0 ]; then
       if is_pi ; then
         case "$FUN" in
-          1\ *) do_homebridge_update ;;
-          2\ *) do_nodejs_update ;;
-          3\ *) do_reset_pairings ;;
-          4\ *) do_restore_config ;;
-          5\ *) do_restart_services ;;
-          6\ *) do_view_logs ;;
-          7\ *) do_extra_packages ;;
-          8\ *) do_configure_raspbian ;;
-          9\ *) do_update ;;
-          10\ *) do_about ;;
+          1\ *) do_nodejs_update ;;
+          2\ *) do_homebridge_update ;;
+          3\ *) do_restore_config ;;
+          4\ *) do_extra_packages ;;
+          5\ *) do_configure_nginx ;;
+          6\ *) do_configure_raspbian ;;
+          7\ *) do_update ;;
+          8\ *) do_about ;;
           *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
         esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
       else
         case "$FUN" in
-          1\ *) do_homebridge_update ;;
-          2\ *) do_nodejs_update ;;
-          3\ *) do_reset_pairings ;;
-          4\ *) do_restore_config ;;
-          5\ *) do_restart_services ;;
-          6\ *) do_view_logs ;;
-          7\ *) do_extra_packages ;;
-          8\ *) do_configure_raspbian ;;
-	  9\ *) do_update ;;
-          10\ *) do_about ;;
+          1\ *) do_nodejs_update ;;
+          2\ *) do_homebridge_update ;;
+          3\ *) do_restore_config ;;
+          4\ *) do_extra_packages ;;
+	  5\ *) do_configure_nginx ;;
+          6\ *) do_configure_raspbian ;;
+	  7\ *) do_update ;;
+          8\ *) do_about ;;
           *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
         esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
       fi
