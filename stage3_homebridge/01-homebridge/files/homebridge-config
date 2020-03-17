@@ -358,7 +358,7 @@ fi
 NGINX_TEMPLATE="# this file was generated using the homebridge-config tool
 
 server {
-  $NGINX_PORT_80_CONFIG  
+  $NGINX_PORT_80_CONFIG
   $NGINX_PORT_443_CONFIG
   # replace the _ with your domain name if required
   # eg.
@@ -414,7 +414,7 @@ $NGINX_REDIRECT_HTTP_TO_HTTPS
        nginx -s reload || systemctl restart nginx
 
        if [ $? -eq 0 ]; then
-         whiptail --title "Success" --msgbox "NGINX has been configued successfully." 20 60 1  
+         whiptail --title "Success" --msgbox "NGINX has been configued successfully." 20 60 1
        else
          whiptail --title "Error" --msgbox "An error occured while attempting to reload the NGINX config." 20 60 1
        fi
@@ -506,7 +506,7 @@ if [ "$INTERACTIVE" = True ]; then
         "2 Update Homebridge" "Update Homebridge to the latest version" \
         "3 Restore Config" "Restores the Homebridge config to the factory default" \
         "4 Extra Packages" "Optional packages, eg. Pi-Hole, Node-RED, UniFi Controller" \
-	"5 Nginx Options" "Configure Homebridge Nginx settings" \
+        "5 Nginx Options" "Configure Homebridge Nginx settings" \
         "6 Configure OS" "Open the Raspbian Configuration Tool" \
         "7 Update" "Update this tool to the latest version" \
         "8 About" "Information about this configuration tool" \
@@ -534,9 +534,9 @@ if [ "$INTERACTIVE" = True ]; then
           2\ *) do_homebridge_update ;;
           3\ *) do_restore_config ;;
           4\ *) do_extra_packages ;;
-	  5\ *) do_configure_nginx ;;
+          5\ *) do_configure_nginx ;;
           6\ *) do_configure_raspbian ;;
-	  7\ *) do_update ;;
+          7\ *) do_update ;;
           8\ *) do_about ;;
           *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
         esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
