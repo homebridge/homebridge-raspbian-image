@@ -414,7 +414,7 @@ $NGINX_REDIRECT_HTTP_TO_HTTPS
        nginx -s reload || systemctl restart nginx
 
        if [ $? -eq 0 ]; then
-         whiptail --title "Success" --msgbox "NGINX has been configued successfully." 20 60 1
+         whiptail --title "Success" --msgbox "NGINX has been configured successfully." 20 60 1
        else
          whiptail --title "Error" --msgbox "An error occured while attempting to reload the NGINX config." 20 60 1
        fi
