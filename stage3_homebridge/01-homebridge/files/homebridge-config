@@ -411,7 +411,9 @@ $NGINX_REDIRECT_HTTP_TO_HTTPS
 
        echo "$NGINX_TEMPLATE" > /etc/nginx/sites-available/homebridge.local
        /usr/local/sbin/hb-nginx-self-signed-cert
-       nginx -s reload || systemctl restart nginx
+       systemctl start nginx
+       systemctl enable nginx
+       nginx -s reload
 
        if [ $? -eq 0 ]; then
          whiptail --title "Success" --msgbox "NGINX has been configured successfully." 20 60 1

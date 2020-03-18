@@ -22,7 +22,7 @@ This project provides a free [Raspbian](https://www.raspberrypi.org/downloads/ra
 
 This image also provides config command called `homebridge-config` which helps you keep Node.js up-to-date, perform maintentance on your Homebridge server, and install additional optional software such as *Pi Hole*, *Node-RED* and the *UniFI Controller*.
 
-The Homebridge service is installed using the method described in offical [Raspberry Pi Installation Guide](https://github.com/nfarina/homebridge/wiki/Install-Homebridge-on-Raspbian) on the Homebridge project wiki.
+The Homebridge service is installed using the method described in the official [Raspberry Pi Installation Guide](https://github.com/nfarina/homebridge/wiki/Install-Homebridge-on-Raspbian) on the [Homebridge](https://github.com/nfarina/homebridge) project wiki.
 
 ## Download
 
@@ -106,6 +106,8 @@ This will ensure your Raspberry Pi  is running the latest LTS version of Node.js
 
 SSH is enabled by default. The default username is `pi` with password `raspberry`.
 
+* [How To Connect Via SSH](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Connect-Via-SSH)
+
 ## Security and Privacy
 
 * **Privacy:** The *Homebridge Raspbian Image*, as well as the [Homebridge](https://github.com/nfarina/homebridge) and [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) software components, do not contain any *analytics*, *call home*, or similar features that would allow the project maintainers to track you or the usage of this image.
@@ -124,7 +126,7 @@ The official Homebridge Discord server and Reddit community are where users can 
 
 ## Configuration Reference
 
-This table contains important information about your setup. You can use the information provided here as a reference when configuring or troubleshooting your environment after setting up Homebridge using the instructions below.
+This table contains important information about your setup. You can use the information provided here as a reference when configuring or troubleshooting your environment.
 
 |                               | File Location / Command                  |
 |-------------------------------|------------------------------------------|
