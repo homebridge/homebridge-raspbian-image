@@ -136,6 +136,7 @@ This table contains important information about your setup. You can use the info
 | **Stop Command**              | `sudo hb-service stop`                   |
 | **Start Command**             | `sudo hb-service start`                  |
 | **View Logs Command**         | `sudo hb-service logs`                   |
+| **Manage Homebridge Server**  | `sudo hb-config`                         |
 | **Systemd Service File**      | `/etc/systemd/system/homebridge.service` |
 | **Systemd Env File**          | `/etc/default/homebridge`                |
 | **Default Hostname**          | `homebridge.local`                       |
@@ -143,4 +144,3 @@ This table contains important information about your setup. You can use the info
 | **Default SSH Password**      | `raspberry`                              |
 | **Default Web Username**      | `admin`                                  |
 | **Default Web Password**      | `admin`                                  |
-

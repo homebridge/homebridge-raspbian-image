@@ -1,0 +1,12 @@
+[Unit]
+Description=hb-arch-check service
+Before=homebridge.service
+After=nginx.service
+
+[Service]
+Type=oneshot
+TimeoutSec=1200
+ExecStart=/etc/hb-service/hb-arch-check
+
+[Install]
+WantedBy=multi-user.target
