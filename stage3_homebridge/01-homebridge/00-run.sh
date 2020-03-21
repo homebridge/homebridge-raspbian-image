@@ -5,18 +5,13 @@
 #
 
 #
-# Copy service files
-#
-install -m 644 files/hb-check.service "${ROOTFS_DIR}/etc/systemd/system/"
-
-#
 # Executables Files
 #
-install -m 755 files/homebridge-config "${ROOTFS_DIR}/usr/local/sbin/"
-install -m 755 files/hb-check "${ROOTFS_DIR}/usr/local/sbin/"
+install -m 755 files/hb-config "${ROOTFS_DIR}/usr/local/sbin/"
 
 # Pre-start files
 install -v -d "${ROOTFS_DIR}/etc/hb-service/homebridge/prestart.d"
+install -m 755 files/05-hb-arch-check "${ROOTFS_DIR}/etc/hb-service/homebridge/prestart.d/"
 install -m 755 files/20-hb-nginx-check "${ROOTFS_DIR}/etc/hb-service/homebridge/prestart.d/"
 
 #
@@ -59,6 +54,5 @@ echo "8581" > /etc/hb-ui-port
 
 systemctl daemon-reload
 systemctl enable homebridge
-systemctl enable hb-check
 EOF
 

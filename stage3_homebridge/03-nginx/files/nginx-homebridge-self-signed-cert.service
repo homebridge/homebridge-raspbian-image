@@ -1,0 +1,10 @@
+[Unit]
+Description=nginx-homebridge-self-signed-cert service
+Before=nginx.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/nginx-homebridge-self-signed-cert
+
+[Install]
+WantedBy=multi-user.target

@@ -36,6 +36,6 @@ printf "${BOLD}Homebridge config.json path:${NC} ${GREEN}/var/lib/homebridge/con
 printf "\n${BOLD}Restart Homebridge CMD:${NC} ${GREEN}sudo hb-service restart${NC}\n"
 printf "${BOLD}View Logs CMD:${NC} ${GREEN}sudo hb-service logs${NC}\n"
 
-printf "\n${BOLD}Manage Homebridge:${NC} ${GREEN}sudo homebridge-config${NC}\n"
+printf "\n${BOLD}Manage Homebridge:${NC} ${GREEN}sudo hb-config${NC}\n"
 
 printf "\n"

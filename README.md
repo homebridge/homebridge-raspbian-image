@@ -20,7 +20,7 @@ This project provides a free [Raspbian](https://www.raspberrypi.org/downloads/ra
 * Includes a user friendly, easy to use web based GUI to configure Homebridge and monitor your Raspberry Pi
 * Visual configuration for over 50 popular plugins (no manual config.json editing required)
 
-This image also provides config command called `homebridge-config` which helps you keep Node.js up-to-date, perform maintentance on your Homebridge server, and install additional optional software such as *Pi Hole*, *Node-RED* and the *UniFI Controller*.
+This image also provides config command called `hb-config` which helps you keep Node.js up-to-date, perform maintentance on your Homebridge server, and install additional optional software such as *Pi Hole*, *Node-RED* and the *UniFI Controller*.
 
 The Homebridge service is installed using the method described in the official [Raspberry Pi Installation Guide](https://github.com/nfarina/homebridge/wiki/Install-Homebridge-on-Raspbian) on the [Homebridge](https://github.com/nfarina/homebridge) project wiki.
 
@@ -94,12 +94,12 @@ You should take a moment to review the [Configuration Reference](#configuration-
 
 ## Updating Node.js
 
-To update Node.js run `sudo homebridge-config` and select **Upgrade Node.js**.
+To update Node.js run `sudo hb-config` and select **Upgrade Node.js**.
 
 This will ensure your Raspberry Pi  is running the latest LTS version of Node.js.
 
 <p align="center">
-  <img width="600px" alt="homebridge-config" src="https://user-images.githubusercontent.com/3979615/74602581-4b17fd00-50fe-11ea-8684-c03eaa42d27d.png">
+  <img width="600px" alt="hb-config" src="https://user-images.githubusercontent.com/3979615/74602581-4b17fd00-50fe-11ea-8684-c03eaa42d27d.png">
 </p>
 
 ## SSH Access

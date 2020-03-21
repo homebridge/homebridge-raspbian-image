@@ -286,7 +286,7 @@ do_install_unifi() {
 }
 
 do_extra_packages() {
-  FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (homebridge-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+  FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (hb-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
     "A1 Pi-hole" "Install Pi-hole, a dns based ad-blocking service" \
     "A2 Node-RED" "Install Node-RED" \
     "A3 UniFi Controller" "Install the Ubiquiti UniFi Controller software" \
@@ -308,7 +308,7 @@ do_configure_nginx() {
   whiptail --title "Warning" --yesno "Using this tool will overwrite any manual changes you may have made to the Homebridge Nginx config file.\n\nAre you sure you wish to continue?" 20 60 1
   RET=$?
   if [ $RET -eq 0 ]; then
-    whiptail --title "Homebridge Raspbian Configuration Tool (homebridge-config)" --separate-output --checklist "\nNGINX Options:"  20 80 5 --cancel-button Cancel --ok-button Save \
+    whiptail --title "Homebridge Raspbian Configuration Tool (hb-config)" --separate-output --checklist "\nNGINX Options:"  20 80 5 --cancel-button Cancel --ok-button Save \
       "1" "Listen on port 80 - http://        " 1  \
       "2" "Listen on port 443 - https://      " 1 \
       "3" "Redirect http:// to https://       " 0 2>results
@@ -355,7 +355,7 @@ server {
 }"
 fi
 
-NGINX_TEMPLATE="# this file was generated using the homebridge-config tool
+NGINX_TEMPLATE="# this file was generated using the hb-config tool
 
 server {
   $NGINX_PORT_80_CONFIG
@@ -410,7 +410,7 @@ $NGINX_REDIRECT_HTTP_TO_HTTPS
 "
 
        echo "$NGINX_TEMPLATE" > /etc/nginx/sites-available/homebridge.local
-       /usr/local/sbin/hb-nginx-self-signed-cert
+       /usr/local/sbin/nginx-homebridge-self-signed-cert
        systemctl start nginx
        systemctl enable nginx
        nginx -s reload
@@ -431,24 +431,24 @@ do_configure_raspbian() {
 
 do_update() {
   tempDir=$(mktemp -d)
-  #scriptUrl=https://raw.githubusercontent.com/homebridge/homebridge-raspbian-image/master/stage3_homebridge/01-homebridge/files/homebridge-config
-  scriptUrl=https://gist.githubusercontent.com/oznu/4288af1496ac12fe5eadcd3f422d44ab/raw/homebridge-config
+  #scriptUrl=https://raw.githubusercontent.com/homebridge/homebridge-raspbian-image/master/stage3_homebridge/01-homebridge/files/hb-config
+  scriptUrl=https://gist.githubusercontent.com/oznu/4288af1496ac12fe5eadcd3f422d44ab/raw/hb-config
 
   # download the update to a temporary directory
   scriptUrl=$scriptUrl?$(date --iso-8601)
-  printf "Downloading homebridge-config update...\n$scriptUrl\n"
-  curl -fL# $scriptUrl > $tempDir/homebridge-config
+  printf "Downloading hb-config update...\n$scriptUrl\n"
+  curl -fL# $scriptUrl > $tempDir/hb-config
 
   # check the download was a success
   RET=$?
   if [ $RET -ne 0 ]; then
-    whiptail --title "Error" --msgbox "An error occured while attempting to update the homebridge-config tool." 20 60 1
+    whiptail --title "Error" --msgbox "An error occured while attempting to update the hb-config tool." 20 60 1
   else
     # syntax check the script is a valid bash script
-    if bash -n $tempDir/homebridge-config; then
-      chmod +x $tempDir/homebridge-config
-      mv $tempDir/homebridge-config /usr/local/sbin/homebridge-config
-      whiptail --title "Success" --msgbox "The homebridge-config tool has been updated and will now exit." 20 60 1
+    if bash -n $tempDir/hb-config; then
+      chmod +x $tempDir/hb-config
+      mv $tempDir/hb-config /usr/local/sbin/hb-config
+      whiptail --title "Success" --msgbox "The hb-config tool has been updated and will now exit." 20 60 1
       exit 0
     else
       whiptail --title "Error" --msgbox "The downloaded script was corrupted and did not pass the syntax check." 20 60 1
@@ -480,7 +480,7 @@ https://github.com/homebridge/homebridge-raspbian-image
 
 # Everything else needs to be run as root
 if [ $(id -u) -ne 0 ]; then
-  printf "Script must be run as root. Try 'sudo homebridge-config'\n"
+  printf "Script must be run as root. Try 'sudo hb-config'\n"
   exit 1
 fi
 
@@ -492,7 +492,7 @@ if [ "$INTERACTIVE" = True ]; then
   calc_wt_size
   while true; do
     if is_pi ; then
-      FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (homebridge-config)" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
+      FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (hb-config)" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
         "1 Upgrade Node.js" "Upgrade Node.js to the latest LTS version" \
         "2 Update Homebridge" "Update Homebridge to the latest version" \
         "3 Restore Config" "Restores the Homebridge config to the factory default" \
@@ -504,7 +504,7 @@ if [ "$INTERACTIVE" = True ]; then
         "9 About" "Information about this configuration tool" \
         3>&1 1>&2 2>&3)
     else
-      FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (homebridge-config)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
+      FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (hb-config)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
         "1 Upgrade Node.js" "Upgrade Node.js to the latest LTS version" \
         "2 Update Homebridge" "Update Homebridge to the latest version" \
         "3 Restore Config" "Restores the Homebridge config to the factory default" \

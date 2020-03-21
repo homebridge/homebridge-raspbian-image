@@ -13,15 +13,16 @@ BUILD_ARCH=$(cat /etc/homebridge-arch)
 
 # ensure the arch is correct, rebuild if required
 if [ $CURRENT_ARCH != $BUILD_ARCH ]; then
-	echo "Current: $CURRENT_ARCH"
-	echo "Build: $BUILD_ARCH"
+	echo "Current Arch: $CURRENT_ARCH"
+	echo "Build Arch: $BUILD_ARCH"
+
 	MODEL=$(tr -d '\0' </proc/device-tree/model)
 	update_status "<p>Rebuilding Homebridge for $MODEL</p><p>This may take 5-10 minutes, please wait...</p>"
-	echo "Rebuild Required"
+
+	echo "Rebuilding Node.js modules for $CURRENT_ARCH..."
         cd "/usr/local/lib/node_modules"
         /usr/local/bin/npm --unsafe-perm rebuild
         echo $(uname -m) | sudo tee /etc/homebridge-arch
 fi
 
 update_status "Starting now..."
-
