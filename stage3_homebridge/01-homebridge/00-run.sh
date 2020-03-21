@@ -33,6 +33,11 @@ install -m 755 files/motd-homebridge "${ROOTFS_DIR}/etc/update-motd.d/20-homebri
 echo "$BUILD_VERSION" > "${ROOTFS_DIR}/etc/hb-release"
 
 on_chroot << EOF
+
+# todo - remove this when Node.js comes bundled with a working version of npm
+# upgrade npm (v6.13.4 that comes with Node 12.16.1 has issues with git dependencies)
+npm install -g npm
+
 # install homebridge and homebridge-config-ui-x
 npm install -g --unsafe-perm homebridge@latest homebridge-config-ui-x@latest
 
