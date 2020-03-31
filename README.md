@@ -55,13 +55,13 @@ Now that you have flashed your SD card, you can insert it into your Raspberry Pi
 
 Before powering on your Raspberry Pi decide if you want to use Ethernet or WiFi to connect to your network.
 
-### Ethernet
+#### Ethernet
 
 **:warning: An Ethernet connection is recommended as this provides the most simple and stable Homebridge setup.**
 
 If you have decided to connect your Raspberry Pi using ethernet, do so before you power on your device for the first time. 
 
-### WiFi Setup
+#### WiFi Setup
 
 Follow these steps to connect your device to WiFi:
 
