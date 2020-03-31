@@ -63,9 +63,13 @@ If you have decided to connect your Raspberry Pi using ethernet, do so before yo
 
 ### WiFi Setup
 
-If you need to connect your Raspberry Pi to WiFi, power on your device without an Ethernet cable attached.
+Follow these steps to connect your device to WiFi:
 
-After a minute or so, use your phone to scan for new WiFi networks, you should to see a new WiFi hotspot named **Homebridge WiFi Setup**. Connecting to this hotspot will prompt you for the SSID and password for your local WiFi network.
+1. Power on your device without an Ethernet cable attached.
+2. Wait 1-2 minutes
+3. Use your mobile phone to scan for new WiFi networks
+4. Connect to the hotspot named **Homebridge WiFi Setup**
+5. Wait a few moments until the captive portal opens, this portal will allow you to connect the Raspberry Pi to your local WiFi network.
 
 If you enter your WiFi credentials incorrectly the **Homebridge WiFi Setup** hotspot will reappear allowing you to try again.
 
