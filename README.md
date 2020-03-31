@@ -1,11 +1,15 @@
 <p align="center">
-<img src="https://user-images.githubusercontent.com/3979615/78007303-d802d700-7389-11ea-8125-5bdfdee4136b.png" width="500">
+<img src="https://raw.githubusercontent.com/homebridge/branding/master/logos/homebridge-color-round-stylized.png" height="150">
 </p>
+
+<span align="center">
 
 # Homebridge Raspberry Pi Image
 
 [![Build](https://github.com/homebridge/homebridge-raspbian-image/workflows/CI/badge.svg)](https://github.com/homebridge/homebridge-raspbian-image/actions)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/homebridge/homebridge-raspbian-image?label=Version)](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
+
+</span>
 
 This project provides a free [Raspbian](https://www.raspberrypi.org/downloads/raspbian/) based Raspberry Pi image with [Homebridge](https://github.com/nfarina/homebridge) and [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) pre-installed.
 
