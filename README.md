@@ -146,3 +146,7 @@ This table contains important information about your setup. You can use the info
 | **Default SSH Password**      | `raspberry`                              |
 | **Default Web Username**      | `admin`                                  |
 | **Default Web Password**      | `admin`                                  |
+
+The *Homebridge Raspberry Pi Image* wiki contains more information and instructions on how to further customise your install:
+
+https://github.com/homebridge/homebridge-raspbian-image/wiki
