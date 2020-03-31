@@ -1,5 +1,7 @@
 <p align="center">
+<a href="https://github.com/homebridge/homebridge">
 <img src="https://raw.githubusercontent.com/homebridge/branding/master/logos/homebridge-color-round-stylized.png" height="150">
+</a>
 </p>
 
 <span align="center">
