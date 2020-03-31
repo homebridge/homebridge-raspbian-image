@@ -41,7 +41,7 @@ Downloading the *Homebridge Raspberry Pi Image* is completely free (no sign up r
 The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is to use [Etcher](https://www.balena.io/etcher/).
   
 <p align="center">
-    <img src="https://user-images.githubusercontent.com/3979615/74733445-789cac00-52a0-11ea-9167-05b42d6383ad.gif" width="800">
+    <img src="https://user-images.githubusercontent.com/3979615/74733445-789cac00-52a0-11ea-9167-05b42d6383ad.gif" width="600">
 </p>
 
 1. Download and install the latest version of [Etcher](https://www.balena.io/etcher/).

@@ -431,8 +431,7 @@ do_configure_raspbian() {
 
 do_update() {
   tempDir=$(mktemp -d)
-  #scriptUrl=https://raw.githubusercontent.com/homebridge/homebridge-raspbian-image/master/stage3_homebridge/01-homebridge/files/hb-config
-  scriptUrl=https://gist.githubusercontent.com/oznu/4288af1496ac12fe5eadcd3f422d44ab/raw/hb-config
+  scriptUrl=https://raw.githubusercontent.com/homebridge/homebridge-raspbian-image/master/stage3_homebridge/01-homebridge/files/hb-config
 
   # download the update to a temporary directory
   scriptUrl=$scriptUrl?$(date --iso-8601)
@@ -465,7 +464,7 @@ This tool provides a straight-forward way of managing Homebridge on a Raspberry 
 Image Version: $IMAGE_VERSION
 
 Homebridge - @nfarina
-https://github.com/nfarina/homebridge
+https://github.com/homebridge/homebridge
 
 Homebridge Config UI X - @oznu
 https://github.com/oznu/homebridge-config-ui-x
