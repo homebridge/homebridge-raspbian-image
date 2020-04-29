@@ -409,19 +409,25 @@ server {
 $NGINX_REDIRECT_HTTP_TO_HTTPS
 "
 
-       echo "$NGINX_TEMPLATE" > /etc/nginx/sites-available/homebridge.local
-       /usr/local/sbin/nginx-homebridge-self-signed-cert
-       systemctl start nginx
-       systemctl enable nginx
-       nginx -s reload
+      echo "$NGINX_TEMPLATE" > /etc/nginx/sites-available/homebridge.local
+      /usr/local/sbin/nginx-homebridge-self-signed-cert
+      systemctl enable nginx
 
-       if [ $? -eq 0 ]; then
-         whiptail --title "Success" --msgbox "NGINX has been configured successfully." 20 60 1
+      if systemctl is-active --quiet nginx.service; then
+        echo "Restarting Nginx..."
+        systemctl restart nginx
+      else
+        echo "Starting Nginx..."
+        systemctl start nginx
+      fi
+
+      if [ $? -eq 0 ]; then
+        whiptail --title "Success" --msgbox "NGINX has been configured successfully." 20 60 1
        else
-         whiptail --title "Error" --msgbox "An error occured while attempting to reload the NGINX config." 20 60 1
-       fi
+        whiptail --title "Error" --msgbox "An error occured while attempting to reload the NGINX config." 20 60 1
+      fi
 
-     fi
+    fi
   fi
 }
 
