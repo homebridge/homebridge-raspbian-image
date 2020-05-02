@@ -195,7 +195,10 @@ do_install_pihole() {
     if [ -f /etc/nginx/sites-available/homebridge.local ]; then
       sed -i "/listen 80;/c\  # listen 80;                  # http IPv4 - disabled by Pi-Hole installer" /etc/nginx/sites-available/homebridge.local
       sed -i "/listen \[::\]:80;/c\  # listen \[::\]:80;             # http IPv6 - disabled by Pi-Hole installer" /etc/nginx/sites-available/homebridge.local
-      nginx -s reload
+      if systemctl is-active --quiet nginx.service; then
+        echo "Restarting Nginx..."
+        systemctl restart nginx
+      fi
     fi
     printf "Starting Pi-hole installer...\n"
     curl -sSL https://install.pi-hole.net | bash
