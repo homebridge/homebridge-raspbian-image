@@ -189,7 +189,7 @@ do_restore_config() {
 }
 
 do_install_pihole() {
-  whiptail --title "Warning" --yesno "Please make sure you are not attempting to run this command from the Homebridge UI web terminal.\n\nFor a successful installation of Pi-Hole you must be logged in using SSH (see wiki for instructions).\n\nIf you are already connected via SSH, you can proceed with the installation." 20 60 1 --no-button "Cancel" --yes-button "Continue"
+  whiptail --title "Warning" --yesno "Please make sure you are NOT attempting to run this command from the Homebridge UI web terminal.\n\nFor a successful installation of Pi-Hole you must be logged in using SSH (see wiki for instructions).\n\nIf you are already connected via SSH, you can proceed with the installation." 20 60 1 --no-button "Cancel" --yes-button "Continue"
   if [ $? -ne 0 ]; then
     return;
   fi
