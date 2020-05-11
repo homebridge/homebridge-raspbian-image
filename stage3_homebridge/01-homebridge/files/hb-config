@@ -194,7 +194,7 @@ do_install_pihole() {
     return;
   fi
 
-  whiptail --title "Warning" --yesno "Installing Pi-Hole will prevent you from accessing the Homebridge UI on port 80.\n\nYou will still be able to access the Homebridge UI on port $(cat /etc/hb-ui-port) and via:\n\n* http://homebrige.local:$(cat /etc/hb-ui-port)\n* https://homebridge.local\n\nWARNING: Failing to configure Pi-Hole correctly or attempting to uninstall Pi-Hole may result in Homebridge not working correctly. You should take a backup of your Homebridge instance via the UI before proceeding.\n\nAre you sure you want to continue?" 20 60 1
+  whiptail --title "Warning" --yesno "Installing Pi-Hole will prevent you from accessing the Homebridge UI on port 80.\n\nYou will still be able to access the Homebridge UI on port $(cat /etc/hb-ui-port) and via:\n\n* http://homebridge.local:$(cat /etc/hb-ui-port)\n* https://homebridge.local\n\nWARNING: Failing to configure Pi-Hole correctly or attempting to uninstall Pi-Hole may result in Homebridge not working correctly. You should take a backup of your Homebridge instance via the UI before proceeding.\n\nAre you sure you want to continue?" 20 60 1
   RET=$?
   if [ $RET -eq 0 ]; then
     if [ -f /etc/nginx/sites-available/homebridge.local ]; then
