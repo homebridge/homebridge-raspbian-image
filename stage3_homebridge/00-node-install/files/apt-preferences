@@ -1,0 +1,9 @@
+# Node.js should be updated using the "hb-config" tool.
+Package: nodejs
+Pin: release *
+Pin-Priority: -1
+
+# npm should be updated using "sudo npm install -g npm".
+Package: npm
+Pin: release *
+Pin-Priority: -1

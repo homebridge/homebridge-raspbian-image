@@ -2,6 +2,11 @@
 
 
 #
+# Prevent Node.js being installed or updated later using apt
+#
+install -m 644 files/apt-preferences "${ROOTFS_DIR}/etc/apt/preferences"
+
+#
 # Install Node.js
 # Installing the arm32v6 version of Node to ensure compilability with RaspberryPi 1 / Zero
 #
