@@ -392,6 +392,9 @@ server {
   # ssl_stapling                on;
   # ssl_stapling_verify         on;
 
+  # large upload size to allow for uploading 3rd party backup files
+  client_max_body_size 2G;
+
   error_page 502 /custom_502.html;
 
   location /startup-status.json {
