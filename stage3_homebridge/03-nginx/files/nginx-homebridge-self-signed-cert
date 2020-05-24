@@ -3,6 +3,9 @@
 if [ -e /etc/nginx/sites-available/homebridge.local ]; then
   mkdir -p /etc/nginx/ssl
   if [ ! -f /etc/nginx/ssl/homebridge.local.crt ] || [ ! -f /etc/nginx/ssl/homebridge.local.key ]; then
-    openssl req -new -newkey rsa:2048 -days 1000 -nodes -x509 -subj '/CN=homebridge.local' -keyout /etc/nginx/ssl/homebridge.local.key -out /etc/nginx/ssl/homebridge.local.crt
+    openssl req -x509 -out /etc/nginx/ssl/homebridge.local.crt -keyout /etc/nginx/ssl/homebridge.local.key \
+      -newkey rsa:2048 -nodes -sha256 -days 1000 \
+      -subj '/CN=localhost' -extensions EXT -config <( \
+      printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
   fi
 fi
