@@ -315,11 +315,12 @@ do_extra_packages() {
 do_configure_nginx() {
   whiptail --title "Warning" --yesno "Using this tool will overwrite any manual changes you may have made to the Homebridge Nginx config file.\n\nAre you sure you wish to continue?" 20 60 1
   RET=$?
+  tempDir=$(mktemp -d)
   if [ $RET -eq 0 ]; then
     whiptail --title "Homebridge Raspbian Configuration Tool (hb-config)" --separate-output --checklist "\nNGINX Options:"  20 80 5 --cancel-button Cancel --ok-button Save \
       "1" "Listen on port 80 - http://        " 1  \
       "2" "Listen on port 443 - https://      " 1 \
-      "3" "Redirect http:// to https://       " 0 2>results
+      "3" "Redirect http:// to https://       " 0 2>$tempDir/results
 
     if [ $? -eq 0 ]; then
        LISTEN_ON_PORT_80=false
@@ -334,7 +335,7 @@ do_configure_nginx() {
            3) REDIRECT_HTTP_TO_HTTPS=true ;;
            *) ;;
          esac
-       done < results
+       done < $tempDir/results
 
 NGINX_PORT_80_CONFIG=""
 if [ "$LISTEN_ON_PORT_80" = "true" ]; then
