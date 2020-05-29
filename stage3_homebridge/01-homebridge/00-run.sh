@@ -14,13 +14,6 @@ install -v -d "${ROOTFS_DIR}/etc/hb-service/homebridge/prestart.d"
 install -m 755 files/20-hb-nginx-check "${ROOTFS_DIR}/etc/hb-service/homebridge/prestart.d/"
 
 #
-# hb-arch-check service
-# this service rebuilds the modules for armv6 if the SD card is inserted into a Raspberry Pi 1 / Zero W
-#
-install -m 644 files/hb-arch-check.service "${ROOTFS_DIR}/etc/systemd/system/"
-install -m 755 files/hb-arch-check "${ROOTFS_DIR}/etc/hb-service/"
-
-#
 # MOTD
 #
 install -m 755 files/issue "${ROOTFS_DIR}/etc/issue"
@@ -57,14 +50,10 @@ chown -R pi:pi /var/lib/homebridge
 [ -e /home/pi/.homebridge ] || ln -fs /var/lib/homebridge /home/pi/.homebridge
 [ -e /root/.homebridge ] || ln -fs /var/lib/homebridge /root/.homebridge
 
-# store the build arch
-echo "armv7l" > /etc/homebridge-arch
-
 # set ui port for use in motd message
 echo "8581" > /etc/hb-ui-port
 
 systemctl daemon-reload
 systemctl enable homebridge
-systemctl enable hb-arch-check
 EOF
 
