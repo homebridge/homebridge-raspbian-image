@@ -39,20 +39,20 @@ Downloading the *Homebridge Raspberry Pi Image* is completely free (no sign up r
 
 ## Flash to SD Card
 
-The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is to use [Etcher](https://www.balena.io/etcher/).
+The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is to use [Raspberry Pi Imager](https://www.raspberrypi.org/downloads/).
   
 <p align="center">
-    <img src="https://user-images.githubusercontent.com/3979615/74733445-789cac00-52a0-11ea-9167-05b42d6383ad.gif" width="600">
+    <img src="https://www.raspberrypi.org/app/uploads/2020/03/RPI_intro-e1583228263677.png" width="600">
 </p>
 
-1. Download and install the latest version of [Etcher](https://www.balena.io/etcher/).
-2. Open Etcher and select the `Homebridge-Raspbian-v0.0.0.zip` file you have [downloaded](https://github.com/homebridge/homebridge-raspbian-image/releases/latest). There is no need to extract the `.zip` file first.
+1. Download and install the latest version of [Raspberry Pi Imager](https://www.raspberrypi.org/downloads/).
+2. Open Raspberry Pi Imager and select the `Homebridge-Raspbian-v0.0.0.zip` file you have [downloaded](https://github.com/homebridge/homebridge-raspbian-image/releases/latest). There is no need to extract the `.zip` file first.
 3. Choose the drive your SD card has been inserted into.
-4. Click Flash.
+4. Click Write.
 
 ## First Boot / Network Setup
 
-Now that you have flashed your SD card, you can insert it into your Raspberry Pi.
+Now the image is written to your SD card, you can insert it into your Raspberry Pi.
 
 Before powering on your Raspberry Pi decide if you want to use Ethernet or WiFi to connect to your network.
 
