@@ -148,7 +148,7 @@ do_nodejs_update() {
 
   INDEX=$(curl -s https://nodejs.org/dist/index.json)
   LTS=$(echo $INDEX | jq -r 'map(select(.lts))[0].version')
-  CURRENT=$(node -v)
+  CURRENT=$(node -v || echo "0.0.0")
 
   echo "Installed: $CURRENT"
   echo "Current Node.js LTS: $LTS"
