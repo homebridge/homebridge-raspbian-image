@@ -2,6 +2,7 @@
 
 INTERACTIVE=True
 ASK_TO_REBOOT=0
+CONFIG=/boot/config.txt
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -92,6 +93,27 @@ calc_wt_size() {
     WT_WIDTH=120
   fi
   WT_MENU_HEIGHT=$(($WT_HEIGHT-7))
+}
+
+set_config_var() {
+  lua - "$1" "$2" "$3" <<EOF > "$3.bak"
+local key=assert(arg[1])
+local value=assert(arg[2])
+local fn=assert(arg[3])
+local file=assert(io.open(fn))
+local made_change=false
+for line in file:lines() do
+  if line:match("^#?%s*"..key.."=.*$") then
+    line=key.."="..value
+    made_change=true
+  end
+  print(line)
+end
+if not made_change then
+  print(key.."="..value)
+end
+EOF
+mv "$3.bak" "$3"
 }
 
 get_web_addresses() {
@@ -293,11 +315,125 @@ do_install_unifi() {
   fi
 }
 
+do_install_deconz() {
+  whiptail --title "Warning" --yesno "This will install the deCONZ and Phoscon software which will use the following ports:\n\n* 4530 - Phoscon Web App\n* 4531 - WebSockets\n\nAre you sure you want to continue?" 20 60 1
+  RET=$?
+  if [ $RET -eq 0 ]; then
+    isRaspbee="0"
+    isRaspbee2="0"
+
+    do_raspbee_setup() {
+      echo "Setting up for RaspBee..."
+      isRaspbee="1"
+
+      # Install deps
+      apt update
+      sudo apt install -y i2c-tools build-essential raspberrypi-kernel-headers
+
+      # WiringPi (Pi4 Only)
+      if [ is_pifour ]; then
+        curl -o /tmp/wiringpi-latest.deb https://project-downloads.drogon.net/wiringpi-latest.deb
+        dpkg -i /tmp/wiringpi-latest.deb
+        rm -rf /tmp/wiringpi-latest.deb
+      else
+        apt install wiringpi
+      fi
+
+      # Enable UART
+      set_config_var enable_uart 1 $CONFIG
+    }
+
+    do_raspbee2_setup() {
+      isRaspbee2="1"
+      do_raspbee_setup
+
+      # RTC-Installation
+      [ -d /tmp/raspbee2-rtc-master ] && rm -rf /tmp/raspbee2-rtc-master
+      curl -o /tmp/raspbee2-rtc.zip -L# https://github.com/dresden-elektronik/raspbee2-rtc/archive/master.zip
+      unzip /tmp/raspbee2-rtc.zip -d /tmp
+      cd /tmp/raspbee2-rtc-master
+      make
+      make install
+      cd ~
+      rm -rf /tmp/raspbee2-rtc-master
+    }
+
+    do_conbee_setup() {
+      echo "Setting up for ConBee / ConBee II..."
+      isRaspbee="0"
+    }
+
+    FUN=$(whiptail --title "Choose Device" --menu "\nPlease select the type of device you have:" 20 60 3 --cancel-button Cancel --ok-button Select \
+      "C1 ConBee or ConBee II" "" \
+      "C2 RaspBee I" "" \
+      "C3 RaspBee II" "" \
+      3>&1 1>&2 2>&3)
+    RET=$?
+    if [ $RET -eq 1 ]; then
+      return 0
+    elif [ $RET -eq 0 ]; then
+      case "$FUN" in
+        C1\ *) do_conbee_setup ;;
+        C2\ *) do_raspbee_setup ;;
+        C3\ *) do_raspbee2_setup ;;
+        *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+      esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+    fi
+
+    # Import Phoscon public key
+    wget -O - http://phoscon.de/apt/deconz.pub.key | sudo apt-key add -
+
+    # Configure the APT repository for deCONZ
+    sudo sh -c "echo 'deb http://phoscon.de/apt/deconz \
+            $(lsb_release -cs) main' > \
+            /etc/apt/sources.list.d/deconz.list"
+
+    # Update APT package list
+    apt update
+
+    # Install deCONZ
+    apt install -y deconz
+
+    # Add override service
+    mkdir -p /etc/systemd/system/deconz.service.d
+    cat > /etc/systemd/system/deconz.service.d/override.conf <<EOL
+[Service]
+User=pi
+ExecStart=
+ExecStart=/usr/bin/deCONZ -platform minimal --http-port=4530 --ws-port=4531
+EOL
+
+    # Enable and start
+    systemctl daemon-reload
+    systemctl enable deconz
+    systemctl restart deconz
+
+    # Complete
+    PHOSCON_WEB=$(get_web_addresses http 4530 | sed 's/\x1b\[[0-9;]*m//g')
+    whiptail --title "Success" --msgbox "deCONZ and Phoscon have been installed.\n\nYou can access the Phoscon web app via:\n\n$PHOSCON_WEB" 20 60 1
+
+    # Ask to reboot on RaspBee
+    if [ "$isRaspbee" = "1" ]; then
+      if [ "$isRaspbee2" = "1" ]; then
+        whiptail --title "Final Steps" --msgbox "You need to reboot your device to complete installation.\n\nOnce you have reboot you need to configure the RTC module by running:\n\nsudo hwclock --systohc\nsudo hwclock --verbose\n\nSee the RaspBee II install guide for further instructions: https://phoscon.de/en/raspbee2/install#raspbian" 20 60 1
+      else 
+         whiptail --title "Final Steps" --msgbox "You need to reboot your device to complete installation." 20 60 1
+      fi
+      whiptail --title "Reboot Required" --yesno "Would you like to reboot now?" 20 60 2
+      if [ $? -eq 0 ]; then # yes
+        sync
+        reboot
+      fi
+    fi
+  fi
+}
+
 do_extra_packages() {
   FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (hb-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
     "A1 Pi-hole" "Install Pi-hole, a dns based ad-blocking service" \
     "A2 Node-RED" "Install Node-RED" \
     "A3 UniFi Controller" "Install the Ubiquiti UniFi Controller software" \
+    "A4 deCONZ / Phoscon" "Install to manage your ConBee or RaspBee device" \
     3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -eq 1 ]; then
@@ -307,6 +443,7 @@ do_extra_packages() {
       A1\ *) do_install_pihole ;;
       A2\ *) do_install_nodered ;;
       A3\ *) do_install_unifi ;;
+      A4\ *) do_install_deconz ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
