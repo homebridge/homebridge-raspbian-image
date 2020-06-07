@@ -74,6 +74,14 @@ is_fkms() {
   fi
 }
 
+is_installed() {
+    if [ "$(dpkg -l "$1" 2> /dev/null | tail -n 1 | cut -d ' ' -f 1)" != "ii" ]; then
+      return 1
+    else
+      return 0
+    fi
+}
+
 deb_ver () {
   ver=`cat /etc/debian_version | cut -d . -f 1`
   echo $ver
@@ -126,6 +134,20 @@ get_web_addresses() {
       printf "  ${BOLD}*${NC} ${GREEN}$1://$ip:$2$3${NC}\n"
     else
       printf "  ${BOLD}*${NC} ${GREEN}$1://[$ip]:$2$3${NC}\n"
+    fi
+  done
+}
+
+get_ip_and_port() {
+  IP=$(hostname -I)
+
+  printf "  ${BOLD}*${NC} ${GREEN}$(hostname).local:$1$2${NC}\n"
+
+  for ip in $IP; do
+    if expr "$ip" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null; then
+      printf "  ${BOLD}*${NC} ${GREEN}$ip:$1$2${NC}\n"
+    else
+      printf "  ${BOLD}*${NC} ${GREEN}[$ip]:$1$2${NC}\n"
     fi
   done
 }
@@ -428,12 +450,97 @@ EOL
   fi
 }
 
+do_install_desktop_and_vnc() {
+  get_vnc() {
+    if systemctl status vncserver-x11-serviced.service  | grep -q -w active; then
+      echo 0
+    else
+      echo 1
+    fi
+  }
+
+  do_vnc() {
+    DEFAULT=--defaultno
+    if [ $(get_vnc) -eq 0 ]; then
+      DEFAULT=
+    fi
+    whiptail --yesno "Would you like the VNC Server and virtual desktop service enabled?" $DEFAULT 20 60 2 --no-button "Disable" --yes-button "Enable"
+    RET=$?
+    if [ $RET -eq 0 ]; then
+
+      # install desktop
+      if is_installed raspberrypi-ui-mods; then
+        echo "Raspbian Desktop Already Installed"
+      else
+        whiptail --title "Warning" --yesno "The Raspbian Desktop will now be installed.\n\nThis may take between 5 and 45 minutes to complete depending on your device." 20 60 2 --no-button "Cancel" --yes-button "Continue"
+        if [ $? -eq 0 ]; then
+          apt update
+          apt install -y raspberrypi-ui-mods
+        else
+          return 0;
+        fi
+      fi
+
+      # install and setup VNC
+      if is_installed realvnc-vnc-server || (apt update && apt install -y realvnc-vnc-server); then
+        cat > /etc/systemd/system/vncserver-pi.service <<EOL
+[Unit]
+Description=VNC Virtual Desktop Service
+After=syslog.target network.target
+
+[Service]
+Type=forking
+User=pi
+Group=pi
+WorkingDirectory=/home/pi
+
+PIDFile=/home/pi/.vnc/%H:12.pid
+ExecStartPre=-/usr/bin/vncserver -kill :12 > /dev/null 2>&1
+ExecStart=/usr/bin/vncserver -depth 24 -geometry 1280x800 :12
+ExecStop=/usr/bin/vncserver -kill :12
+
+[Install]
+WantedBy=multi-user.target
+EOL
+        systemctl enable vncserver-x11-serviced.service &&
+        systemctl start vncserver-x11-serviced.service &&
+        systemctl enable vncserver-pi.service &&
+        systemctl start vncserver-pi.service &&
+        STATUS=enabled
+      else
+        return 1
+      fi
+    elif [ $RET -eq 1 ]; then
+      if is_installed realvnc-vnc-server; then
+          systemctl disable vncserver-x11-serviced.service
+          systemctl stop vncserver-x11-serviced.service
+          systemctl disable vncserver-pi.service
+          systemctl stop vncserver-pi.service
+      fi
+      STATUS=disabled
+    else
+      return $RET
+    fi
+
+    if [ "$STATUS" = "disabled" ]; then
+      whiptail --title "Success" --msgbox "The VNC Server and virtual desktop have been disabled." 20 60 1
+    else
+      # Complete
+      VNC_ACCESS_URI=$(get_ip_and_port 5912 | sed 's/\x1b\[[0-9;]*m//g')
+      whiptail --title "Success" --msgbox "The VNC Server and virtual desktop have been configured.\n\nYou can connect to the virtual desktop using the RealVNC Viewer on port 5912:\n\n$VNC_ACCESS_URI\n\nDownload RealVNC Viewer:\n\n  * https://www.realvnc.com/download/viewer/" 20 60 1
+    fi
+  }
+
+  do_vnc
+}
+
 do_extra_packages() {
   FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (hb-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
     "A1 Pi-hole" "Install Pi-hole, a dns based ad-blocking service" \
     "A2 Node-RED" "Install Node-RED" \
     "A3 UniFi Controller" "Install the Ubiquiti UniFi Controller software" \
     "A4 deCONZ / Phoscon" "Install to manage your ConBee or RaspBee device" \
+    "A5 RealVNC Server" "Enable / Disable desktop access over VNC" \
     3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -eq 1 ]; then
@@ -444,6 +551,7 @@ do_extra_packages() {
       A2\ *) do_install_nodered ;;
       A3\ *) do_install_unifi ;;
       A4\ *) do_install_deconz ;;
+      A5\ *) do_install_desktop_and_vnc ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
