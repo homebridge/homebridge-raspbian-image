@@ -427,6 +427,10 @@ EOL
 
     # Enable and start
     systemctl daemon-reload
+
+    systemctl stop deconz-gui
+    systemctl disable deconz-gui
+    
     systemctl enable deconz
     systemctl restart deconz
 
