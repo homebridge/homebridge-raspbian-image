@@ -714,7 +714,7 @@ do_update() {
     if bash -n $tempDir/hb-config; then
       chmod +x $tempDir/hb-config
       mv $tempDir/hb-config /usr/local/sbin/hb-config
-      whiptail --title "Success" --msgbox "The hb-config tool has been updated and will now exit." 20 60 1
+      whiptail --title "Success" --msgbox "The hb-config tool has been updated and will now exit.\n\nIf you like the Homebridge Raspberry Pi image please show your support by starring the project on GitHub:\n\nhttps://github.com/homebridge/homebridge-raspbian-image" 20 60 1
       exit 0
     else
       whiptail --title "Error" --msgbox "The downloaded script was corrupted and did not pass the syntax check." 20 60 1
