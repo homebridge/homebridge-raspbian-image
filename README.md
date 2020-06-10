@@ -23,7 +23,7 @@ This project provides a free [Raspbian](https://www.raspberrypi.org/downloads/ra
 * Includes a user friendly, easy to use web based GUI to configure Homebridge and monitor your Raspberry Pi
 * Visual configuration for over 80 popular plugins (no manual config.json editing required)
 
-This image also provides a command called `hb-config` which helps you keep Node.js up-to-date, perform maintenance on your Homebridge server, and install additional optional software such as *Pi Hole*, *Node-RED* and the *UniFI Controller*.
+This image also provides a command called `hb-config` which helps you keep Node.js up-to-date, perform maintenance on your Homebridge server, and install additional optional software such as *[Pi Hole](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Install-Pi-Hole)*, *[deCONZ](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Install-deCONZ-for-ConBee-or-RaspBee)*, *Node-RED* and the *UniFI Controller*.
 
 The Homebridge service is installed using the method described in the official [Raspberry Pi Installation Guide](https://github.com/nfarina/homebridge/wiki/Install-Homebridge-on-Raspbian) on the [Homebridge](https://github.com/homebridge/homebridge) project wiki.
 
