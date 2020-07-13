@@ -561,7 +561,7 @@ EOL
 
 do_extra_packages() {
   FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (hb-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-    "A1 Pi-hole" "Install / Reconfigure Pi-hole, a dns based ad-blocking service" \
+    "A1 Pi-hole" "Install / Reconfigure Pi-hole" \
     "A2 Node-RED" "Install / Update Node-RED" \
     "A3 UniFi Controller" "Install / Update the Ubiquiti UniFi Controller software" \
     "A4 deCONZ / Phoscon" "Install / Update to manage your ConBee or RaspBee device" \
