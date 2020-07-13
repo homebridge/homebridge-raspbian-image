@@ -269,6 +269,27 @@ do_install_nodered() {
   RET=$?
   if [ $RET -eq 0 ]; then
     npm install -g --unsafe-perm node-red node-red-node-pi-gpio node-red-node-random node-red-node-ping node-red-contrib-play-audio node-red-node-smooth node-red-node-serialport node-red-contrib-homebridge-automation
+
+    # add helper shortcuts
+    if curl -f https://raw.githubusercontent.com/node-red/linux-installers/master/resources/node-red-icon.svg >/dev/null 2>&1; then
+        sudo curl -sL -o /usr/share/icons/hicolor/scalable/apps/node-red-icon.svg https://raw.githubusercontent.com/node-red/linux-installers/master/resources/node-red-icon.svg 2>&1 | sudo tee -a /var/log/nodered-install.log >>/dev/null
+        sudo curl -sL -o /usr/share/applications/Node-RED.desktop https://raw.githubusercontent.com/node-red/linux-installers/master/resources/Node-RED.desktop 2>&1 | sudo tee -a /var/log/nodered-install.log >>/dev/null
+        sudo curl -sL -o /usr/bin/node-red-start https://raw.githubusercontent.com/node-red/linux-installers/master/resources/node-red-start 2>&1 | sudo tee -a /var/log/nodered-install.log >>/dev/null
+        sudo curl -sL -o /usr/bin/node-red-stop https://raw.githubusercontent.com/node-red/linux-installers/master/resources/node-red-stop 2>&1 | sudo tee -a /var/log/nodered-install.log >>/dev/null
+        sudo curl -sL -o /usr/bin/node-red-restart https://raw.githubusercontent.com/node-red/linux-installers/master/resources/node-red-restart 2>&1 | sudo tee -a /var/log/nodered-install.log >>/dev/null
+        sudo curl -sL -o /usr/bin/node-red-reload https://raw.githubusercontent.com/node-red/linux-installers/master/resources/node-red-reload 2>&1 | sudo tee -a /var/log/nodered-install.log >>/dev/null
+        sudo curl -sL -o /usr/bin/node-red-log https://raw.githubusercontent.com/node-red/linux-installers/master/resources/node-red-log 2>&1 | sudo tee -a /var/log/nodered-install.log >>/dev/null
+        sudo curl -sL -o /etc/logrotate.d/nodered https://raw.githubusercontent.com/node-red/linux-installers/master/resources/nodered.rotate 2>&1 | sudo tee -a /var/log/nodered-install.log >>/dev/null
+        sudo chmod +x /usr/bin/node-red-start
+        sudo chmod +x /usr/bin/node-red-stop
+        sudo chmod +x /usr/bin/node-red-restart
+        sudo chmod +x /usr/bin/node-red-reload
+        sudo chmod +x /usr/bin/node-red-log
+        printf "Added shortcut commands\r\n"
+    else
+        printf "Could not add shortcut commands\r\n"
+    fi
+
     cat > /etc/systemd/system/nodered.service <<EOL
 # systemd service file to start Node-RED
 
@@ -540,10 +561,10 @@ EOL
 
 do_extra_packages() {
   FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (hb-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
-    "A1 Pi-hole" "Install Pi-hole, a dns based ad-blocking service" \
-    "A2 Node-RED" "Install Node-RED" \
-    "A3 UniFi Controller" "Install the Ubiquiti UniFi Controller software" \
-    "A4 deCONZ / Phoscon" "Install to manage your ConBee or RaspBee device" \
+    "A1 Pi-hole" "Install / Reconfigure Pi-hole, a dns based ad-blocking service" \
+    "A2 Node-RED" "Install / Update Node-RED" \
+    "A3 UniFi Controller" "Install / Update the Ubiquiti UniFi Controller software" \
+    "A4 deCONZ / Phoscon" "Install / Update to manage your ConBee or RaspBee device" \
     "A5 RealVNC Server" "Enable / Disable desktop access over VNC" \
     3>&1 1>&2 2>&3)
   RET=$?
