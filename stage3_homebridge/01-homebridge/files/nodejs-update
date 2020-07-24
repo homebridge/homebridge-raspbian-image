@@ -13,7 +13,16 @@ if [ $LTS != $CURRENT ]; then
 	echo "Updating Node.js to $LTS..."
 
 	PREFIX=$(npm -g prefix || echo "/usr/local")
-	curl -Lsf "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz" | sudo tar xzf - -C /usr/local --strip-components=1 --no-same-owner
+	case "$(dpkg-architecture -q DEB_TARGET_ARCH)" in
+        arm64)
+          curl -Lsf "https://nodejs.org/dist/$LTS/node-$LTS-linux-arm64.tar.xz" | \
+            sudo tar xf - -C ${PREFIX} --strip-components=1 --no-same-owner
+          ;;
+        armhf)
+          curl -Lsf "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz" | \
+            sudo tar xf - -C ${PREFIX} --strip-components=1 --no-same-owner
+          ;;
+        esac
 
 	echo "Node.js $(node -v)"
 	echo "npm $(npm -v)"
