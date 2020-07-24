@@ -26,7 +26,7 @@ arm64)
   curl -Lsf "https://nodejs.org/dist/$LTS/node-$LTS-linux-arm64.tar.xz" | \
     tar xf - -C /usr/local --strip-components=1 --no-same-owner
   ;;
-*)
+armhf)
   curl -Lsf "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz" | \
     tar xf - -C /usr/local --strip-components=1 --no-same-owner
   ;;
