@@ -43,8 +43,8 @@ EOL
     exit 0;
   fi
 else
-  printf "Could not determine Homebridge Config UI X port\n"
-  exit 0;
+  UI_PORT=8581
+  echo "$UI_PORT" > /etc/hb-ui-port
 fi
 
 # update the nginx config
