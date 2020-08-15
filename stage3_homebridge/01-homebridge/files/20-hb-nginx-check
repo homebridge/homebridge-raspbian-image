@@ -39,11 +39,12 @@ EOL
     # store the port in /etc/hb-ui-port for usage in motd login banner
     echo "$UI_PORT" > /etc/hb-ui-port
   else
-    printf "Could not determine Homebrdige Config UI X port\n"
+    printf "Could not determine Homebridge Config UI X port\n"
     exit 0;
   fi
 else
-  UI_PORT=8581
+  printf "Could not determine Homebridge Config UI X port\n"
+  exit 0;
 fi
 
 # update the nginx config

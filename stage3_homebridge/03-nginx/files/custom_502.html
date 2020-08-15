@@ -21,6 +21,10 @@
     * {
         box-sizing: border-box;
     }
+    a, a:visited {
+      color: #ffffff;
+      text-decoration: underline;
+    }
     .container {
         width: 100%;
         max-width: 960px;
@@ -327,6 +331,16 @@
           }
         }, 1700);
       }());
+
+      (async function () {
+        setInterval(async () => {
+          document.getElementById('startupLongTime').innerHTML = `
+            <p>Homebridge doesn't usually take this long to start.</p>
+            <p>Something might be wrong.</p>
+            <p>To troubleshoot the problem, please <a href="https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Connect-Via-SSH" target="_blank">connect via ssh</a> and <a href="https://github.com/homebridge/homebridge-raspbian-image/wiki#useful-commands" target="_blank">look at the Homebridge logs</a>.
+          `;
+        }, 90000);
+      }());
     </script>
 </head>
 
@@ -357,6 +371,7 @@
         <div class="info-block">
           <h1>Homebridge</h1>
           <h2 id="statusMessage">Starting now...</h2>
+          <div id="startupLongTime"></div>
         </div>
       </div>
         <div id="commandParallax" class="center-me">
