@@ -14,11 +14,11 @@ set -x
 case "$(dpkg-architecture -q DEB_TARGET_ARCH)" in
 arm64)
   curl -Lsf "https://github.com/homebridge/ffmpeg-for-homebridge/releases/latest/download/ffmpeg-debian-aarch64.tar.gz" | \
-    tar xf - -C / --no-same-owner
+    tar xzf - -C / --no-same-owner
   ;;
 armhf)
   curl -Lsf  "https://github.com/homebridge/ffmpeg-for-homebridge/releases/latest/download/ffmpeg-raspbian-armv6l.tar.gz" | \
-    tar xf - -C / --no-same-owner
+    tar xzf - -C / --no-same-owner
   ;;
 esac
 
