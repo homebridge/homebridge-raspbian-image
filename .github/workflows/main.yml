@@ -46,6 +46,8 @@ jobs:
 
           ### [Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip](https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ steps.get_version.outputs.VERSION }}/Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip)
 
+          <sup>[Getting Started Guide](https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started)</sup>
+
           </span>
 
           ---
