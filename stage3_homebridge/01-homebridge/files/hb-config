@@ -182,7 +182,7 @@ do_restart_services() {
 
 do_homebridge_update() {
   printf "Updating Homebridge, please wait...\n"
-  npm install -g homebridge@latest homebridge-config-ui-x@latest
+  npm install -g --unsafe-perm homebridge@latest homebridge-config-ui-x@latest
   whiptail --msgbox "Homebridge is up-to-date." 10 60 1
   do_restart_services
 }
