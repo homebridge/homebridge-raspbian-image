@@ -106,7 +106,7 @@ To update Node.js run `sudo hb-config` and select **Upgrade Node.js**.
 This will ensure your Raspberry Pi  is running the latest LTS version of Node.js.
 
 <p align="center">
-  <img width="600px" alt="hb-config" src="https://user-images.githubusercontent.com/3979615/74602581-4b17fd00-50fe-11ea-8684-c03eaa42d27d.png">
+  <img width="600px" alt="hb-config" src="https://user-images.githubusercontent.com/3979615/97378609-d8ab1e00-1916-11eb-8e9e-ec1d399bfa4b.png">
 </p>
 
 ## SSH Access
