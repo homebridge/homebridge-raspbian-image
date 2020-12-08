@@ -53,6 +53,9 @@ chown -R pi:pi /var/lib/homebridge
 # set ui port for use in motd message
 echo "8581" > /etc/hb-ui-port
 
+# prioritise dns over mdns
+sed -i 's/files mdns4_minimal \[NOTFOUND=return\] dns/files dns mdns4_minimal \[NOTFOUND=return\]/' /etc/nsswitch.conf
+
 systemctl daemon-reload
 systemctl enable homebridge
 EOF
