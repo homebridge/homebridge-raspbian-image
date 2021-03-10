@@ -21,7 +21,7 @@ jobs:
       run: |
        sudo dpkg --add-architecture i386
        sudo apt-get update
-       sudo apt-get install -y coreutils quilt parted debootstrap zerofree zip dosfstools bsdtar|libarchive-tools libcap2-bin grep rsync xz-utils file git curl jq
+       sudo apt-get install -y coreutils quilt parted debootstrap zerofree zip dosfstools libarchive-tools libcap2-bin grep rsync xz-utils file git curl jq
        sudo apt-get install -y qemu-user-static:i386
     - name: Build Image
       run: sudo CLEAN=1 BUILD_VERSION=${{ steps.get_version.outputs.VERSION }} ./build.sh -c config
