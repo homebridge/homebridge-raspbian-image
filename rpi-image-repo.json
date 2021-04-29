@@ -1,0 +1,15 @@
+{
+  "os_list": [
+    {
+      "name": "Homebridge",
+      "description": "Official Homebridge Raspberry Pi Image",
+      "url": "https://github.com/homebridge/homebridge-raspbian-image/releases/download/v1.0.22/Raspbian-Homebridge-v1.0.22.zip",
+      "icon": "https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png",
+      "extract_size": 2505019904,
+      "extract_sha256": "3398d668a552357db58d61dc50b67f14f07127b94f8038927a418cef19c5824d",
+      "image_download_size": 656662823,
+      "release_date": "2021-04-27",
+      "image_download_sha256": "bd64c102a1beee49d0a66be83dc7b39a9854e37a0b11d31efd9c0cb1ece58175"
+    }
+  ]
+}

@@ -10,7 +10,7 @@
 
 [![Build](https://github.com/homebridge/homebridge-raspbian-image/workflows/CI/badge.svg)](https://github.com/homebridge/homebridge-raspbian-image/actions)
 [![GitHub release (latest by date)](https://badgen.net/github/release/homebridge/homebridge-raspbian-image?label=Version)](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
-[![GitHub All Releases](https://img.shields.io/github/downloads/homebridge/homebridge-raspbian-image/total)](https://somsubhra.com/github-release-stats/?username=homebridge&repository=homebridge-raspbian-image)
+[![GitHub All Releases](https://img.shields.io/github/downloads/homebridge/homebridge-raspbian-image/total)](https://somsubhra.github.io/github-release-stats/?username=homebridge&repository=homebridge-raspbian-image&page=1&per_page=30)
 
 </span>
 
