@@ -27,28 +27,31 @@ This image also provides a command called `hb-config` which helps you keep Node.
 
 The Homebridge service is installed using the method described in the official [Raspberry Pi Installation Guide](https://github.com/nfarina/homebridge/wiki/Install-Homebridge-on-Raspbian) on the [Homebridge](https://github.com/homebridge/homebridge) project wiki.
 
-## Download
+## Download and Flash to SD Card
 
-Downloading the *Homebridge Raspberry Pi Image* is completely free (no sign up required).
+The *Homebridge Raspberry Pi Image* is completely free (no sign up required).
 
-<span align="center">
-  
-### [Download Latest Version](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
-  
-</span>
+The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is to use the [Raspberry Pi Imager](https://www.raspberrypi.org/software/).
 
-## Flash to SD Card
-
-The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is to use [Etcher](https://www.balena.io/etcher/).
-  
 <p align="center">
-    <img src="https://user-images.githubusercontent.com/3979615/74733445-789cac00-52a0-11ea-9167-05b42d6383ad.gif" width="600">
+    <img src="https://user-images.githubusercontent.com/3979615/117289189-a8d56800-aeaf-11eb-9de8-2d742e632b42.gif" width="600">
 </p>
 
-1. Download and install the latest version of [Etcher](https://www.balena.io/etcher/).
-2. Open Etcher and select the `Homebridge-Raspbian-v0.0.0.zip` file you have [downloaded](https://github.com/homebridge/homebridge-raspbian-image/releases/latest). There is no need to extract the `.zip` file first.
-3. Choose the drive your SD card has been inserted into.
-4. Click Flash.
+1. Download and install the latest version of [Raspberry Pi Imager](https://www.raspberrypi.org/software/).
+2. Open the *Raspberry Pi Imager* application.
+3. Click **Choose OS**.
+4. Scroll down and select the **Other specific purpose OS** category.
+5. Select **Homebridge**, then choose the latest Homebridge image.
+6. Click **Choose Storage** and select your SD card.
+7. Click **Write**.
+
+*Raspberry Pi Imager* will now download and flash the latest version of the *Homebridge Raspberry Pi Image* to your SD card, this may take several minutes depending on the speed of your internet connection and SD card.
+
+---
+
+If you wish to use another tool such as [Etcher](https://www.balena.io/etcher/) or [`dd`](https://www.raspberrypi.org/documentation/installation/installing-images/mac.md) to flash the Homebridge Raspberry Pi Image, you can manually download the image from our releases page:
+
+* [Download Latest Version](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
 
 ## First Boot / Network Setup
 
