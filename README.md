@@ -49,9 +49,15 @@ The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is 
 
 ---
 
+**Advanced users:**
+
 If you wish to use another tool such as [Etcher](https://www.balena.io/etcher/) or [`dd`](https://www.raspberrypi.org/documentation/installation/installing-images/mac.md) to flash the Homebridge Raspberry Pi Image, you can manually download the image from our releases page:
 
-* [Download Latest Version](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
+<span align="center">
+
+### [Download Latest Version](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
+
+</span>
 
 ## First Boot / Network Setup
 
