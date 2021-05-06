@@ -34,7 +34,7 @@ The *Homebridge Raspberry Pi Image* is completely free (no sign up required).
 The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is to use the [Raspberry Pi Imager](https://www.raspberrypi.org/software/).
 
 <p align="center">
-    <img src="https://user-images.githubusercontent.com/3979615/117289189-a8d56800-aeaf-11eb-9de8-2d742e632b42.gif" width="600">
+    <img src="https://user-images.githubusercontent.com/3979615/117293310-8f82ea80-aeb4-11eb-9e46-21f6720f30ff.gif" width="600">
 </p>
 
 1. Download and install the latest version of [Raspberry Pi Imager](https://www.raspberrypi.org/software/).
