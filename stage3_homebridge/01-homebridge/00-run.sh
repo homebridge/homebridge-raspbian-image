@@ -1,7 +1,5 @@
 #!/bin/bash -e 
 
-set -x
-
 #
 # Install Homebridge and Homebridge Config UI X
 #
@@ -37,19 +35,19 @@ npm install -g npm
 npm install -g --unsafe-perm homebridge@latest homebridge-config-ui-x@latest
 
 # setup homebridge using hb-service
-hb-service install --user ${FIRST_USER_NAME}
+hb-service install --user ${HOMEBRIDGE_USER_NAME}
 
 # remove the default config.json that was created
 rm -rf /var/lib/homebridge/config.json
 
 # correct ownership
-chown -R "${FIRST_USER_NAME}:${FIRST_USER_NAME}" /var/lib/homebridge
+chown -R "${HOMEBRIDGE_USER_NAME}:${HOMEBRIDGE_USER_NAME}" /var/lib/homebridge
 
 # empty motd
 > /etc/motd
 
 # make a symlink to the main config directory
-[ -e "/home/${FIRST_USER_NAME}/.homebridge" ] || ln -fs /var/lib/homebridge "/home/${FIRST_USER_NAME}/.homebridge"
+[ -e "/home/${HOMEBRIDGE_USER_NAME}/.homebridge" ] || ln -fs /var/lib/homebridge "/home/${HOMEBRIDGE_USER_NAME}/.homebridge"
 [ -e /root/.homebridge ] || ln -fs /var/lib/homebridge /root/.homebridge
 
 # set ui port for use in motd message
