@@ -358,6 +358,46 @@ do_install_unifi() {
   fi
 }
 
+do_install_adguard_home() {
+  if [ -e /etc/systemd/system/AdGuardHome.service ]; then
+      whiptail --title "Remove AdGuard Home" --yesno "AdGuard Home is already installed.\n\nWould you like to UNINSTALL AdGuard Home?" 20 60 1
+      RET=$?
+      if [ $RET -eq 0 ]; then
+        systemctl stop AdGuardHome
+      	systemctl disable AdGuardHome
+	      rm -rf /etc/systemd/system/AdGuardHome.service
+        rm -rf /opt/AdGuardHome
+	      systemctl daemon-reload
+        whiptail --title "Success" --msgbox "AdGuard Home has been uninstalled." 20 60 1
+      	printf "\n"
+      fi
+  else
+    whiptail --title "Warning" --yesno "This will install the AdGuard Home software which uses the following ports:\n\n* 3000\n\nAre you sure you want to continue?" 20 60 1
+    RET=$?
+    if [ $RET -eq 0 ]; then
+      rm -rf /tmp/adguardhome
+      mkdir -p /tmp/adguardhome
+      cd /tmp/adguardhome
+      wget https://static.adguard.com/adguardhome/release/AdGuardHome_linux_armv6.tar.gz
+      tar xvf AdGuardHome_linux_armv6.tar.gz -C /opt
+      rm -rf /tmp/adguardhome
+      cd /opt/AdGuardHome
+      ./AdGuardHome -s install -p 3000
+      if [ $? -eq 0 ]; then
+        # Complete
+        ADGUARD_WEB=$(get_web_addresses http 3000 | sed 's/\x1b\[[0-9;]*m//g')
+        whiptail --title "Success" --msgbox "AdGuard Home has been installed.\n\nFinish setting up AdGuard Home via:\n\n$ADGUARD_WEB" 20 60 1
+        printf "\n"
+        exit 0
+      else
+        whiptail --title "Error" --msgbox "AdGuard Home failed to install correctly. Review log above." 20 60 1
+        printf "\n"
+        exit 0
+      fi
+    fi
+  fi
+}
+
 do_install_deconz() {
   whiptail --title "Warning" --yesno "This will install the deCONZ and Phoscon software which will use the following ports:\n\n* 4530 - Phoscon Web App\n* 4531 - WebSockets\n\nAre you sure you want to continue?" 20 60 1
   RET=$?
@@ -451,7 +491,7 @@ EOL
 
     systemctl stop deconz-gui
     systemctl disable deconz-gui
-    
+
     systemctl enable deconz
     systemctl restart deconz
 
@@ -463,8 +503,8 @@ EOL
     if [ "$isRaspbee" = "1" ]; then
       if [ "$isRaspbee2" = "1" ]; then
         whiptail --title "Final Steps" --msgbox "You need to reboot your device to complete installation.\n\nOnce you have reboot you need to configure the RTC module by running:\n\nsudo hwclock --systohc\nsudo hwclock --verbose\n\nSee the RaspBee II install guide for further instructions: https://phoscon.de/en/raspbee2/install#raspbian" 20 60 1
-      else 
-         whiptail --title "Final Steps" --msgbox "You need to reboot your device to complete installation." 20 60 1
+      else
+        whiptail --title "Final Steps" --msgbox "You need to reboot your device to complete installation." 20 60 1
       fi
       whiptail --title "Reboot Required" --yesno "Would you like to reboot now?" 20 60 2
       if [ $? -eq 0 ]; then # yes
@@ -561,6 +601,7 @@ EOL
 
 do_extra_packages() {
   FUN=$(whiptail --title "Homebridge Raspbian Configuration Tool (hb-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+    "A0 AdGuard Home" "Install / Uninstall AdGuard Home" \
     "A1 Pi-hole" "Install / Reconfigure Pi-hole" \
     "A2 Node-RED" "Install / Update Node-RED" \
     "A3 UniFi Controller" "Install / Update the Ubiquiti UniFi Controller software" \
@@ -572,6 +613,7 @@ do_extra_packages() {
     return 0
   elif [ $RET -eq 0 ]; then
     case "$FUN" in
+      A0\ *) do_install_adguard_home ;;
       A1\ *) do_install_pihole ;;
       A2\ *) do_install_nodered ;;
       A3\ *) do_install_unifi ;;
