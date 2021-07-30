@@ -201,8 +201,24 @@ do_nodejs_update() {
     echo "Updating Node.js to $LTS..."
 
     PREFIX=$(npm -g prefix || echo "/usr/local")
+
+    tempDir=$(mktemp -d)
+    echo "Downloading to $tempDir/node-$LTS-linux-armv6l.tar.gz ..."
+    curl -Lf# -o "$tempDir/node-$LTS-linux-armv6l.tar.gz" "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz"
+
+    if [ $? -ne 0 ]; then
+      echo "Failed to download node-$LTS-linux-armv6l.tar.gz. See logs above."
+      exit 1
+    fi
+
+    echo "Cleaning up old version of npm..."
     sudo rm -rf "$PREFIX/lib/node_modules/npm"
-    curl -Lsf "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz" | sudo tar xzf - -C /usr/local --strip-components=1 --no-same-owner
+
+    echo "Extracting node-$LTS-linux-armv6l.tar.gz to $PREFIX ..."
+    sudo tar xz -f "$tempDir/node-$LTS-linux-armv6l.tar.gz" -C /usr/local --strip-components=1 --no-same-owner
+
+    echo "Removing $tempDir/node-$LTS-linux-armv6l.tar.gz ..."
+    sudo rm -rf "$tempDir/node-$LTS-linux-armv6l.tar.gz"
 
     echo "Node.js $(node -v)"
     echo "npm $(npm -v)"
