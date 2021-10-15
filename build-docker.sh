@@ -48,6 +48,7 @@ fi
 CONTAINER_NAME=${CONTAINER_NAME:-pigen_work}
 CONTINUE=${CONTINUE:-0}
 PRESERVE_CONTAINER=${PRESERVE_CONTAINER:-0}
+PIGEN_DOCKER_OPTS=${PIGEN_DOCKER_OPTS:-""}  
 
 if [ -z "${IMG_NAME}" ]; then
 	echo "IMG_NAME not set in 'config'" 1>&2
@@ -91,6 +92,7 @@ if [ "${CONTAINER_EXISTS}" != "" ]; then
 		--cap-add=ALL \
 		-v /dev:/dev \
 		-v /lib/modules:/lib/modules \
+		${PIGEN_DOCKER_OPTS} \
 		--volume "${CONFIG_FILE}":/config:ro \
 		-e "GIT_HASH=${GIT_HASH}" \
 		--volumes-from="${CONTAINER_NAME}" --name "${CONTAINER_NAME}_cont" \
@@ -105,6 +107,7 @@ else
 		--cap-add=ALL \
 		-v /dev:/dev \
 		-v /lib/modules:/lib/modules \
+		${PIGEN_DOCKER_OPTS} \
 		--volume "${CONFIG_FILE}":/config:ro \
 		-e "GIT_HASH=${GIT_HASH}" \
 		pi-gen \
