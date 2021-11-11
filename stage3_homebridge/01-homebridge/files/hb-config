@@ -483,8 +483,9 @@ do_install_deconz() {
     wget -O - http://phoscon.de/apt/deconz.pub.key | sudo apt-key add -
 
     # Configure the APT repository for deCONZ
+    # remove -beta when https://forum.phoscon.de/t/please-create-a-repo-for-debian-11-bullseye/432 is resolved
     sudo sh -c "echo 'deb http://phoscon.de/apt/deconz \
-            $(lsb_release -cs) main' > \
+            $(lsb_release -cs)-beta main' > \
             /etc/apt/sources.list.d/deconz.list"
 
     # Update APT package list
