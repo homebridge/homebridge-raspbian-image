@@ -1,7 +1,7 @@
 #!/bin/bash -e 
 
 #
-# Install balena-io/wifi-connect
+# Install @homebridge/wifi-connect
 #
 
 install -m 644 files/wifi-connect.service "${ROOTFS_DIR}/etc/systemd/system/"
