@@ -5,7 +5,7 @@ Before=nginx.service homebridge.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/sbin/wifi-connect-startup
+ExecStart=/usr/local/bin/wifi-connect
 
 [Install]
 WantedBy=multi-user.target
