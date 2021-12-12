@@ -72,6 +72,4 @@ jobs:
     # cleanup
     - name: Cleanup
       if: ${{ always() }}
-      run: |
-        sudo rm -rf work deploy postrun.sh .pc apt-cacher-ng
-        sudo rm -rf deploy
+      run: sudo rm -rf work deploy postrun.sh .pc apt-cacher-ng
