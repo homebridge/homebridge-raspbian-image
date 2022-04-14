@@ -41,9 +41,10 @@ The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is 
 2. Open the *Raspberry Pi Imager* application.
 3. Click **Choose OS**.
 4. Scroll down and select the **Other specific purpose OS** category.
-5. Select **Homebridge**, then choose the latest Homebridge image.
-6. Click **Choose Storage** and select your SD card.
-7. Click **Write**.
+5. Select the **Home assistants and home automation** category.
+6. Select **Homebridge**, then choose the latest Homebridge image.
+7. Click **Choose Storage** and select your SD card.
+8. Click **Write**.
 
 *Raspberry Pi Imager* will now download and flash the latest version of the *Homebridge Raspberry Pi Image* to your SD card, this may take several minutes depending on the speed of your internet connection and SD card.
 
