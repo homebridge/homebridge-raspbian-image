@@ -3,3 +3,5 @@ IMG_NAME="Homebridge"
 TARGET_HOSTNAME="homebridge"
 ENABLE_SSH=1
 STAGE_LIST="stage0 stage1 stage2 stage3_homebridge"
+FIRST_USER_NAME="pi"
+FIRST_USER_PASS="raspberry"
