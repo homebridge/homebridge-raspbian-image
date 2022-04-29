@@ -1,51 +1,17 @@
 #!/bin/bash
 
-# try and find the port the UI is running on
+# default port
+UI_PORT=8581
 
-if [ -z "$UIX_STORAGE_PATH" ]; then
-  echo "UIX_STORAGE_PATH not set"
-  exit 0
-fi
-
-if [ -f $UIX_STORAGE_PATH/config.json ]; then
-  UI_PORT=$($(which node) <<EOL
-const fs = require('fs');
-const path = require('path');
-
-const homebridgeConfigPath = '$UIX_STORAGE_PATH/config.json';
-
-try {
-  let config = fs.readFileSync(homebridgeConfigPath, 'utf-8');
-  config = JSON.parse(config);
-  if (Array.isArray(config.platforms) && config.platforms.length) {
-    const uiConfig = config.platforms.find(x => x.platform === 'config');
-    if (uiConfig && uiConfig.port) {
-      console.log(uiConfig.port);
-    } else {
-      process.exit(1);
-    }
-  } else {
-    process.exit(1);
-  }
-} catch (e) {
-  console.error(e);
-  process.exit(1);
-}
-EOL
-)
-
-  RET=$?
-  if [ $RET -eq 0 ]; then
-    # store the port in /etc/hb-ui-port for usage in motd login banner
-    echo "$UI_PORT" > /etc/hb-ui-port
-  else
-    printf "Could not determine Homebridge Config UI X port\n"
-    exit 0;
+if [ -f /var/lib/homebridge/config.json ]; then
+  PORT_FROM_CONFIG=$(cat /var/lib/homebridge/config.json | jq '.platforms[] | select(.platform == "config") | .port' 2> /dev/null)
+  if [ ${#PORT_FROM_CONFIG} -gt 0 ]; then
+    UI_PORT=$PORT_FROM_CONFIG
   fi
-else
-  UI_PORT=8581
-  echo "$UI_PORT" > /etc/hb-ui-port
 fi
+
+# save the result in /etc/hb-ui-port
+echo "$UI_PORT" > /etc/hb-ui-port
 
 # update the nginx config
 if [ -f /etc/nginx/sites-available/homebridge.local ]; then
