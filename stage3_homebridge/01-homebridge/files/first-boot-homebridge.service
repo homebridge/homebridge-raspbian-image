@@ -1,6 +1,6 @@
 [Unit]
 Description=Homebridge image first boot startup script
-Before=homebridge.service
+Before=NetworkManager.service wifi-connect.service
 
 [Service]
 Type=oneshot

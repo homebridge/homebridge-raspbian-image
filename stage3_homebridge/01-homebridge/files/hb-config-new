@@ -679,6 +679,14 @@ do_update() {
   fi
 }
 
+do_nmtui() {
+  if systemctl is-active --quiet NetworkManager; then
+    nmtui
+  else
+    whiptail --title "Error" --msgbox "These network options not available when WiFi was configured via the Raspberry Pi Imager tool.\n\nSee https://www.raspberrypi.com/documentation/computers/configuration.html#wireless-networking-command-line" 20 60 1
+  fi
+}
+
 do_about() {
   IMAGE_VERSION=$(cat /etc/hb-release)
 
@@ -751,7 +759,7 @@ if [ "$INTERACTIVE" = True ]; then
           4\ *) do_extra_packages ;;
           5\ *) do_configure_nginx ;;
           6\ *) do_configure_raspbian ;;
-          7\ *) nmtui ;;
+          7\ *) do_nmtui ;;
           8\ *) do_update ;;
           9\ *) do_about ;;
           *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
@@ -764,7 +772,7 @@ if [ "$INTERACTIVE" = True ]; then
           4\ *) do_extra_packages ;;
           5\ *) do_configure_nginx ;;
           6\ *) do_configure_raspbian ;;
-          7\ *) nmtui ;;
+          7\ *) do_nmtui ;;
           8\ *) do_update ;;
           9\ *) do_about ;;
           *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;

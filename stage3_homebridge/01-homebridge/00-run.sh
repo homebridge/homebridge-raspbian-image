@@ -13,6 +13,10 @@ install -m 755 files/hb-config-new "${ROOTFS_DIR}/usr/local/sbin/hb-config"
 install -v -d "${ROOTFS_DIR}/etc/hb-service/homebridge/prestart.d"
 install -m 755 files/20-hb-nginx-check "${ROOTFS_DIR}/etc/hb-service/homebridge/prestart.d/"
 
+# First boot service
+install -m 644 files/first-boot-homebridge.service "${ROOTFS_DIR}/etc/systemd/system/"
+install -m 755 files/first-boot-homebridge "${ROOTFS_DIR}/usr/local/sbin/"
+
 #
 # MOTD
 #
@@ -51,5 +55,6 @@ sed -i 's/files mdns4_minimal \[NOTFOUND=return\] dns/files dns mdns4_minimal \[
 
 systemctl daemon-reload
 systemctl enable homebridge
+systemctl enable first-boot-homebridge
 EOF
 
