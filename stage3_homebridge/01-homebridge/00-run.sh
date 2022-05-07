@@ -7,7 +7,7 @@
 #
 # Executables Files
 #
-install -m 755 files/hb-config "${ROOTFS_DIR}/usr/local/sbin/"
+install -m 755 files/hb-config-new "${ROOTFS_DIR}/usr/local/sbin/hb-config"
 
 # Pre-start files
 install -v -d "${ROOTFS_DIR}/etc/hb-service/homebridge/prestart.d"
@@ -27,18 +27,11 @@ echo "$BUILD_VERSION" > "${ROOTFS_DIR}/etc/hb-release"
 
 on_chroot << EOF
 
-# todo - remove this when Node.js comes bundled with a working version of npm
-# upgrade npm (v6.13.4 that comes with Node 12.16.1 has issues with git dependencies)
-npm install -g npm
+curl -sSfL https://repo.homebridge.io/KEY.gpg | gpg --dearmor | sudo tee /usr/share/keyrings/homebridge.gpg  > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/homebridge.gpg] https://repo.homebridge.io stable main" | tee /etc/apt/sources.list.d/homebridge.list > /dev/null
 
-# install homebridge and homebridge-config-ui-x
-npm install -g --unsafe-perm homebridge@latest homebridge-config-ui-x@latest
-
-# setup homebridge using hb-service
-hb-service install --user pi
-
-# remove the default config.json that was created
-rm -rf /var/lib/homebridge/config.json
+apt-get update
+apt-get install homebridge
 
 # correct ownership
 chown -R pi:pi /var/lib/homebridge

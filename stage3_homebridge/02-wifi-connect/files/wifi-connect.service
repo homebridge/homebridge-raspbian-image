@@ -5,7 +5,9 @@ Before=nginx.service homebridge.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/wifi-connect
+Environment="PATH=/opt/wifi-connect/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="npm_config_prefix=/opt/wifi-connect"
+ExecStart=/opt/wifi-connect/bin/wifi-connect
 
 [Install]
 WantedBy=multi-user.target

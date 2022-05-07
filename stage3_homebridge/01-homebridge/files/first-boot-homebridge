@@ -1,0 +1,17 @@
+#!/bin/sh
+
+#
+# This script makes sure the homebridge service user is correct on first boot
+# It's usually "pi" but users can change the first user via the Raspberry Pi Imager
+#
+
+# fist user is always uid 1000
+FIRST_USER="$(getent passwd 1000 | cut -d: -f1)"
+
+if [ -f /etc/systemd/system/homebridge.service.d/override.conf ]; then
+  sed -i "/User=/c\User=$FIRST_USER" /etc/systemd/system/homebridge.service.d/override.conf
+fi
+
+# disable this service so it does not run again
+systemctl disable first-boot-homebridge
+systemctl daemon-reload
