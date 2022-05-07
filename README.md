@@ -109,22 +109,6 @@ Once you've found your IP address, login to the web interface by going to `http:
 
 You should take a moment to review the [Configuration Reference](#configuration-reference) at the bottom of this guide.
 
-## Updating Node.js
-
-To update Node.js run `sudo hb-config` and select **Upgrade Node.js**.
-
-This will ensure your Raspberry Pi  is running the latest LTS version of Node.js.
-
-<p align="center">
-  <img width="600px" alt="hb-config" src="https://user-images.githubusercontent.com/3979615/97378609-d8ab1e00-1916-11eb-8e9e-ec1d399bfa4b.png">
-</p>
-
-## SSH Access
-
-SSH is enabled by default. The default username is `pi` with password `raspberry`.
-
-* [How To Connect Via SSH](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Connect-Via-SSH)
-
 ## Security and Privacy
 
 * **Privacy:** The *Homebridge Raspbian Image*, as well as the [Homebridge](https://github.com/nfarina/homebridge) and [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) software components, do not contain any *analytics*, *call home*, or similar features that would allow the project maintainers to track you or the usage of this image.
@@ -141,26 +125,7 @@ The official Homebridge Discord server and Reddit community are where users can 
 
 </span>
 
-## Configuration Reference
-
-This table contains important information about your setup. You can use the information provided here as a reference when configuring or troubleshooting your environment.
-
-|                               | File Location / Command                  |
-|-------------------------------|------------------------------------------|
-| **Config File Path**          | `/var/lib/homebridge/config.json`        |
-| **Storage Path**              | `/var/lib/homebridge`                    |
-| **Restart Command**           | `sudo hb-service restart`                |
-| **Stop Command**              | `sudo hb-service stop`                   |
-| **Start Command**             | `sudo hb-service start`                  |
-| **View Logs Command**         | `sudo hb-service logs`                   |
-| **Manage Homebridge Server**  | `sudo hb-config`                         |
-| **Systemd Service File**      | `/etc/systemd/system/homebridge.service` |
-| **Systemd Env File**          | `/etc/default/homebridge`                |
-| **Default Hostname**          | `homebridge.local`                       |
-| **Default SSH Username**      | `pi`                                     |
-| **Default SSH Password**      | `raspberry`                              |
-| **Default Web Username**      | `admin`                                  |
-| **Default Web Password**      | `admin`                                  |
+## Help
 
 The *Homebridge Raspberry Pi Image* wiki contains more information and instructions on how to further customise your install:
 
