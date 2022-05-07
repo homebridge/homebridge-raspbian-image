@@ -107,8 +107,6 @@ Once you've found your IP address, login to the web interface by going to `http:
   <img width="600px" src="https://user-images.githubusercontent.com/3979615/71886653-b16d3f80-3190-11ea-9ff8-49dc4ae4fff0.png">
 </p>
 
-You should take a moment to review the [Configuration Reference](#configuration-reference) at the bottom of this guide.
-
 ## Security and Privacy
 
 * **Privacy:** The *Homebridge Raspbian Image*, as well as the [Homebridge](https://github.com/nfarina/homebridge) and [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) software components, do not contain any *analytics*, *call home*, or similar features that would allow the project maintainers to track you or the usage of this image.
