@@ -398,7 +398,7 @@ do_install_adguard_home() {
       tar xvf AdGuardHome_linux_armv6.tar.gz -C /opt
       rm -rf /tmp/adguardhome
       cd /opt/AdGuardHome
-      ./AdGuardHome -s install -p 3000
+      ./AdGuardHome -s install
       if [ $? -eq 0 ]; then
         # Complete
         ADGUARD_WEB=$(get_web_addresses http 3000 | sed 's/\x1b\[[0-9;]*m//g')
