@@ -353,57 +353,6 @@ EOL
   fi
 }
 
-do_install_unifi() {
-  if [ -f /lib/systemd/system/unifi.service ]; then
-      whiptail --title "Remove UniFi Controller" --yesno "UniFi Controller is already installed.\n\nWould you like to UNINSTALL UniFi Controller?" 20 60 1
-      RET=$?
-      if [ $RET -eq 0 ]; then
-        echo "Uninstalling UniFi Controller..."
-        apt purge -y unifi
-        rm -rf /etc/apt/sources.list.d/stretch_mongodb.list
-        rm -rf /etc/apt/sources.list.d/100-ubnt-unifi.list
-        rm -rf /etc/apt/sources.list.d/stretch_mongodb.list
-        whiptail --title "Success" --msgbox "UniFi Controller has been uninstalled." 20 60 1
-      	printf "\n"
-        exit 0
-      fi
-  fi
-  whiptail --title "Warning" --yesno "This will install/update the UniFi Controller software which uses the following ports:\n\n* 8080\n* 8443\n* 8880\n* 8853\n* 6798\n* 27117\n\nAre you sure you want to continue?" 20 60 1
-  RET=$?
-  if [ $RET -eq 0 ]; then
-    # add unifi repo
-    echo 'deb [signed-by=/usr/share/keyrings/ubiquiti-archive-keyring.gpg] https://www.ui.com/downloads/unifi/debian stable ubiquiti' | sudo tee /etc/apt/sources.list.d/100-ubnt-unifi.list
-    # add unifi gpg key
-    curl -sSf https://dl.ui.com/unifi/unifi-repo.gpg | sudo tee /usr/share/keyrings/ubiquiti-archive-keyring.gpg >/dev/null
-
-    # https://github.com/homebridge/homebridge-raspbian-image/issues/69
-    # Extra Steps for Raspberry Pi OS Bullseye to get correct version of MongoDB
-    echo "deb http://archive.raspbian.org/raspbian stretch main" | sudo tee /etc/apt/sources.list.d/stretch_mongodb.list
-    cat > /etc/apt/preferences.d/99stretch-mongodb.pref <<EOL
-#Never Prefer packages from Stretch
-Package: *
-Pin: release n=stretch
-Pin-Priority: 1
-EOL
-    # install packages
-    apt update
-    apt install -y openjdk-8-jre-headless haveged
-    apt install -y unifi
-
-    if [ $? -eq 0 ]; then
-      UNIFI_WEB=$(get_web_addresses https 8443 | sed 's/\x1b\[[0-9;]*m//g')
-      whiptail --title "Reboot Required" --yesno "Would you like to reboot now?\n\nOnce rebooted you can access the UniFi Controller via:\n\n$UNIFI_WEB" 20 60 2
-      if [ $? -eq 0 ]; then # yes
-        sync
-        reboot
-      fi
-      exit 0
-    else
-      exit 1
-    fi
-  fi
-}
-
 do_install_adguard_home() {
   if [ -e /etc/systemd/system/AdGuardHome.service ]; then
       whiptail --title "Remove AdGuard Home" --yesno "AdGuard Home is already installed.\n\nWould you like to UNINSTALL AdGuard Home?" 20 60 1
@@ -651,9 +600,8 @@ do_extra_packages() {
     "A0 AdGuard Home" "Install / Uninstall AdGuard Home" \
     "A1 Pi-hole" "Install / Reconfigure Pi-hole" \
     "A2 Node-RED" "Install / Update Node-RED" \
-    "A3 UniFi Controller" "Install / Update the Ubiquiti UniFi Controller software" \
-    "A4 deCONZ / Phoscon" "Install / Update to manage your ConBee or RaspBee device" \
-    "A5 RealVNC Server" "Enable / Disable desktop access over VNC" \
+    "A3 deCONZ / Phoscon" "Install / Update to manage your ConBee or RaspBee device" \
+    "A4 RealVNC Server" "Enable / Disable desktop access over VNC" \
     3>&1 1>&2 2>&3)
   RET=$?
   if [ $RET -eq 1 ]; then
@@ -663,9 +611,8 @@ do_extra_packages() {
       A0\ *) do_install_adguard_home ;;
       A1\ *) do_install_pihole ;;
       A2\ *) do_install_nodered ;;
-      A3\ *) do_install_unifi ;;
-      A4\ *) do_install_deconz ;;
-      A5\ *) do_install_desktop_and_vnc ;;
+      A3\ *) do_install_deconz ;;
+      A4\ *) do_install_desktop_and_vnc ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
