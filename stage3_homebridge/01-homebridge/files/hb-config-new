@@ -163,6 +163,10 @@ do_finish() {
   exit 0
 }
 
+get_first_user() {
+  printf "$(getent passwd 1000 | cut -d: -f1)"
+}
+
 do_homebridge_update() {
   pstree -s $$ | grep "hb-service" > /dev/null
   if [ "$?" -eq 0 ]; then
@@ -356,7 +360,7 @@ do_install_deconz() {
     mkdir -p /etc/systemd/system/deconz.service.d
     cat > /etc/systemd/system/deconz.service.d/override.conf <<EOL
 [Service]
-User=pi
+User=$(get_first_user)
 ExecStart=
 ExecStart=/usr/bin/deCONZ -platform minimal --http-port=4530 --ws-port=4531
 EOL
@@ -430,11 +434,11 @@ After=syslog.target network.target
 
 [Service]
 Type=forking
-User=pi
-Group=pi
-WorkingDirectory=/home/pi
+User=$(get_first_user)
+Group=$(get_first_user)
+WorkingDirectory=/home/$(get_first_user)
 
-PIDFile=/home/pi/.vnc/%H:12.pid
+PIDFile=/home/$(get_first_user)/.vnc/%H:12.pid
 ExecStartPre=-/usr/bin/vncserver -kill :12 > /dev/null 2>&1
 ExecStart=/usr/bin/vncserver -depth 24 -geometry 1280x800 :12
 ExecStop=/usr/bin/vncserver -kill :12

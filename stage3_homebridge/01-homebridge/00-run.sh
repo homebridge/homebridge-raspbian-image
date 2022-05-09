@@ -38,13 +38,13 @@ apt-get update
 apt-get install homebridge
 
 # correct ownership
-chown -R pi:pi /var/lib/homebridge
+chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /var/lib/homebridge
 
 # empty motd
 > /etc/motd
 
 # make a symlink to the main config directory
-[ -e /home/pi/.homebridge ] || ln -fs /var/lib/homebridge /home/pi/.homebridge
+[ -e /home/${FIRST_USER_NAME}/.homebridge ] || ln -fs /var/lib/homebridge /home/${FIRST_USER_NAME}/.homebridge
 [ -e /root/.homebridge ] || ln -fs /var/lib/homebridge /root/.homebridge
 
 # set ui port for use in motd message
