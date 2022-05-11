@@ -47,6 +47,9 @@ chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /var/lib/homebridge
 [ -e /home/${FIRST_USER_NAME}/.homebridge ] || ln -fs /var/lib/homebridge /home/${FIRST_USER_NAME}/.homebridge
 [ -e /root/.homebridge ] || ln -fs /var/lib/homebridge /root/.homebridge
 
+# include homebridge bashrc in first user's bashrc
+printf '\n\n# include homebridge bashrc if loading from Homebridge UI Terminal\npstree -s $$ | grep "hb-service" > /dev/null\n[ "$?" -eq 0 ] && [ -f /opt/homebridge/bashrc ] && . /opt/homebridge/bashrc\n' >> /home/${FIRST_USER_NAME}/.bashrc
+
 # set ui port for use in motd message
 echo "8581" > /etc/hb-ui-port
 
