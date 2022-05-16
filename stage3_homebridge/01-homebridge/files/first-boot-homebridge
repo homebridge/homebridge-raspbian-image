@@ -1,12 +1,5 @@
 #!/bin/sh
 
-# Support changing the first user account via the Raspberry Pi Imager Tool
-# first user is always uid 1000
-FIRST_USER="$(getent passwd 1000 | cut -d: -f1)"
-if [ -f /etc/systemd/system/homebridge.service.d/override.conf ]; then
-  sed -i "/User=/c\User=$FIRST_USER" /etc/systemd/system/homebridge.service.d/override.conf
-fi
-
 # Support configuring WiFi via Raspberry Pi Imager Tool
 # if ssid is set in wpa_supplicant.conf, don't start wifi-connect, disable network manager, and enable dhcpcd
 if grep -q "ssid" "/etc/wpa_supplicant/wpa_supplicant.conf"; then
