@@ -88,9 +88,7 @@ If you enter your WiFi credentials incorrectly the **Homebridge WiFi Setup** hot
 
 ## Managing Homebridge
 
-The [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) web interface will allow you to install, remove and update plugins, and modify the Homebridge config.json and manage other aspects of your Homebridge service.
-
-**The default user is `admin` with password `admin`.**
+The [Homebridge UI](https://github.com/oznu/homebridge-config-ui-x) web interface will allow you to install, remove and update plugins, and modify the Homebridge config.json and manage other aspects of your Homebridge service.
 
 If you're using macOS or a mobile device, you should be able to access the UI via http://homebridge.local.
 
