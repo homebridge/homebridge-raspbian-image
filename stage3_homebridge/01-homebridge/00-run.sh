@@ -23,6 +23,7 @@ install -m 755 files/first-boot-homebridge "${ROOTFS_DIR}/usr/local/sbin/"
 install -m 755 files/issue "${ROOTFS_DIR}/etc/issue"
 install -m 755 files/motd-linux "${ROOTFS_DIR}/etc/update-motd.d/15-linux"
 install -m 755 files/motd-homebridge "${ROOTFS_DIR}/etc/update-motd.d/20-homebridge"
+install -m 633 files/bashrc.partial "${ROOTFS_DIR}/tmp/bashrc.partial"
 
 #
 # Set Version
@@ -48,7 +49,8 @@ chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /var/lib/homebridge
 [ -e /root/.homebridge ] || ln -fs /var/lib/homebridge /root/.homebridge
 
 # include homebridge bashrc in first user's bashrc
-printf '\n\n# include homebridge bashrc if loading from Homebridge UI Terminal\npstree -s $$ | grep "hb-service" > /dev/null\n[ "$?" -eq 0 ] && [ -f /opt/homebridge/bashrc ] && . /opt/homebridge/bashrc\n' >> /home/${FIRST_USER_NAME}/.bashrc
+cat /tmp/bashrc.partial >> /home/${FIRST_USER_NAME}/.bashrc
+rm -rf /tmp/bashrc.partial
 
 # set ui port for use in motd message
 echo "8581" > /etc/hb-ui-port
