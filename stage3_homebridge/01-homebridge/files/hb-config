@@ -405,7 +405,7 @@ do_install_deconz() {
       isRaspbee="1"
 
       # Install deps
-      apt update
+      apt update --allow-releaseinfo-change
       sudo apt install -y i2c-tools build-essential raspberrypi-kernel-headers
 
       # WiringPi (Pi4 Only)
@@ -468,7 +468,7 @@ do_install_deconz() {
             /etc/apt/sources.list.d/deconz.list"
 
     # Update APT package list
-    apt update
+    apt update --allow-releaseinfo-change
 
     # Install deCONZ
     apt install -y deconz
@@ -535,7 +535,7 @@ do_install_desktop_and_vnc() {
       else
         whiptail --title "Warning" --yesno "The Raspbian Desktop will now be installed.\n\nThis may take between 5 and 45 minutes to complete depending on your device." 20 60 2 --no-button "Cancel" --yes-button "Continue"
         if [ $? -eq 0 ]; then
-          apt update
+          apt update --allow-releaseinfo-change
           apt install -y raspberrypi-ui-mods
         else
           return 0;
@@ -543,7 +543,7 @@ do_install_desktop_and_vnc() {
       fi
 
       # install and setup VNC
-      if is_installed realvnc-vnc-server || (apt update && apt install -y realvnc-vnc-server); then
+      if is_installed realvnc-vnc-server || (apt update --allow-releaseinfo-change && apt install -y realvnc-vnc-server); then
         cat > /etc/systemd/system/vncserver-pi.service <<EOL
 [Unit]
 Description=VNC Virtual Desktop Service
