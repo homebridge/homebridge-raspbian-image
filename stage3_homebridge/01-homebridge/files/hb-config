@@ -822,7 +822,7 @@ if [ "$INTERACTIVE" = True ]; then
         "4 Extra Packages" "Optional packages, eg. Pi-Hole, Node-RED, UniFi Controller" \
         "5 Nginx Options" "Configure Homebridge Nginx settings" \
         "6 Configure OS" "Open the Raspbian Configuration Tool" \
-        "7 Networking" "Open the the NetworkManager UI" \
+        "7 Networking" "Open the NetworkManager UI" \
         "8 Update" "Update this tool to the latest version" \
         "9 About" "Information about this configuration tool" \
         3>&1 1>&2 2>&3)
@@ -834,7 +834,7 @@ if [ "$INTERACTIVE" = True ]; then
         "4 Extra Packages" "Optional packages, eg. Pi-Hole, Node-RED, UniFi Controller" \
         "5 Nginx Options" "Configure Homebridge Nginx settings" \
         "6 Configure OS" "Open the Raspbian Configuration Tool" \
-        "7 Networking" "Open the the NetworkManager UI" \
+        "7 Networking" "Open the NetworkManager UI" \
         "8 Update" "Update this tool to the latest version" \
         "9 About" "Information about this configuration tool" \
         3>&1 1>&2 2>&3)
