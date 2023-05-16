@@ -14,7 +14,7 @@
 
 </span>
 
-This project provides a free [Raspbian](https://www.raspberrypi.org/downloads/raspbian/) based Raspberry Pi image with [Homebridge](https://github.com/nfarina/homebridge) and [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) pre-installed.
+This project provides a free [Raspbian](https://www.raspberrypi.org/downloads/raspbian/) based Raspberry Pi image with [Homebridge](https://github.com/homebridge/homebridge) and [Homebridge Config UI X](https://github.com/homebridge/homebridge-config-ui-x) pre-installed.
 
 * Works on all Raspberry Pi models
 * Built on Raspbian Lite (no desktop)
@@ -25,7 +25,7 @@ This project provides a free [Raspbian](https://www.raspberrypi.org/downloads/ra
 
 This image also provides a command called `hb-config` which helps you keep Node.js up-to-date, perform maintenance on your Homebridge server, and install additional optional software such as *[Pi Hole](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Install-Pi-Hole)* and *[deCONZ](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Install-deCONZ-for-ConBee-or-RaspBee)*.
 
-The Homebridge service is installed using the method described in the official [Raspberry Pi Installation Guide](https://github.com/nfarina/homebridge/wiki/Install-Homebridge-on-Raspbian) on the [Homebridge](https://github.com/homebridge/homebridge) project wiki.
+The Homebridge service is installed using the method described in the official [Raspberry Pi Installation Guide](https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Raspbian) on the [Homebridge](https://github.com/homebridge/homebridge) project wiki.
 
 ## Download and Flash to SD Card
 
@@ -88,7 +88,7 @@ If you enter your WiFi credentials incorrectly the **Homebridge WiFi Setup** hot
 
 ## Managing Homebridge
 
-The [Homebridge UI](https://github.com/oznu/homebridge-config-ui-x) web interface will allow you to install, remove and update plugins, and modify the Homebridge config.json and manage other aspects of your Homebridge service.
+The [Homebridge UI](https://github.com/homebridge/homebridge-config-ui-x) web interface will allow you to install, remove and update plugins, and modify the Homebridge config.json and manage other aspects of your Homebridge service.
 
 If you're using macOS or a mobile device, you should be able to access the UI via http://homebridge.local.
 
@@ -107,7 +107,7 @@ Once you've found your IP address, login to the web interface by going to `http:
 
 ## Security and Privacy
 
-* **Privacy:** The *Homebridge Raspbian Image*, as well as the [Homebridge](https://github.com/nfarina/homebridge) and [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) software components, do not contain any *analytics*, *call home*, or similar features that would allow the project maintainers to track you or the usage of this image.
+* **Privacy:** The *Homebridge Raspbian Image*, as well as the [Homebridge](https://github.com/homebridge/homebridge) and [Homebridge Config UI X](https://github.com/homebridge/homebridge-config-ui-x) software components, do not contain any *analytics*, *call home*, or similar features that would allow the project maintainers to track you or the usage of this image.
 * **Security:** The *Homebridge Raspbian Image* is kept up-to-date with the latest [official Raspbian builds](https://github.com/RPi-Distro/pi-gen). To find out more, or to report a security issue or vulnerability, please see the project's [SECURITY](.github/SECURITY.md) policy.
 * **Transparency:** The *Homebridge Raspbian Image* project is open source and each image is built using the public GitHub Action runners. The build logs for each release are publicly available on the project's [GitHub Actions](https://github.com/homebridge/homebridge-raspbian-image/actions/workflows/main.yml) page and every release contains a SHA-256 checksum of the image you can use to verify the integrity of your download.
 
