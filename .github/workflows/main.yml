@@ -79,7 +79,7 @@ jobs:
         asset_name: Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip
         asset_content_type: application/zip
     - name: Upload rpi-image-repo.json
-      id: upload-rpi-image-repo.json 
+      id: upload-rpi-image-repo-json 
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
