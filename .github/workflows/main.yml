@@ -37,7 +37,7 @@ jobs:
     - name: Generate rpi-image-repo.json 
       id: generate_rpi-image-repo
       run: |
-        sudo shasum -a 256 deploy/image_Raspbian-Homebridge.zip > deploy/image_Raspbian-Homebridge.sha256
+        sudo bash -c 'shasum -a 256 deploy/image_Raspbian-Homebridge.zip > deploy/image_Raspbian-Homebridge.sha256'
         sudo RPI_IMAGER_NAME="homebridge" RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image" RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png" ./make_rpi-imager-snipplet.py -u"https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ steps.get_version.outputs.VERSION }}/Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip"
     - name: Create Release
       id: create_release
