@@ -96,6 +96,7 @@ if __name__ == "__main__":
 
     json_out = {"name": name,
                 "description": description,
+                "init_format": "systemd",
                 "url": url,
                 "icon": icon,
                 "release_date": release_date,
@@ -115,7 +116,11 @@ if __name__ == "__main__":
     json_out["image_download_sha256"], json_out["extract_sha256"] = calculate_sha256_zip(
         zip_local)
 
+    output_json = {}
+    output_json['os_list'] = []
+    output_json['os_list'].append(json_out)
+
     with open(output_path, "w") as w:
-        json.dump(json_out, w, indent=2)
+        json.dump(output_json, w, indent=2)
 
     print("Done generating rpi-imager json snipplet")
