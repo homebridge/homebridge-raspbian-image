@@ -755,7 +755,7 @@ do_configure_raspbian() {
 
 do_update() {
   tempDir=$(mktemp -d)
-  scriptUrl=https://raw.githubusercontent.com/homebridge/homebridge-raspbian-image/master/stage3_homebridge/01-homebridge/files/hb-config
+  scriptUrl=https://raw.githubusercontent.com/homebridge/homebridge-raspbian-image/latest/stage3_homebridge/01-homebridge/files/hb-config
 
   # download the update to a temporary directory
   scriptUrl=$scriptUrl?$(date --iso-8601)
