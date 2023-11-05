@@ -1,1 +1,4 @@
+wpasupplicant
 network-manager
+dnsmasq
+hostapd

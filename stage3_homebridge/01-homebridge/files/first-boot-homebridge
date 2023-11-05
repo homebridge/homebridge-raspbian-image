@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Support configuring WiFi via Raspberry Pi Imager Tool
+# if ssid is set in wpa_supplicant.conf, don't start wifi-connect, disable network manager, and enable dhcpcd
+if grep -q "ssid" "/etc/wpa_supplicant/wpa_supplicant.conf"; then
+  systemctl disable wifi-connect
+  systemctl stop wifi-connect
+  systemctl disable NetworkManager
+  systemctl stop NetworkManager
+  systemctl enable dhcpcd
+  systemctl start dhcpcd
+fi
+
+# disable this service so it does not run again
+systemctl disable first-boot-homebridge
+systemctl daemon-reload

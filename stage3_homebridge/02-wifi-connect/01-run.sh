@@ -1,26 +1,40 @@
 #!/bin/bash -e 
 
 #
-# Install balena-io/wifi-connect
+# Install @homebridge/wifi-connect
 #
 
+export LTS="$(curl -s https://nodejs.org/dist/index.json | jq -r 'map(select(.lts))[0].version')"
+
 install -m 644 files/wifi-connect.service "${ROOTFS_DIR}/etc/systemd/system/"
-install -m 644 files/wifi-connect-startup "${ROOTFS_DIR}/usr/local/sbin/"
-install -m 644 files/raspbian-install.sh "${ROOTFS_DIR}/"
 install -m 755 files/log-iface-events.sh "${ROOTFS_DIR}/etc/NetworkManager/dispatcher.d/"
+install -m 644 files/wifi-powersave-off.conf "${ROOTFS_DIR}/etc/NetworkManager/conf.d/"
 
 on_chroot << EOF
-set -x 
+echo "Installing Node.js for WiFi Connect $LTS..."
 
-chmod u+x /raspbian-install.sh
-sudo /raspbian-install.sh -y
-rm -rf /raspbian-install.sh
+set -e
+set -x
 
-chmod +x /usr/local/sbin/wifi-connect-startup
+mkdir -p /opt/wifi-connect
+
+wget "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz"
+tar xzf "node-$LTS-linux-armv6l.tar.gz" -C /opt/wifi-connect --strip-components=1 --no-same-owner
+rm -rf node-$LTS-linux-armv6l.tar.gz
+
+export PATH="/opt/wifi-connect/bin:$PATH"
+export npm_config_prefix=/opt/wifi-connect
+
+node -v
+npm -v
+
+npm install -g @homebridge/wifi-connect
 
 systemctl daemon-reload
 systemctl enable wifi-connect
 systemctl enable NetworkManager
 systemctl disable dhcpcd
+systemctl disable dnsmasq
+systemctl disable hostapd
 EOF
 

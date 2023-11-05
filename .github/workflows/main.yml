@@ -1,14 +1,19 @@
-name: CI
+name: Create Raspbian Homebridge Image
 
 on:
   push:
     tags:
     - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version / Tag (x.x.x):'     
+        required: true
 
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
     - uses: actions/checkout@v2
@@ -19,10 +24,8 @@ jobs:
         echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
     - name: Install Dependencies
       run: |
-       sudo dpkg --add-architecture i386
        sudo apt-get update
-       sudo apt-get install -y coreutils quilt parted debootstrap zerofree zip dosfstools bsdtar libcap2-bin grep rsync xz-utils file git curl jq
-       sudo apt-get install -y qemu-user-static:i386
+       sudo apt-get install -y qemu-user-static coreutils quilt parted debootstrap zerofree zip dosfstools libarchive-tools libcap2-bin grep rsync xz-utils file git curl jq qemu-utils kpartx
     - name: Build Image
       run: sudo CLEAN=1 BUILD_VERSION=${{ steps.get_version.outputs.VERSION }} ./build.sh -c config
     - name: Calculate Checksum
@@ -31,6 +34,10 @@ jobs:
         export IMAGE_SHA256_CHECKSUM=$(shasum -a 256 deploy/image_Raspbian-Homebridge.zip | awk '{print $1}')
         echo "$IMAGE_SHA256_CHECKSUM deploy/image_Raspbian-Homebridge.zip"
         echo ::set-output name=IMAGE_SHA256_CHECKSUM::${IMAGE_SHA256_CHECKSUM}
+    - name: Generate rpi-image-repo.json 
+      id: generate_rpi-image-repo
+      run: |
+        sudo RPI_IMAGER_NAME="Homebridge" RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image" RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png" RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started" ./make_rpi-imager-snipplet.py -u"https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ steps.get_version.outputs.VERSION }}/Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip"
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -46,6 +53,8 @@ jobs:
 
           ### [Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip](https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ steps.get_version.outputs.VERSION }}/Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip)
 
+          <sup>[Getting Started Guide](https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started)</sup>
+
           </span>
 
           ---
@@ -55,7 +64,7 @@ jobs:
           * **Kernel version:**
           * **Node.js Version:**
           * **Homebridge Version:**
-          * **Homebridge Config UI X Version:**
+          * **Homebridge UI Version:**
         draft: false
         prerelease: true
     - name: Upload Image
@@ -68,3 +77,18 @@ jobs:
         asset_path: deploy/image_Raspbian-Homebridge.zip
         asset_name: Raspbian-Homebridge-${{ steps.get_version.outputs.VERSION }}.zip
         asset_content_type: application/zip
+    - name: Upload rpi-image-repo.json
+      id: upload-rpi-image-repo-json 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: deploy/rpi-image-repo.json
+        asset_name: rpi-image-repo.json
+        asset_content_type: application/json
+
+    # cleanup
+    - name: Cleanup
+      if: ${{ always() }}
+      run: sudo rm -rf work deploy postrun.sh .pc apt-cacher-ng

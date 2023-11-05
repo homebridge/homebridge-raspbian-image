@@ -1,6 +1,6 @@
 <p align="center">
 <a href="https://github.com/homebridge/homebridge">
-<img src="https://raw.githubusercontent.com/homebridge/branding/master/logos/homebridge-color-round-stylized.png" height="150">
+<img src="https://raw.githubusercontent.com/homebridge/branding/latest/logos/homebridge-color-round-stylized.png" height="150">
 </a>
 </p>
 
@@ -10,45 +10,55 @@
 
 [![Build](https://github.com/homebridge/homebridge-raspbian-image/workflows/CI/badge.svg)](https://github.com/homebridge/homebridge-raspbian-image/actions)
 [![GitHub release (latest by date)](https://badgen.net/github/release/homebridge/homebridge-raspbian-image?label=Version)](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
-[![GitHub All Releases](https://img.shields.io/github/downloads/homebridge/homebridge-raspbian-image/total)](https://somsubhra.com/github-release-stats/?username=homebridge&repository=homebridge-raspbian-image)
+[![GitHub All Releases](https://img.shields.io/github/downloads/homebridge/homebridge-raspbian-image/total)](https://somsubhra.github.io/github-release-stats/?username=homebridge&repository=homebridge-raspbian-image&page=1&per_page=30)
 
 </span>
 
-This project provides a free [Raspbian](https://www.raspberrypi.org/downloads/raspbian/) based Raspberry Pi image with [Homebridge](https://github.com/nfarina/homebridge) and [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) pre-installed.
+This project provides a free [Raspbian](https://www.raspberrypi.org/downloads/raspbian/) based Raspberry Pi image with [Homebridge](https://github.com/homebridge/homebridge) and [Homebridge Config UI X](https://github.com/homebridge/homebridge-config-ui-x) pre-installed.
 
 * Works on all Raspberry Pi models
 * Built on Raspbian Lite (no desktop)
 * Simple WiFi Setup
-* Includes `ffmpeg` pre-compiled with audio support (libfdk-aac) and hardware decoding (h264_omx)
+* Includes `ffmpeg` pre-compiled with audio support (libfdk-aac)
 * Includes a user friendly, easy to use web based GUI to configure Homebridge and monitor your Raspberry Pi
-* Visual configuration for over 80 popular plugins (no manual config.json editing required)
+* Visual configuration for over 400 plugins (no manual config.json editing required)
 
-This image also provides a command called `hb-config` which helps you keep Node.js up-to-date, perform maintenance on your Homebridge server, and install additional optional software such as *[Pi Hole](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Install-Pi-Hole)*, *[deCONZ](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Install-deCONZ-for-ConBee-or-RaspBee)*, *Node-RED* and the *UniFI Controller*.
+This image also provides a command called `hb-config` which helps you keep Node.js up-to-date, perform maintenance on your Homebridge server, and install additional optional software such as *[Pi Hole](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Install-Pi-Hole)* and *[deCONZ](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Install-deCONZ-for-ConBee-or-RaspBee)*.
 
-The Homebridge service is installed using the method described in the official [Raspberry Pi Installation Guide](https://github.com/nfarina/homebridge/wiki/Install-Homebridge-on-Raspbian) on the [Homebridge](https://github.com/homebridge/homebridge) project wiki.
+The Homebridge service is installed using the method described in the official [Raspberry Pi Installation Guide](https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Raspbian) on the [Homebridge](https://github.com/homebridge/homebridge) project wiki.
 
-## Download
+## Download and Flash to SD Card
 
-Downloading the *Homebridge Raspberry Pi Image* is completely free (no sign up required).
+The *Homebridge Raspberry Pi Image* is completely free (no sign up required).
 
-<span align="center">
-  
-### [Download Latest Version](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
-  
-</span>
+The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is to use the [Raspberry Pi Imager](https://www.raspberrypi.org/software/).
 
-## Flash to SD Card
-
-The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is to use [Etcher](https://www.balena.io/etcher/).
-  
 <p align="center">
-    <img src="https://user-images.githubusercontent.com/3979615/74733445-789cac00-52a0-11ea-9167-05b42d6383ad.gif" width="600">
+    <img src="https://user-images.githubusercontent.com/3979615/117293909-58f99f80-aeb5-11eb-922c-37029f071481.gif" width="600">
 </p>
 
-1. Download and install the latest version of [Etcher](https://www.balena.io/etcher/).
-2. Open Etcher and select the `Homebridge-Raspbian-v0.0.0.zip` file you have [downloaded](https://github.com/homebridge/homebridge-raspbian-image/releases/latest). There is no need to extract the `.zip` file first.
-3. Choose the drive your SD card has been inserted into.
-4. Click Flash.
+1. Download and install the latest version of [Raspberry Pi Imager](https://www.raspberrypi.org/software/).
+2. Open the *Raspberry Pi Imager* application.
+3. Click **Choose OS**.
+4. Scroll down and select the **Other specific purpose OS** category.
+5. Select the **Home assistants and home automation** category.
+6. Select **Homebridge**, then choose the latest Homebridge image.
+7. Click **Choose Storage** and select your SD card.
+8. Click **Write**.
+
+*Raspberry Pi Imager* will now download and flash the latest version of the *Homebridge Raspberry Pi Image* to your SD card, this may take several minutes depending on the speed of your internet connection and SD card.
+
+---
+
+**Advanced users:**
+
+If you wish to use another tool such as [Etcher](https://www.balena.io/etcher/) or [`dd`](https://www.raspberrypi.org/documentation/installation/installing-images/mac.md) to flash the Homebridge Raspberry Pi Image, you can manually download the image from our releases page:
+
+<span align="center">
+
+### [Download Latest Version](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
+
+</span>
 
 ## First Boot / Network Setup
 
@@ -78,9 +88,7 @@ If you enter your WiFi credentials incorrectly the **Homebridge WiFi Setup** hot
 
 ## Managing Homebridge
 
-The [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) web interface will allow you to install, remove and update plugins, and modify the Homebridge config.json and manage other aspects of your Homebridge service.
-
-**The default user is `admin` with password `admin`.**
+The [Homebridge UI](https://github.com/homebridge/homebridge-config-ui-x) web interface will allow you to install, remove and update plugins, and modify the Homebridge config.json and manage other aspects of your Homebridge service.
 
 If you're using macOS or a mobile device, you should be able to access the UI via http://homebridge.local.
 
@@ -97,29 +105,11 @@ Once you've found your IP address, login to the web interface by going to `http:
   <img width="600px" src="https://user-images.githubusercontent.com/3979615/71886653-b16d3f80-3190-11ea-9ff8-49dc4ae4fff0.png">
 </p>
 
-You should take a moment to review the [Configuration Reference](#configuration-reference) at the bottom of this guide.
-
-## Updating Node.js
-
-To update Node.js run `sudo hb-config` and select **Upgrade Node.js**.
-
-This will ensure your Raspberry Pi  is running the latest LTS version of Node.js.
-
-<p align="center">
-  <img width="600px" alt="hb-config" src="https://user-images.githubusercontent.com/3979615/74602581-4b17fd00-50fe-11ea-8684-c03eaa42d27d.png">
-</p>
-
-## SSH Access
-
-SSH is enabled by default. The default username is `pi` with password `raspberry`.
-
-* [How To Connect Via SSH](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Connect-Via-SSH)
-
 ## Security and Privacy
 
-* **Privacy:** The *Homebridge Raspbian Image*, as well as the [Homebridge](https://github.com/nfarina/homebridge) and [Homebridge Config UI X](https://github.com/oznu/homebridge-config-ui-x) software components, do not contain any *analytics*, *call home*, or similar features that would allow the project maintainers to track you or the usage of this image.
+* **Privacy:** The *Homebridge Raspbian Image*, as well as the [Homebridge](https://github.com/homebridge/homebridge) and [Homebridge Config UI X](https://github.com/homebridge/homebridge-config-ui-x) software components, do not contain any *analytics*, *call home*, or similar features that would allow the project maintainers to track you or the usage of this image.
 * **Security:** The *Homebridge Raspbian Image* is kept up-to-date with the latest [official Raspbian builds](https://github.com/RPi-Distro/pi-gen). To find out more, or to report a security issue or vulnerability, please see the project's [SECURITY](.github/SECURITY.md) policy.
-* **Transparency:** The *Homebridge Raspbian Image* project is open source and each image is built using the public GitHub Action runners. The build logs for each release are publicly available on the project's [GitHub Actions](https://github.com/homebridge/homebridge-raspbian-image/actions) page and every release contains a SHA-256 checksum of the image you can use to verify the integrity of your download.
+* **Transparency:** The *Homebridge Raspbian Image* project is open source and each image is built using the public GitHub Action runners. The build logs for each release are publicly available on the project's [GitHub Actions](https://github.com/homebridge/homebridge-raspbian-image/actions/workflows/main.yml) page and every release contains a SHA-256 checksum of the image you can use to verify the integrity of your download.
 
 ## Community
 
@@ -131,26 +121,7 @@ The official Homebridge Discord server and Reddit community are where users can 
 
 </span>
 
-## Configuration Reference
-
-This table contains important information about your setup. You can use the information provided here as a reference when configuring or troubleshooting your environment.
-
-|                               | File Location / Command                  |
-|-------------------------------|------------------------------------------|
-| **Config File Path**          | `/var/lib/homebridge/config.json`        |
-| **Storage Path**              | `/var/lib/homebridge`                    |
-| **Restart Command**           | `sudo hb-service restart`                |
-| **Stop Command**              | `sudo hb-service stop`                   |
-| **Start Command**             | `sudo hb-service start`                  |
-| **View Logs Command**         | `sudo hb-service logs`                   |
-| **Manage Homebridge Server**  | `sudo hb-config`                         |
-| **Systemd Service File**      | `/etc/systemd/system/homebridge.service` |
-| **Systemd Env File**          | `/etc/default/homebridge`                |
-| **Default Hostname**          | `homebridge.local`                       |
-| **Default SSH Username**      | `pi`                                     |
-| **Default SSH Password**      | `raspberry`                              |
-| **Default Web Username**      | `admin`                                  |
-| **Default Web Password**      | `admin`                                  |
+## Help
 
 The *Homebridge Raspberry Pi Image* wiki contains more information and instructions on how to further customise your install:
 

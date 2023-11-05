@@ -336,10 +336,10 @@
         setInterval(async () => {
           document.getElementById('startupLongTime').innerHTML = `
             <p>Homebridge doesn't usually take this long to start.</p>
-            <p>Something might be wrong.</p>
+            <p>Something may be wrong, but if you're running a Raspberry Pi 1 or Zero, the initial startup process may take up to 10 minutes, please be patient.</p>
             <p>To troubleshoot the problem, please <a href="https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Connect-Via-SSH" target="_blank">connect via ssh</a> and <a href="https://github.com/homebridge/homebridge-raspbian-image/wiki#useful-commands" target="_blank">look at the Homebridge logs</a>.
           `;
-        }, 90000);
+        }, 120000);
       }());
     </script>
 </head>
