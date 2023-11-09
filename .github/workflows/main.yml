@@ -1,5 +1,4 @@
 name: Create Raspbian Homebridge Image
-run-name: Release ${{ steps.get_version.outputs.VERSION }}
 
 on:
   push:
