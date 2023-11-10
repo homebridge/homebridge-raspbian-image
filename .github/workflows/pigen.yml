@@ -1,0 +1,243 @@
+name: Create Raspbian Homebridge Image using pi-gen
+run-name: Create Raspbian Homebridge Image ${{ github.event.inputs.version }} against ${{ github.ref_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version / Tag (vx.x.x):'     
+        required: true
+
+jobs:
+  setup_environment:
+    name: Setup Environment ${{ github.event.inputs.version }}
+    runs-on: [ubuntu-latest] 
+    steps:
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.event.inputs.version }}
+        release_name: ${{ github.event.inputs.version }}
+        draft: true
+        prerelease: true
+
+  build_images:
+    name: Build Raspbian Homebridge Image ${{ matrix.pi-gen-version }}
+    needs: setup_environment
+    runs-on: [ubuntu-latest] 
+    strategy:
+      fail-fast: false
+      matrix:
+        name: [
+          64bit
+        ]
+        include:
+          - pi-gen-version: bullseye-arm64
+            release: bullseye
+            name: 64bit
+
+#          - pi-gen-version: master
+#             release: bookwork
+#            name: 32bit
+
+#          - pi-gen-version: masarm64ter
+#             release: bookwork
+#            name: 64bit
+
+    steps:
+      - uses: actions/checkout@v4
+
+#      - name: Setup Build Commands
+#        run: |
+#          sudo mkdir -p /pi-gen/work/Homebridge
+#          sudo touch /pi-gen/work/Homebridge/build.log
+
+#          image-name: Homebridge_${{ matrix.arch }}
+#          verbose-output: true
+              ##          release: bullseye
+              #         IMG_DATE="Raspbian"
+              ##         hostname: "homebridge"
+              #         enable-ssh: 1
+              #         stage-list: stage0 stage1 stage2 ./stage3_homebridge
+              #         username: pi
+              #          disable-first-boot-user-rename: 1
+              #         FIRST_USER_PASS="raspberry"
+              #          pi-gen-version: ${{ matrix.pi-gen-version }}
+
+      - uses: usimd/pi-gen-action@master
+        id: build
+        with:
+          # Compression to apply on final image (either "none", "zip", "xz" or "gz").
+          compression: zip
+      
+          # Compression level to be used. From 0 to 9 (refer to the tool man page for more 
+          # information on this. Usually 0 is no compression but very fast, up to 9 with the 
+          # best compression but very slow).
+          compression-level: 6
+      
+          # Disable the renaming of the first user during the first boot. This make it so 
+          # 'username' stays activated. 'username' must be set for this to work. Please be 
+          # aware of the implied security risk of defining a default username and password 
+          # for your devices.
+          disable-first-boot-user-rename: 1
+      
+          # Additional options to include in PIGEN_DOCKER_OPTS
+          docker-opts: ''
+      
+          # Set whether a NOOBS image should be built as well. If enabled, the output 
+          # directory containing the NOOBS files will be saved as output variable 
+          # 'image-noobs-path'.
+          enable-noobs: false
+      
+          # Enable SSH access to Pi.
+          enable-ssh: 1
+      
+          # If this feature is enabled, the action will configure pi-gen to not export any 
+          # stage as image but the last one defined in property 'stage-list'. This is 
+          # helpful when building a single image flavor (in contrast to building a 
+          # lite/server and full-blown desktop image), since it speeds up the build process 
+          # significantly.
+          export-last-stage-only: true
+      
+          # Comma or whitespace separated list of additional packages to install on host 
+          # before running pi-gen. Use this list to add any packages your custom stages may 
+          # require. Note that this is not affecting the final image. In order to add 
+          # additional packages, you need to add a respective 'XX-packages' file in your 
+          # custom stage.
+          extra-host-dependencies: ''
+      
+          # Comma or whitespace separated list of additional modules to load on host before 
+          # running pi-gen. If your custom stage requires additional software or kernel 
+          # modules to be loaded, add them here. Note that this is not meant to configure 
+          # modules to be loaded in the target image.
+          extra-host-modules: ''
+      
+          # Token to use for checking out pi-gen repo.
+          github-token: ${{ github.token }}
+      
+          # Host name of the image.
+          hostname: homebridge
+      
+          # Final image name.
+          image-name: 'Homebridge-${{ matrix.name }}'
+      
+          # Default keyboard keymap.
+          keyboard-keymap: gb
+      
+          # Default keyboard layout.
+          keyboard-layout: English (UK)
+      
+          # Default locale of the system image.
+          locale: en_GB.UTF-8
+      
+          # Password of the intial user account, locked if empty.
+          password: ''
+      
+          # Path where selected pi-gen ref will be checked out to. If the path does not yet 
+          # exist, it will be created (including its parents).
+          pi-gen-dir: pi-gen
+      
+          # GitHub repository to fetch pi-gen from, must be a fork from RPi-Distro/pi-gen.
+          pi-gen-repository: RPi-Distro/pi-gen
+      
+          # Release version of pi-gen to use. This can both be a branch or tag name known in 
+          # the pi-gen repository.
+          pi-gen-version: ${{ matrix.pi-gen-version }}
+      
+          # The release version to build images against. Valid values are jessie, stretch, 
+          # buster, bullseye, bookworm, and testing.
+          release: ${{ matrix.release }}
+      
+          # Setting to `1` will prevent pi-gen from dropping the "capabilities" feature. 
+          # Generating the root filesystem with capabilities enabled and running it from a 
+          # filesystem that does not support capabilities (like NFS) can cause issues. Only 
+          # enable this if you understand what it is.
+          setfcap: ''
+      
+          # List of stage name to execute in given order. Relative and absolute paths to 
+          # custom stage directories are allowed here. Note that by default pi-gen exports 
+          # images in stage2 (lite), stage4 and stage5. You probably want to hook in custom 
+          # stages before one of the exported stages. Otherwise, the action will make sure 
+          # any custom stage will include an image export directive.
+          stage-list: stage0 stage1 stage2 ./stage3_homebridge
+      
+          # System timezone.
+          timezone: Europe/London
+      
+          # Use qcow2 images to reduce space and runtime requirements.
+          use-qcow2: 0
+      
+          # Name of the initial user account.
+          username: pi
+      
+          # Print all output from pi-gen.
+          verbose-output: true
+      
+          # Wifi country code of default network to connect to.
+          wpa-country: ''
+      
+          # SSID of a default wifi network to connect to.
+          wpa-essid: ''
+      
+          # Password of default wifi network to connect to.
+          wpa-password: ''
+
+      - name: Calculate Checksum
+        id: get_sha256_checksum
+        run: |
+          export IMAGE_SHA256_CHECKSUM=$(shasum -a 256 deploy/image_Raspbian-Homebridge.zip | awk '{print $1}')
+          echo "$IMAGE_SHA256_CHECKSUM deploy/image_Raspbian-Homebridge.zip"
+          echo ::set-output name=IMAGE_SHA256_CHECKSUM::${IMAGE_SHA256_CHECKSUM}
+
+      - name: Generate rpi-image-repo.json 
+        id: generate_rpi-image-repo
+        run: |
+          sudo RPI_IMAGER_NAME="Homebridge" RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image" RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png" RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started" ./make_rpi-imager-snipplet.py -u"https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ github.event.inputs.version }}/Raspbian-Homebridge-${{ github.event.inputs.version }}.zip"
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pi-gen-image
+          path: ${{ steps.build.outputs.image-path }}
+
+      - name: Upload Image
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: deploy/image_Raspbian-Homebridge.zip
+          asset_name: Raspbian-Homebridge-${{ github.event.inputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload rpi-image-repo.json
+        id: upload-rpi-image-repo-json 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: deploy/rpi-image-repo.json
+          asset_name: rpi-image-repo.json
+          asset_content_type: application/json
+
+  finalize_build:
+    name: Finalize ${{ github.event.inputs.version }}
+    needs: build_images
+    runs-on: [ubuntu-latest]
+    steps:
+      
+    - name: Upload rpi-image-repo.json
+      id: upload-rpi-image-repo-json 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: deploy/rpi-image-repo.json
+        asset_name: rpi-image-repo.json
+        asset_content_type: application/json
+
