@@ -52,7 +52,7 @@ jobs:
 
       - name: Setup Build Environment
         run: |
-          sudo apt-get install
+          sudo apt-get install jq
 
 #          image-name: Homebridge_${{ matrix.arch }}
 #          verbose-output: true
