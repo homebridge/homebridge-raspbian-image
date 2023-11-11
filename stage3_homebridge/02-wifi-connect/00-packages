@@ -2,3 +2,4 @@ wpasupplicant
 network-manager
 dnsmasq
 hostapd
+jq
