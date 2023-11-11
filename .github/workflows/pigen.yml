@@ -50,10 +50,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-#      - name: Setup Build Commands
-#        run: |
-#          sudo mkdir -p /pi-gen/work/Homebridge
-#          sudo touch /pi-gen/work/Homebridge/build.log
+      - name: Setup Build Environment
+        run: |
+          sudo apt-get install
 
 #          image-name: Homebridge_${{ matrix.arch }}
 #          verbose-output: true
