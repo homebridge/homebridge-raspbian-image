@@ -3,3 +3,5 @@
 if [ ! -d "${ROOTFS_DIR}" ]; then
 	copy_previous
 fi
+
+sudo apt-get install jq
