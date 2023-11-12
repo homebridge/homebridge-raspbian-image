@@ -35,8 +35,12 @@ jobs:
           64bit
         ]
         include:
-          - pi-gen-version: bullseye-arm64
-            release: bullseye
+#          - pi-gen-version: bullseye-arm64
+#            release: bullseye
+#            name: 64bit
+
+          - pi-gen-version: arm64
+            release: bookworm
             name: 64bit
 
 #          - pi-gen-version: master
