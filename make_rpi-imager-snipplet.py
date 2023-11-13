@@ -7,7 +7,7 @@ import argparse
 from datetime import date
 import glob
 
-# Credits for the go to https://github.com/guysoft/CustomPiOS/blob/devel/src/make_rpi-imager-snipplet.py
+# Credits for this go to https://github.com/guysoft/CustomPiOS/blob/devel/src/make_rpi-imager-snipplet.py
 
 
 def calculate_sha256(data):

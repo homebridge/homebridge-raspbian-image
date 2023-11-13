@@ -29,10 +29,11 @@ jobs:
     needs: setup_environment
     runs-on: [ubuntu-latest] 
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         name: [
-          64bit
+          64-bit,
+          32-bit
         ]
         include:
 #          - pi-gen-version: bullseye-arm64
@@ -41,7 +42,11 @@ jobs:
 
           - pi-gen-version: arm64
             release: bookworm
-            name: 64bit
+            name: 64-bit
+
+          - pi-gen-version: master
+            release: bookworm
+            name: 32-bit
 
 #          - pi-gen-version: master
 #             release: bookwork
@@ -191,14 +196,16 @@ jobs:
       - name: Calculate Checksum
         id: get_sha256_checksum
         run: |
-          export IMAGE_SHA256_CHECKSUM=$(shasum -a 256 deploy/image_Raspbian-Homebridge.zip | awk '{print $1}')
-          echo "$IMAGE_SHA256_CHECKSUM deploy/image_Raspbian-Homebridge.zip"
+          cd ${{ inputs.pi-gen-dir }}
+          export IMAGE_SHA256_CHECKSUM=$(shasum -a 256 deploy/image_Raspbian-Homebridge${{ matrix.name }}.zip | awk '{print $1}')
+          echo "$IMAGE_SHA256_CHECKSUM deploy/image_Raspbian-Homebridge${{ matrix.name }}.zip"
           echo ::set-output name=IMAGE_SHA256_CHECKSUM::${IMAGE_SHA256_CHECKSUM}
 
       - name: Generate rpi-image-repo.json 
         id: generate_rpi-image-repo
         run: |
-          sudo RPI_IMAGER_NAME="Homebridge" RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image" RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png" RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started" ./make_rpi-imager-snipplet.py -u"https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ github.event.inputs.version }}/Raspbian-Homebridge-${{ github.event.inputs.version }}.zip"
+          cd ${{ inputs.pi-gen-dir }}
+          sudo RPI_IMAGER_NAME="Homebridge (${{ matrix.name }})" RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image (${{ matrix.name }})" RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png" RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started" ./make_rpi-imager-snipplet.py -u"https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ github.event.inputs.version }}/Raspbian-Homebridge-${{ github.event.inputs.version }}-${{ matrix.name }}.zip"
 
       - uses: actions/upload-artifact@v3
         with:
@@ -212,8 +219,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: deploy/image_Raspbian-Homebridge.zip
-          asset_name: Raspbian-Homebridge-${{ github.event.inputs.version }}.zip
+          asset_path: ${{ inputs.pi-gen-dir }}/deploy/image_Raspbian-Homebridge-${{ matrix.name }}.zip
+          asset_name: Raspbian-Homebridge-${{ github.event.inputs.version }}-${{ matrix.name }}.zip
           asset_content_type: application/zip
 
       - name: Upload rpi-image-repo.json
@@ -223,8 +230,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: deploy/rpi-image-repo.json
-          asset_name: rpi-image-repo.json
+          asset_path: ${{ inputs.pi-gen-dir }}/deploy/rpi-image-repo.json
+          asset_name: rpi-image-repo-${{ matrix.name }}.json
           asset_content_type: application/json
 
   finalize_build:
