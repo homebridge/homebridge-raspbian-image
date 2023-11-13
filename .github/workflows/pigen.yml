@@ -102,7 +102,7 @@ jobs:
           hostname: homebridge
       
           # Final image name.
-          image-name: 'Homebridge-${{ matrix.name }}'
+          image-name: 'Homebridge-${{ matrix.release }}-${{ matrix.name }}'
       
           # Default keyboard keymap.
           keyboard-keymap: gb
@@ -181,7 +181,7 @@ jobs:
         id: generate_rpi-image-repo
         run: |
           cd /
-          sudo RPI_IMAGER_NAME="Homebridge (${{ matrix.name }})" RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image (${{ matrix.name }})" RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png" RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started" ./make_rpi-imager-snipplet.py -u"https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ github.event.inputs.version }}/Raspbian-Homebridge-${{ github.event.inputs.version }}-${{ matrix.name }}.zip"
+          sudo RPI_IMAGER_NAME="Homebridge ${{ matrix.release }} (${{ matrix.name }})" RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }})" RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png" RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started" ./make_rpi-imager-snipplet.py -u"https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ github.event.inputs.version }}/Raspbian-Homebridge-${{ github.event.inputs.version }}-${{ matrix.release }}-${{ matrix.name }}.zip"
 
       - uses: actions/upload-artifact@v3
         with:
@@ -196,7 +196,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ steps.build.outputs.image-path }}
-          asset_name: Raspbian-Homebridge-${{ github.event.inputs.version }}-${{ matrix.name }}.zip
+          asset_name: Raspbian-Homebridge-${{ github.event.inputs.version }}-${{ matrix.release }}-${{ matrix.name }}.zip
           asset_content_type: application/zip
 
       - name: Upload rpi-image-repo.json
