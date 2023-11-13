@@ -167,7 +167,8 @@ jobs:
 
       - name: Setup Build Environment
         run: |
-          find / -print
+          echo `pwd`
+          echo ${{ steps.build.outputs.image-path }}
 
       - name: Calculate Checksum
         id: get_sha256_checksum
