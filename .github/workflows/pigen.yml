@@ -36,10 +36,6 @@ jobs:
           32-bit
         ]
         include:
-#          - pi-gen-version: bullseye-arm64
-#            release: bullseye
-#            name: 64bit
-
           - pi-gen-version: arm64
             release: bookworm
             name: 64-bit
@@ -48,32 +44,8 @@ jobs:
             release: bookworm
             name: 32-bit
 
-#          - pi-gen-version: master
-#             release: bookwork
-#            name: 32bit
-
-#          - pi-gen-version: masarm64ter
-#             release: bookwork
-#            name: 64bit
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Build Environment
-        run: |
-          sudo apt-get install jq
-
-#          image-name: Homebridge_${{ matrix.arch }}
-#          verbose-output: true
-              ##          release: bullseye
-              #         IMG_DATE="Raspbian"
-              ##         hostname: "homebridge"
-              #         enable-ssh: 1
-              #         stage-list: stage0 stage1 stage2 ./stage3_homebridge
-              #         username: pi
-              #          disable-first-boot-user-rename: 1
-              #         FIRST_USER_PASS="raspberry"
-              #          pi-gen-version: ${{ matrix.pi-gen-version }}
 
       - uses: usimd/pi-gen-action@master
         id: build
@@ -193,18 +165,22 @@ jobs:
           # Password of default wifi network to connect to.
           wpa-password: ''
 
+      - name: Setup Build Environment
+        run: |
+          find / -print
+
       - name: Calculate Checksum
         id: get_sha256_checksum
         run: |
-          cd ${{ inputs.pi-gen-dir }}
-          export IMAGE_SHA256_CHECKSUM=$(shasum -a 256 deploy/image_Raspbian-Homebridge${{ matrix.name }}.zip | awk '{print $1}')
-          echo "$IMAGE_SHA256_CHECKSUM deploy/image_Raspbian-Homebridge${{ matrix.name }}.zip"
+          cd /
+          export IMAGE_SHA256_CHECKSUM=$(shasum -a 256 ${{ steps.build.outputs.image-path }} | awk '{print $1}')
+          echo "$IMAGE_SHA256_CHECKSUM ${{ steps.build.outputs.image-path }}"
           echo ::set-output name=IMAGE_SHA256_CHECKSUM::${IMAGE_SHA256_CHECKSUM}
 
       - name: Generate rpi-image-repo.json 
         id: generate_rpi-image-repo
         run: |
-          cd ${{ inputs.pi-gen-dir }}
+          cd /
           sudo RPI_IMAGER_NAME="Homebridge (${{ matrix.name }})" RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image (${{ matrix.name }})" RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png" RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started" ./make_rpi-imager-snipplet.py -u"https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ github.event.inputs.version }}/Raspbian-Homebridge-${{ github.event.inputs.version }}-${{ matrix.name }}.zip"
 
       - uses: actions/upload-artifact@v3
@@ -219,7 +195,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ inputs.pi-gen-dir }}/deploy/image_Raspbian-Homebridge-${{ matrix.name }}.zip
+          asset_path: ${{ steps.build.outputs.image-path }}
           asset_name: Raspbian-Homebridge-${{ github.event.inputs.version }}-${{ matrix.name }}.zip
           asset_content_type: application/zip
 
@@ -230,7 +206,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ inputs.pi-gen-dir }}/deploy/rpi-image-repo.json
+          asset_path: ${{ steps.build.outputs.image-path }}/deploy/rpi-image-repo.json
           asset_name: rpi-image-repo-${{ matrix.name }}.json
           asset_content_type: application/json
 
