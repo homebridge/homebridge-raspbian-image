@@ -18,7 +18,7 @@ set -x
 
 mkdir -p /opt/wifi-connect
 
-wget "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz"
+wget -q "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz"
 tar xzf "node-$LTS-linux-armv6l.tar.gz" -C /opt/wifi-connect --strip-components=1 --no-same-owner
 rm -rf node-$LTS-linux-armv6l.tar.gz
 

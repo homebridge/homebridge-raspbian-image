@@ -88,7 +88,7 @@ jobs:
           disable-first-boot-user-rename: 1
       
           # Additional options to include in PIGEN_DOCKER_OPTS
-          docker-opts: ''
+          docker-opts: '--env IMG_DATE=Raspbian'
       
           # Set whether a NOOBS image should be built as well. If enabled, the output 
           # directory containing the NOOBS files will be saved as output variable 
