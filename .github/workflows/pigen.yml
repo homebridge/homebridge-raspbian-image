@@ -25,7 +25,7 @@ jobs:
         prerelease: true
 
   build_images:
-    name: Build Raspbian Homebridge Image ${{ matrix.pi-gen-version }}
+    name: Build Raspbian Homebridge Image ${{ matrix.name }}
     needs: setup_environment
     runs-on: [ubuntu-latest] 
     strategy:
