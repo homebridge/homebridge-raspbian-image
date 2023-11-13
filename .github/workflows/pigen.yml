@@ -173,7 +173,6 @@ jobs:
       - name: Calculate Checksum
         id: get_sha256_checksum
         run: |
-          cd /
           export IMAGE_SHA256_CHECKSUM=$(shasum -a 256 ${{ steps.build.outputs.image-path }} | awk '{print $1}')
           echo "$IMAGE_SHA256_CHECKSUM ${{ steps.build.outputs.image-path }}"
           echo ::set-output name=IMAGE_SHA256_CHECKSUM::${IMAGE_SHA256_CHECKSUM}
@@ -181,7 +180,6 @@ jobs:
       - name: Generate rpi-image-repo.json 
         id: generate_rpi-image-repo
         run: |
-          cd /
           sudo RPI_IMAGER_NAME="Homebridge ${{ matrix.release }} (${{ matrix.name }})" RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }})" RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png" RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started" ./make_rpi-imager-snipplet.py -u"https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ github.event.inputs.version }}/Raspbian-Homebridge-${{ github.event.inputs.version }}-${{ matrix.release }}-${{ matrix.name }}.zip"
 
       - uses: actions/upload-artifact@v3
@@ -207,7 +205,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.build.outputs.image-path }}/deploy/rpi-image-repo.json
+          asset_path: ./rpi-image-repo.json
           asset_name: rpi-image-repo-${{ matrix.name }}.json
           asset_content_type: application/json
 

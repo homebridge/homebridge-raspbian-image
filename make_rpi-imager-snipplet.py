@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    workspace_path = os.path.join(os.getcwd(), "deploy")
+    workspace_path = os.path.join(os.getcwd(), "pi-gen", "deploy")
     if args.workspace_suffix != "" and args.workspace_suffix != "default":
         workspace_path += "-" + args.workspace_suffix
 
