@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: usimd/pi-gen-action@master
+      - uses: usimd/pi-gen-action@1.7.0
         id: build
         with:
           # Compression to apply on final image (either "none", "zip", "xz" or "gz").
