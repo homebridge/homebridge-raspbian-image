@@ -183,9 +183,9 @@ jobs:
           mv ./rpi-image-repo.json ./rpi-image-repo$-{{ matrix.name }}.json
 
       - name: Upload Image ${{ github.event.inputs.version }} 
-      - uses: AButler/upload-release-assets@v2.0
+        uses: AButler/upload-release-assets@v2.0.2
         with:
-          files: 'pigen/deploy/*.zip;'
+          files: 'pigen/deploy/*.zip;*.json'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           release-tag: ${{ github.event.inputs.version }}
 
@@ -213,4 +213,11 @@ jobs:
     - name: Combine rpi-image-repo JSON's
       run: |
         ./combine-rpi-imager-snipplet.py    
+
+    - name: Upload combined rpi-image-repo ${{ github.event.inputs.version }} 
+      uses: AButler/upload-release-assets@v2.0.2
+      with:
+        files: 'rpi-image-repo.json'
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        release-tag: ${{ github.event.inputs.version }}
  
