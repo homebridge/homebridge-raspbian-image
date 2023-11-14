@@ -48,7 +48,7 @@ jobs:
       - uses: actions/checkout@v4
 
 # f022813 aka 1.7.0
-      - uses: usimd/pi-gen-action@f022813
+      - uses: usimd/pi-gen-action@f022813e54a67d9f8fe8a6a6d620a5da3739a632
         id: build
         with:
           # Compression to apply on final image (either "none", "zip", "xz" or "gz").
