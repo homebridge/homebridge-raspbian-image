@@ -178,9 +178,9 @@ jobs:
         run: |
           RPI_IMAGER_NAME="Homebridge ${{ matrix.release }} (${{ matrix.name }})" RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }})" RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png" RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started" ./make_rpi-imager-snipplet.py -u"https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ github.event.inputs.version }}/Raspbian-Homebridge-${{ github.event.inputs.version }}-${{ matrix.release }}-${{ matrix.name }}.zip"
 
-      - name: Rename rpi-image-repo to ./rpi-image-repo$-{{ matrix.name }}.json
+      - name: Rename rpi-image-repo to ./rpi-image-repo-${{ matrix.name }}.json
         run: |
-          mv ./rpi-image-repo.json ./rpi-image-repo$-{{ matrix.name }}.json
+          mv ./rpi-image-repo.json ./rpi-image-repo-${{ matrix.name }}.json
 
       - name: Upload Image ${{ github.event.inputs.version }} 
         uses: AButler/upload-release-assets@v2.0.2
