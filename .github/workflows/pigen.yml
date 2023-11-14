@@ -180,7 +180,7 @@ jobs:
 
       - name: Rename rpi-image-repo to ./rpi-image-repo-${{ matrix.name }}.json
         run: |
-          mv ./rpi-image-repo.json ./rpi-image-repo-${{ matrix.name }}.json
+          mv pigen/deploy/rpi-image-repo.json ./rpi-image-repo-${{ matrix.name }}.json
 
       - name: Upload Image ${{ github.event.inputs.version }} 
         uses: AButler/upload-release-assets@v2.0.2
