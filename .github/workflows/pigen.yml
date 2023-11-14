@@ -173,6 +173,13 @@ jobs:
           echo "$IMAGE_SHA256_CHECKSUM ${{ steps.build.outputs.image-path }}"
           echo ::set-output name=IMAGE_SHA256_CHECKSUM::${IMAGE_SHA256_CHECKSUM}
 
+      - name: Upload Image ${{ github.event.inputs.version }} 
+        uses: AButler/upload-release-assets@v2.0.2
+        with:
+          files: '${{ steps.build.outputs.image-path }}'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          release-tag: ${{ github.event.inputs.version }}
+
       - name: Generate rpi-image-repo.json 
         id: generate_rpi-image-repo
         run: |
@@ -182,10 +189,10 @@ jobs:
         run: |
           mv pi-gen/deploy/rpi-image-repo.json ./rpi-image-repo-${{ matrix.name }}.json
 
-      - name: Upload Image ${{ github.event.inputs.version }} 
+      - name: Upload Info ${{ github.event.inputs.version }} 
         uses: AButler/upload-release-assets@v2.0.2
         with:
-          files: 'pi-gen/deploy/*.zip;*.json'
+          files: './*.json'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           release-tag: ${{ github.event.inputs.version }}
 
