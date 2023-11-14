@@ -180,12 +180,12 @@ jobs:
 
       - name: Rename rpi-image-repo to ./rpi-image-repo-${{ matrix.name }}.json
         run: |
-          mv pigen/deploy/rpi-image-repo.json ./rpi-image-repo-${{ matrix.name }}.json
+          mv pi-gen/deploy/rpi-image-repo.json ./rpi-image-repo-${{ matrix.name }}.json
 
       - name: Upload Image ${{ github.event.inputs.version }} 
         uses: AButler/upload-release-assets@v2.0.2
         with:
-          files: 'pigen/deploy/*.zip;*.json'
+          files: 'pi-gen/deploy/*.zip;*.json'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           release-tag: ${{ github.event.inputs.version }}
 
