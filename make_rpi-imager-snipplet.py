@@ -123,4 +123,4 @@ if __name__ == "__main__":
     with open(output_path, "w") as w:
         json.dump(output_json, w, indent=2)
 
-    print("Done generating rpi-imager json snipplet to " + output_path);
+    print("Done generating rpi-imager json snipplet to " + output_path)
