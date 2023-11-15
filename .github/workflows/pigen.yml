@@ -13,7 +13,7 @@ jobs:
     name: Setup Environment ${{ github.event.inputs.version }}
     runs-on: [ubuntu-latest] 
     steps:
-    - name: Create Release
+    - name: Create Release ${{ github.event.inputs.version }}
       id: create_release
       uses: actions/create-release@v1
       env:
@@ -49,6 +49,7 @@ jobs:
 
 # f022813 aka 1.7.0
       - uses: usimd/pi-gen-action@f022813e54a67d9f8fe8a6a6d620a5da3739a632
+        name: Run pi-gen ( get some popcorn this will take awhile )
         id: build
         with:
           # Compression to apply on final image (either "none", "zip", "xz" or "gz").
@@ -167,16 +168,18 @@ jobs:
           # Password of default wifi network to connect to.
           wpa-password: ''
 
-      - name: Calculate Checksum
+# This is not currently used
+
+      - name: Calculate Image Checksum
         id: get_sha256_checksum
         run: |
           export IMGFILENAME=`basename ${{ steps.build.outputs.image-path }}`
           echo "IMGFILENAME=${IMGFILENAME}" >> $GITHUB_ENV
           export IMAGE_SHA256_CHECKSUM=$(shasum -a 256 ${{ steps.build.outputs.image-path }} | awk '{print $1}')
           echo "$IMAGE_SHA256_CHECKSUM ${{ steps.build.outputs.image-path }}"
-          echo "::notice::IMAGE_SHA256_CHECKSUM  ${{ steps.build.outputs.image-path }} ==> ${IMAGE_SHA256_CHECKSUM}"
+          echo "::notice::IMAGE_SHA256_CHECKSUM ${IMGFILENAME} ==> ${IMAGE_SHA256_CHECKSUM}"
 
-      - name: Upload Image ${{ github.event.inputs.version }} 
+      - name: Upload Image to release ${{ github.event.inputs.version }} 
         uses: AButler/upload-release-assets@v2.0.2
         with:
           files: '${{ steps.build.outputs.image-path }}'
@@ -186,13 +189,18 @@ jobs:
       - name: Generate rpi-image-repo.json 
         id: generate_rpi-image-repo
         run: |
-          RPI_IMAGER_NAME="Homebridge ${{ matrix.release }} (${{ matrix.name }})" RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }})" RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png" RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started" ./make_rpi-imager-snipplet.py -u"https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ github.event.inputs.version }}/${{ env.IMGFILENAME }}"
+          export RPI_IMAGER_NAME="Homebridge ${{ matrix.release }} (${{ matrix.name }})"
+          export RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }})"
+          export RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png"
+          export RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started"
+          export RPI_IMAGER_IMAGE_URL="https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version }}/${{ env.IMGFILENAME }}"
+          ./make_rpi-imager-snipplet.py --rpi_imager_url ${RPI_IMAGER_IMAGE_URL}
 
       - name: Rename rpi-image-repo to ./rpi-image-repo-${{ matrix.name }}.json
         run: |
           mv pi-gen/deploy/rpi-image-repo.json ./rpi-image-repo-${{ matrix.name }}.json
 
-      - name: Upload Info ${{ github.event.inputs.version }} 
+      - name: Upload Info to release ${{ github.event.inputs.version }} 
         uses: AButler/upload-release-assets@v2.0.2
         with:
           files: './*.json'
@@ -208,6 +216,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - uses: robinraju/release-downloader@v1.8
+      name: Downloard image info files from release ${{ github.event.inputs.version }}
       with: 
         
         # The github tag. e.g: v1.0.1
@@ -223,7 +232,7 @@ jobs:
       run: |
         ./combine-rpi-imager-snipplet.py    
 
-    - name: Upload combined rpi-image-repo ${{ github.event.inputs.version }} 
+    - name: Upload combined rpi-image-repo to release ${{ github.event.inputs.version }} 
       uses: AButler/upload-release-assets@v2.0.2
       with:
         files: 'rpi-image-repo.json'
