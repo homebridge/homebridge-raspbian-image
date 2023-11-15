@@ -68,7 +68,7 @@ jobs:
       
           # Additional options to include in PIGEN_DOCKER_OPTS
           # '--env IMG_DATE=Raspbian'
-          docker-opts: ''
+          docker-opts: '--env BUILD_VERSION=${{ github.repository }} ${{ github.event.inputs.version }}'
       
           # Set whether a NOOBS image should be built as well. If enabled, the output 
           # directory containing the NOOBS files will be saved as output variable 
