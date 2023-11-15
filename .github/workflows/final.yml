@@ -9,8 +9,6 @@ on:
         required: true
 
 jobs:
-
-jobs:
   dump_contexts_to_log:
     runs-on: ubuntu-latest
     steps:
@@ -38,7 +36,7 @@ jobs:
         env:
           MATRIX_CONTEXT: ${{ toJson(matrix) }}
         run: echo "$MATRIX_CONTEXT"
-        
+
   finalize_info:
     name: Prep ${{ github.event.inputs.version }} Info file
     runs-on: [ubuntu-latest]
