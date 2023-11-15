@@ -19,6 +19,5 @@ lsmod:kmod
 bc
 qemu-nbd:qemu-utils
 kpartx
-jq
 gpg
 pigz

@@ -1,3 +1,5 @@
+# This is only used for local testing, the main configuration is in the github action.
+
 IMG_DATE="Raspbian"
 IMG_NAME="Homebridge"
 TARGET_HOSTNAME="homebridge"
