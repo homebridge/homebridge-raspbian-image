@@ -172,7 +172,8 @@ jobs:
         run: |
           export IMAGE_SHA256_CHECKSUM=$(shasum -a 256 ${{ steps.build.outputs.image-path }} | awk '{print $1}')
           echo "$IMAGE_SHA256_CHECKSUM ${{ steps.build.outputs.image-path }}"
-          echo ::set-output name=IMAGE_SHA256_CHECKSUM::${IMAGE_SHA256_CHECKSUM}
+          echo "::notice::IMAGE_SHA256_CHECKSUM  ${{ steps.build.outputs.image-path }} ==> ${IMAGE_SHA256_CHECKSUM}"
+          export "IMGFILENAME=`basename ${{ steps.build.outputs.image-path }}`"  >> $GITHUB_ENV
 
       - name: Upload Image ${{ github.event.inputs.version }} 
         uses: AButler/upload-release-assets@v2.0.2
@@ -184,7 +185,7 @@ jobs:
       - name: Generate rpi-image-repo.json 
         id: generate_rpi-image-repo
         run: |
-          RPI_IMAGER_NAME="Homebridge ${{ matrix.release }} (${{ matrix.name }})" RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }})" RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png" RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started" ./make_rpi-imager-snipplet.py -u"https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ github.event.inputs.version }}/Raspbian-Homebridge-${{ github.event.inputs.version }}-${{ matrix.release }}-${{ matrix.name }}.zip"
+          RPI_IMAGER_NAME="Homebridge ${{ matrix.release }} (${{ matrix.name }})" RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }})" RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png" RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started" ./make_rpi-imager-snipplet.py -u"https://github.com/homebridge/homebridge-raspbian-image/releases/download/${{ github.event.inputs.version }}/${{ env.IMGFILENAME}}"
 
       - name: Rename rpi-image-repo to ./rpi-image-repo-${{ matrix.name }}.json
         run: |
