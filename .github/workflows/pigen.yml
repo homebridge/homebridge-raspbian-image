@@ -21,7 +21,7 @@ jobs:
       with:
         tag_name: ${{ github.event.inputs.version }}
         release_name: ${{ github.event.inputs.version }}
-        draft: true
+        draft: false
         prerelease: true
 
   build_images:
@@ -66,7 +66,8 @@ jobs:
           disable-first-boot-user-rename: 1
       
           # Additional options to include in PIGEN_DOCKER_OPTS
-          docker-opts: '--env IMG_DATE=Raspbian'
+          # '--env IMG_DATE=Raspbian'
+          docker-opts: ''
       
           # Set whether a NOOBS image should be built as well. If enabled, the output 
           # directory containing the NOOBS files will be saved as output variable 
@@ -202,15 +203,14 @@ jobs:
     runs-on: [ubuntu-latest]
     steps:
       
+    - uses: actions/checkout@v4
+
     - uses: robinraju/release-downloader@v1.8
       with: 
         
         # The github tag. e.g: v1.0.1
         # Download assets from a specific tag/version
         tag: "${{ github.event.inputs.version }}"
-        
-        # The release id to download files from 
-        releaseId: ""
         
         # The name of the file to download.
         # Use this field only to specify filenames other than tarball or zipball, if any.
