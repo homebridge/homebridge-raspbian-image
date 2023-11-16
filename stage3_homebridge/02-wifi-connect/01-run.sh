@@ -4,6 +4,9 @@
 # Install @homebridge/wifi-connect
 #
 
+apt-get update
+apt-get install -y jq
+
 export LTS="$(curl -s https://nodejs.org/dist/index.json | jq -r 'map(select(.lts))[0].version')"
 
 install -m 644 files/wifi-connect.service "${ROOTFS_DIR}/etc/systemd/system/"
@@ -33,8 +36,8 @@ npm install -g @homebridge/wifi-connect
 systemctl daemon-reload
 systemctl enable wifi-connect
 systemctl enable NetworkManager
-systemctl disable dhcpcd
-systemctl disable dnsmasq
-systemctl disable hostapd
+#systemctl disable dhcpcd
+#systemctl disable dnsmasq
+#systemctl disable hostapd
 EOF
 
