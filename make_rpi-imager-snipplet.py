@@ -87,6 +87,10 @@ if __name__ == "__main__":
     website = handle_arg("RPI_IMAGER_WEBSITE", True)
     release_date = date.today().strftime("%Y-%m-%d")
 
+    devices=[]
+    devices = json.loads(handle_arg("RPI_IMAGER_DEVICES"))
+
+ #   print("devices: ", devices)
     zip_local = glob.glob(os.path.join(workspace_path, "*.zip"))[0]
 
     if url == "MISSING_URL":
@@ -99,9 +103,10 @@ if __name__ == "__main__":
                 "init_format": "systemd",
                 "url": url,
                 "icon": icon,
-                "release_date": release_date,
+                "release_date": release_date
                 }
 
+    json_out["devices"] = [json.loads(json.dumps(i)) for i in devices]
     if website is not None:
         json_out["website"] = website
 

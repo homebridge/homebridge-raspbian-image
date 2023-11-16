@@ -10,8 +10,8 @@ def write_json(file_path, data):
         json.dump(data, file, indent=2)
 
 # Read JSON data from the files
-data1 = read_json('rpi-image-repo-32-bit.json')
-data2 = read_json('rpi-image-repo-64-bit.json')
+data1 = read_json('rpi-image-repo-32bit.json')
+data2 = read_json('rpi-image-repo-64bit.json')
 
 # Combine the lists in the "os_list" key
 combined_list = data1['os_list'] + data2['os_list']

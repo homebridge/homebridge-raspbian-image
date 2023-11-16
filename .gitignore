@@ -4,6 +4,7 @@ postrun.sh
 .pc
 *-pc
 apt-cacher-ng/
+*zip
 
 # These are all for a local pi-gen test instance
 

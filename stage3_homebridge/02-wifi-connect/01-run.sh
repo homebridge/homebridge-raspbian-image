@@ -21,11 +21,13 @@ set -x
 
 mkdir -p /opt/wifi-connect
 
-wget -q "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz"
-tar xzf "node-$LTS-linux-armv6l.tar.gz" -C /opt/wifi-connect --strip-components=1 --no-same-owner
-rm -rf node-$LTS-linux-armv6l.tar.gz
+#wget -q "https://unofficial-builds.nodejs.org/download/release/$LTS/node-$LTS-linux-armv6l.tar.gz"
+#tar xzf "node-$LTS-linux-armv6l.tar.gz" -C /opt/wifi-connect --strip-components=1 --no-same-owner
+#rm -rf node-$LTS-linux-armv6l.tar.gz
 
-export PATH="/opt/wifi-connect/bin:$PATH"
+#exit 1
+
+export PATH="/opt/homebridge/bin:$PATH"
 export npm_config_prefix=/opt/wifi-connect
 
 node -v
@@ -37,7 +39,7 @@ systemctl daemon-reload
 systemctl enable wifi-connect
 systemctl enable NetworkManager
 #systemctl disable dhcpcd
-#systemctl disable dnsmasq
-#systemctl disable hostapd
+systemctl disable dnsmasq
+systemctl disable hostapd
 EOF
 
