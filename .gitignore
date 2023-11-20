@@ -4,3 +4,23 @@ postrun.sh
 .pc
 *-pc
 apt-cacher-ng/
+*zip
+
+# These are all for a local pi-gen test instance
+
+pi-gen
+Dockerfile
+build.sh
+build-docker.sh
+docker-compose.yml
+export-image
+export-noobs
+imagetool.sh
+make_rpi-imager-snipplet.py
+scripts
+stage0
+stage1
+stage2
+stage3
+stage4
+stage5

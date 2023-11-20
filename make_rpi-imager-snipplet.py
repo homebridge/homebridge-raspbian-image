@@ -7,7 +7,7 @@ import argparse
 from datetime import date
 import glob
 
-# Credits for the go to https://github.com/guysoft/CustomPiOS/blob/devel/src/make_rpi-imager-snipplet.py
+# Credits for this go to https://github.com/guysoft/CustomPiOS/blob/devel/src/make_rpi-imager-snipplet.py
 
 
 def calculate_sha256(data):
@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    workspace_path = os.path.join(os.getcwd(), "deploy")
+    workspace_path = os.path.join(os.getcwd(), "pi-gen", "deploy")
     if args.workspace_suffix != "" and args.workspace_suffix != "default":
         workspace_path += "-" + args.workspace_suffix
 
@@ -87,6 +87,10 @@ if __name__ == "__main__":
     website = handle_arg("RPI_IMAGER_WEBSITE", True)
     release_date = date.today().strftime("%Y-%m-%d")
 
+    devices=[]
+    devices = json.loads(handle_arg("RPI_IMAGER_DEVICES"))
+
+ #   print("devices: ", devices)
     zip_local = glob.glob(os.path.join(workspace_path, "*.zip"))[0]
 
     if url == "MISSING_URL":
@@ -99,9 +103,10 @@ if __name__ == "__main__":
                 "init_format": "systemd",
                 "url": url,
                 "icon": icon,
-                "release_date": release_date,
+                "release_date": release_date
                 }
 
+    json_out["devices"] = [json.loads(json.dumps(i)) for i in devices]
     if website is not None:
         json_out["website"] = website
 
@@ -123,4 +128,4 @@ if __name__ == "__main__":
     with open(output_path, "w") as w:
         json.dump(output_json, w, indent=2)
 
-    print("Done generating rpi-imager json snipplet")
+    print("Done generating rpi-imager json snipplet to " + output_path)

@@ -3,7 +3,7 @@ ca-certificates
 curl
 gnupg-agent
 software-properties-common
-python-setuptools
+python3-setuptools
 python3-pip
 gcc
 g++
