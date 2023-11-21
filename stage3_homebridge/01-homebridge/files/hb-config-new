@@ -427,29 +427,29 @@ do_install_desktop_and_vnc() {
 
       # install and setup VNC
       if is_installed realvnc-vnc-server || (apt update --allow-releaseinfo-change && apt install -y realvnc-vnc-server); then
-        cat > /etc/systemd/system/vncserver-pi.service <<EOL
-[Unit]
-Description=VNC Virtual Desktop Service
-After=syslog.target network.target
+#        cat > /etc/systemd/system/vncserver-pi.service <<EOL
+#[Unit]
+#Description=VNC Virtual Desktop Service
+#After=syslog.target network.target
 
-[Service]
-Type=forking
-User=$(get_first_user)
-Group=$(get_first_user)
-WorkingDirectory=/home/$(get_first_user)
+#[Service]
+#Type=forking
+#User=$(get_first_user)
+#Group=$(get_first_user)
+#WorkingDirectory=/home/$(get_first_user)
 
-PIDFile=/home/$(get_first_user)/.vnc/%H:12.pid
-ExecStartPre=-/usr/bin/vncserver -kill :12 > /dev/null 2>&1
-ExecStart=/usr/bin/vncserver -depth 24 -geometry 1280x800 :12
-ExecStop=/usr/bin/vncserver -kill :12
+#PIDFile=/home/$(get_first_user)/.vnc/%H:12.pid
+#ExecStartPre=-/usr/bin/vncserver -kill :12 > /dev/null 2>&1
+#ExecStart=/usr/bin/vncserver -depth 24 -geometry 1280x800 :12
+#ExecStop=/usr/bin/vncserver -kill :12
 
-[Install]
-WantedBy=multi-user.target
-EOL
+#[Install]
+#WantedBy=multi-user.target
+#EOL
         systemctl enable vncserver-x11-serviced.service &&
         systemctl start vncserver-x11-serviced.service &&
-        systemctl enable vncserver-pi.service &&
-        systemctl start vncserver-pi.service &&
+#        systemctl enable vncserver-pi.service &&
+#        systemctl start vncserver-pi.service &&
         STATUS=enabled
       else
         return 1
@@ -458,8 +458,8 @@ EOL
       if is_installed realvnc-vnc-server; then
           systemctl disable vncserver-x11-serviced.service
           systemctl stop vncserver-x11-serviced.service
-          systemctl disable vncserver-pi.service
-          systemctl stop vncserver-pi.service
+#          systemctl disable vncserver-pi.service
+#          systemctl stop vncserver-pi.service
       fi
       STATUS=disabled
     else
