@@ -34,17 +34,23 @@ The *Homebridge Raspberry Pi Image* is completely free (no sign up required).
 The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is to use the [Raspberry Pi Imager](https://www.raspberrypi.org/software/).
 
 <p align="center">
-    <img src="https://user-images.githubusercontent.com/3979615/117293909-58f99f80-aeb5-11eb-922c-37029f071481.gif" width="600">
+    <img src="./media/Raspbian Image.gif" width="600">
 </p>
 
 1. Download and install the latest version of [Raspberry Pi Imager](https://www.raspberrypi.org/software/).
 2. Open the *Raspberry Pi Imager* application.
-3. Click **Choose OS**.
-4. Scroll down and select the **Other specific purpose OS** category.
-5. Select the **Home assistants and home automation** category.
-6. Select **Homebridge**, then choose the latest Homebridge image.
-7. Click **Choose Storage** and select your SD card.
-8. Click **Write**.
+3. Click **Choose Device**
+4. Scroll down and select the **No filtering** option.
+5. Click **Choose OS**.
+6. Scroll down and select the **Other specific purpose OS** category.
+7. Select the **Home assistants and home automation** category.
+8. Select **Homebridge**, then choose your Homebridge image.
+  32bit - For all RPI Models
+  64bit - For RPI 3B, 3B+, 3A+, 4B, 400, 5, CM3,CM3+, CM4, CM4S, Zero 2 W
+9. Click **Choose Storage** and select your SD card.
+10. Click **Next**
+11. For **Use OS Customisation**, select **No**
+12. Click **Write**
 
 *Raspberry Pi Imager* will now download and flash the latest version of the *Homebridge Raspberry Pi Image* to your SD card, this may take several minutes depending on the speed of your internet connection and SD card.
 
