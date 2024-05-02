@@ -29,6 +29,10 @@ The Homebridge service is installed using the method described in the official [
 
 ## Download and Flash to SD Card
 
+**Note: The homebridge Image is temporarily not available for download within the Raspberry PI Imager Tool.**
+
+**As a workaround, please download latest image from [here](https://github.com/homebridge/homebridge-raspbian-image/releases), and use the 'Custom' option under 'Choose OS' within the imager tool.**
+
 The *Homebridge Raspberry Pi Image* is completely free (no sign up required).
 
 The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is to use the [Raspberry Pi Imager](https://www.raspberrypi.org/software/).
