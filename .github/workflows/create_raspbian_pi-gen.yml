@@ -1,32 +1,37 @@
 name: Create Raspbian Homebridge Image using pi-gen
-run-name: Create Raspbian Homebridge Image ${{ github.event.inputs.version }} against ${{ github.ref_name }}
+run-name: Create Raspbian Homebridge Image ${{ github.ref }}
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version / Tag (vx.x.x):'     
-        required: true
+  release:
+     types: [released]
 
 jobs:
-  setup_environment:
-    name: Setup Environment ${{ github.event.inputs.version }}
-    runs-on: [ubuntu-latest] 
+  tag:
+    name: Verify Release Tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
     steps:
-    - name: Create Release ${{ github.event.inputs.version }}
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.event.inputs.version }}
-        release_name: ${{ github.event.inputs.version }}
-        draft: false
-        prerelease: true
-
+      - name: Get Release Tag
+        id: get_version
+        uses: jannemattila/get-version-from-tag@v3
+      - name: Tag Info
+        run: |
+          echo "Release Tag: ${{github.ref}}"
+          echo "Latest Tag: ${{ steps.get_version.outputs.version }}"
+      - name: Tag Info Matches
+        if: endsWith(github.ref, steps.get_version.outputs.version )
+        run: |
+          echo Latest Tag matches Release tag
+      - name: Tag Info Doesn't Match
+        if: ${{ !endsWith(github.ref, steps.get_version.outputs.version ) }}
+        run: |
+          echo Latest Tag does not matches Release tag
+          exit 1
+          
   build_images:
-    name: Build RPI Homebridge (${{ matrix.name }})
-    needs: setup_environment
+    name: Build RPI Homebridge (${{ matrix.name }}) Image ${{ needs.tag.outputs.version }}
+    needs: tag
     runs-on: [ubuntu-latest] 
     strategy:
       fail-fast: false
@@ -81,7 +86,7 @@ jobs:
       
           # Additional options to include in PIGEN_DOCKER_OPTS
           # '--env IMG_DATE=Raspbian'
-          docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ github.event.inputs.version }}-\(${{ matrix.name }}\)"'
+          docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)"'
       
           # Set whether a NOOBS image should be built as well. If enabled, the output 
           # directory containing the NOOBS files will be saved as output variable 
@@ -192,12 +197,12 @@ jobs:
           echo "$IMAGE_SHA256_CHECKSUM ${{ steps.build.outputs.image-path }}"
           echo "::notice::IMAGE_SHA256_CHECKSUM ${IMGFILENAME} ==> ${IMAGE_SHA256_CHECKSUM}"
 
-      - name: Upload Image to release ${{ github.event.inputs.version }} 
+      - name: Upload Image to release v${{ needs.tag.outputs.version }} 
         uses: AButler/upload-release-assets@v2.0.2
         with:
           files: '${{ steps.build.outputs.image-path }}'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: ${{ github.event.inputs.version }}
+          release-tag: v${{ needs.tag.outputs.version }}
 
       - name: Generate rpi-image-repo.json 
         id: generate_rpi-image-repo
@@ -206,7 +211,7 @@ jobs:
           export RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }})"
           export RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png"
           export RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started"
-          export RPI_IMAGER_IMAGE_URL="https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version }}/${{ env.IMGFILENAME }}"
+          export RPI_IMAGER_IMAGE_URL="https://github.com/${{ github.repository }}/releases/download/v${{ needs.tag.outputs.version }}/${{ env.IMGFILENAME }}"
           export RPI_IMAGER_DEVICES='${{ matrix.devices }}'
           ./make_rpi-imager-snipplet.py --rpi_imager_url ${RPI_IMAGER_IMAGE_URL}
 
@@ -214,42 +219,66 @@ jobs:
         run: |
           mv pi-gen/deploy/rpi-image-repo.json ./rpi-image-repo-${{ matrix.name }}.json
 
-      - name: Upload Info to release ${{ github.event.inputs.version }} 
+      - name: Upload Info to release ${{ needs.tag.outputs.version }} 
         uses: AButler/upload-release-assets@v2.0.2
         with:
           files: './*.json'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: ${{ github.event.inputs.version }}
+          release-tag: v${{ needs.tag.outputs.version }}
 
   finalize_info:
-    name: Prep ${{ github.event.inputs.version }} Info file
-    needs: build_images
+    name: Prep ${{ needs.tag.outputs.version }} Info file
+    needs: [tag, build_images]
     runs-on: [ubuntu-latest]
     steps:
       
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - uses: robinraju/release-downloader@v1.8
-      name: Downloard image info files from release ${{ github.event.inputs.version }}
-      with: 
-        
-        # The github tag. e.g: v1.0.1
-        # Download assets from a specific tag/version
-        tag: "${{ github.event.inputs.version }}"
-        
-        # The name of the file to download.
-        # Use this field only to specify filenames other than tarball or zipball, if any.
-        # Supports wildcard pattern (eg: '*', '*.deb', '*.zip' etc..)
-        fileName: "*.json"
+      - uses: robinraju/release-downloader@v1.8
+        name: Downloard image info files from release ${{ needs.tag.outputs.version }}
+        with: 
+          
+          # The github tag. e.g: v1.0.1
+          # Download assets from a specific tag/version
+          tag: v${{ needs.tag.outputs.version }}
+          
+          # The name of the file to download.
+          # Use this field only to specify filenames other than tarball or zipball, if any.
+          # Supports wildcard pattern (eg: '*', '*.deb', '*.zip' etc..)
+          fileName: "*.json"
 
-    - name: Combine rpi-image-repo JSON's
-      run: |
-        ./combine-rpi-imager-snipplet.py    
+      - name: Combine rpi-image-repo JSON's
+        run: |
+          ./combine-rpi-imager-snipplet.py    
 
-    - name: Upload combined rpi-image-repo to release ${{ github.event.inputs.version }} 
-      uses: AButler/upload-release-assets@v2.0.2
-      with:
-        files: 'rpi-image-repo.json'
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        release-tag: ${{ github.event.inputs.version }}
- 
+      - name: Upload combined rpi-image-repo to release ${{ needs.tag.outputs.version }} 
+        uses: AButler/upload-release-assets@v2.0.2
+        with:
+          files: 'rpi-image-repo.json'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          release-tag: v${{ needs.tag.outputs.version }}
+
+      - name: Push ${{ needs.tag.outputs.version }} Image to Homebridge Registry
+        uses: dmnemec/copy_file_to_another_repo_action@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+        with:
+          source_file: 'rpi-image-repo.json'
+          destination_repo: 'homebridge/homebridge.io'
+          destination_branch: 'source'
+          destination_folder: 'src/public/'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          user_name: 'github-actions[bot]'
+          commit_message: 'New Homebridge Image Release ${{ needs.tag.outputs.version }}'
+  
+
+  github-releases-to-discord:
+    needs: [tag, build_images, finalize_info]
+    uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
+    with:
+      title: "Homebridge Raspbian Image Release"
+      description: |
+        Version `v${{ needs.tag.outputs.version }}`
+      url: "https://github.com/homebridge/homebridge-raspbian-image/releases/tag/v${{ needs.tag.outputs.version }}"
+    secrets:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
