@@ -115,6 +115,8 @@ Try one of:
 
 </details>
 
+The default username is `admin` and the default password is `admin`.
+
 <p align="center">
   <img width="600px" src="https://user-images.githubusercontent.com/3979615/71886653-b16d3f80-3190-11ea-9ff8-49dc4ae4fff0.png">
 </p>
