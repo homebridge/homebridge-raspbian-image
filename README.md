@@ -29,9 +29,9 @@ The Homebridge service is installed using the method described in the official [
 
 ## Download and Flash to SD Card
 
-**Note: The homebridge Image is temporarily not available for download within the Raspberry PI Imager Tool.**
-
-**As a workaround, please download latest image from [here](https://github.com/homebridge/homebridge-raspbian-image/releases), and use the 'Custom' option under 'Choose OS' within the imager tool.**
+> [!WARNING]
+> - The Homebridge Image is temporarily not available for download within the Raspberry PI Imager Tool.
+> - As a workaround, please download latest image from [here](https://github.com/homebridge/homebridge-raspbian-image/releases), and use the 'Custom' option under 'Choose OS' within the imager tool.
 
 The *Homebridge Raspberry Pi Image* is completely free (no sign up required).
 
@@ -100,16 +100,15 @@ If you enter your WiFi credentials incorrectly the **Homebridge WiFi Setup** hot
 
 The [Homebridge UI](https://github.com/homebridge/homebridge-config-ui-x) web interface will allow you to install, remove and update plugins, and modify the Homebridge config.json and manage other aspects of your Homebridge service.
 
-If you're using macOS or a mobile device, you should be able to access the UI via http://homebridge.local.
+You should be able to access the UI via: 
+- http://homebridge.local or
+- `http://<ip address of your server>:PORT` (default port is 8581).
 
-If you're using Windows, or `http://homebridge.local` does not work for you, you will need to find the IP address of your Raspberry Pi another way:
-
-1. Login to your router and find the "connected devices" or "dhcp clients" page to find the IP address that was assigned to the Raspberry Pi.
-2. Use an iPhone to access `http://homebridge.local`, once you login using the default username and password (admin/admin) you can find the IP address under System Information.
-3. Download the [Fing](https://www.fing.com/) app for [iOS](https://itunes.apple.com/us/app/fing-network-scanner/id430921107?mt=8) or [Android](https://play.google.com/store/apps/details?id=com.overlook.android.fing&hl=en_GB) to scan your network to find the IP address of your Raspberry Pi.
-4. As a last resort, if you plug a monitor into your Raspberry Pi, the IP address will be displayed on the attached screen once it has finished booting.
-
-Once you've found your IP address, login to the web interface by going to `http://<ip address of your server>`.
+How to find IP (one of):
+- Login to your router and find the "connected devices" or "dhcp clients" page to find the IP address that was assigned to the Raspberry Pi.
+- Use other device (Mac, iPhone, etc) to access `http://homebridge.local`, once you login using the default username and password (admin/admin) you can find the IP address under System Information.
+- Download the [Fing](https://www.fing.com/) app for [iOS](https://itunes.apple.com/us/app/fing-network-scanner/id430921107?mt=8) or [Android](https://play.google.com/store/apps/details?id=com.overlook.android.fing&hl=en_GB) to scan your network to find the IP address of your Raspberry Pi.
+- As a last resort, if you plug a monitor into your Raspberry Pi, the IP address will be displayed on the attached screen once it has finished booting.
 
 <p align="center">
   <img width="600px" src="https://user-images.githubusercontent.com/3979615/71886653-b16d3f80-3190-11ea-9ff8-49dc4ae4fff0.png">
