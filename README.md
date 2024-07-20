@@ -100,15 +100,20 @@ If you enter your WiFi credentials incorrectly the **Homebridge WiFi Setup** hot
 
 The [Homebridge UI](https://github.com/homebridge/homebridge-config-ui-x) web interface will allow you to install, remove and update plugins, and modify the Homebridge config.json and manage other aspects of your Homebridge service.
 
-You should be able to access the UI via: 
+By default the UI can be accessed via web browser:
 - http://homebridge.local or
 - `http://<ip address of your server>:PORT` (default port is 8581).
 
-How to find IP (one of):
+<details>
+    <summary>How to find IP</summary>
+
+Try one of:
 - Login to your router and find the "connected devices" or "dhcp clients" page to find the IP address that was assigned to the Raspberry Pi.
 - Use other device (Mac, iPhone, etc) to access `http://homebridge.local`, once you login using the default username and password (admin/admin) you can find the IP address under System Information.
 - Download the [Fing](https://www.fing.com/) app for [iOS](https://itunes.apple.com/us/app/fing-network-scanner/id430921107?mt=8) or [Android](https://play.google.com/store/apps/details?id=com.overlook.android.fing&hl=en_GB) to scan your network to find the IP address of your Raspberry Pi.
 - As a last resort, if you plug a monitor into your Raspberry Pi, the IP address will be displayed on the attached screen once it has finished booting.
+
+</details>
 
 <p align="center">
   <img width="600px" src="https://user-images.githubusercontent.com/3979615/71886653-b16d3f80-3190-11ea-9ff8-49dc4ae4fff0.png">
