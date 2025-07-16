@@ -45,7 +45,7 @@ The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is 
 6. Scroll down and select the **Other specific purpose OS** category.
 7. Select the **Home assistants and home automation** category.
 8. Select **Homebridge**, then choose your Homebridge image.
-  - **32bit** - For all RPI Models ( Not recommended, support will be ending Spring 2027 )
+  - **32bit** - For all RPI Models (Not recommended, support will be ending Spring 2027 )
   - **64bit** - For RPI 3B, 3B+, 3A+, 4B, 400, 5, CM3, CM3+, CM4, CM4S, Zero 2 W ( Recommended )
 9. Click **Choose Storage** and select your SD card.
 10. Click **Next**
