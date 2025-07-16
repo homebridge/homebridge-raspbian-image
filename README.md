@@ -8,7 +8,7 @@
 
 # Homebridge Raspberry Pi Image
 
-[![Build](https://github.com/homebridge/homebridge-raspbian-image/workflows/CI/badge.svg)](https://github.com/homebridge/homebridge-raspbian-image/actions)
+[![Build](https://github.com/homebridge/homebridge-raspbian-image/actions/workflows/create_raspbian_pi-gen.yml/badge.svg)](https://github.com/homebridge/homebridge-raspbian-image/actions/workflows/create_raspbian_pi-gen.yml)
 [![GitHub release (latest by date)](https://badgen.net/github/release/homebridge/homebridge-raspbian-image?label=Version)](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
 [![GitHub All Releases](https://img.shields.io/github/downloads/homebridge/homebridge-raspbian-image/total)](https://somsubhra.github.io/github-release-stats/?username=homebridge&repository=homebridge-raspbian-image&page=1&per_page=30)
 
@@ -45,8 +45,8 @@ The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is 
 6. Scroll down and select the **Other specific purpose OS** category.
 7. Select the **Home assistants and home automation** category.
 8. Select **Homebridge**, then choose your Homebridge image.
-  - **32bit** - For all RPI Models
-  - **64bit** - For RPI 3B, 3B+, 3A+, 4B, 400, 5, CM3, CM3+, CM4, CM4S, Zero 2 W
+  - **32bit** - For all RPI Models ( Not recommended, support will be ending Spring 2027 )
+  - **64bit** - For RPI 3B, 3B+, 3A+, 4B, 400, 5, CM3, CM3+, CM4, CM4S, Zero 2 W ( Recommended )
 9. Click **Choose Storage** and select your SD card.
 10. Click **Next**
 11. For **Use OS Customisation**, select **No**

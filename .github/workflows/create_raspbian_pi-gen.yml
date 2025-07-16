@@ -45,11 +45,13 @@ jobs:
             release: bookworm
             name: 64bit
             devices: '["pi5-64bit", "pi4-64bit", "pi3-64bit"]'
+            recommended: "Recommended"
 
           - pi-gen-version: master
             release: bookworm
             name: 32bit
             devices: '["pi5-32bit", "pi4-32bit", "pi3-32bit", "pi2-32bit", "pi1-32bit"]'
+            recommended: "Not Recommended, support will be ending Spring 2027"
 
 # The build
 
@@ -208,7 +210,7 @@ jobs:
         id: generate_rpi-image-repo
         run: |
           export RPI_IMAGER_NAME="Homebridge ${{ matrix.release }} (${{ matrix.name }})"
-          export RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }})"
+          export RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }}) - ${{ matrix.recommended }}"
           export RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png"
           export RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started"
           export RPI_IMAGER_IMAGE_URL="https://github.com/${{ github.repository }}/releases/download/v${{ needs.tag.outputs.version }}/${{ env.IMGFILENAME }}"
