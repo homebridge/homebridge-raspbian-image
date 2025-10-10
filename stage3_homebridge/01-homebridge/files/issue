@@ -1,31 +1,17 @@
 Homebridge Raspbian - \n (\r)
 
- _    _                      _          _     _            
+\e{lightmagenta}\e{bold} _    _                      _          _     _            
 | |  | |                    | |        (_)   | |           
 | |__| | ___  _ __ ___   ___| |__  _ __ _  __| | __ _  ___ 
-|  __  |/ _ \| '_ ` _ \ / _ \ '_ \| '__| |/ _` |/ _` |/ _ \
+|  __  |/ _ \\| '_ ` _ \\ / _ \\ '_ \\| '__| |/ _` |/ _` |/ _ \\
 | |  | | (_) | | | | | |  __/ |_) | |  | | (_| | (_| |  __/
-|_|  |_|\___/|_| |_| |_|\___|_.__/|_|  |_|\__,_|\__, |\___|
+|_|  |_|\\___/|_| |_| |_|\\___|_.__/|_|  |_|\\__,_|\\__, |\\___|
                                                  __/ |     
-                                                |___/      
-
-**** Need To Setup WiFi? ****
-
-Use your mobile device to connect to the "Homebridge WiFi Setup" WiFi access point, then
-follow the prompts to connect this device to your network.
-
-If you are currently connected via Ethernet, you will need to disconnect
-your Ethernet cable and reboot before you can configure WiFi.
-
-
-**** Already Connected? ****
+                                                |___/      \e{reset} 
 
 Browse to the one of the following addresses from another device on your network:
 
-* http://\n.local
-* http://\4
+* \e{green}http://\n.local\e{reset}
+* \e{green}http://\4\e{reset}
 
 All Homebridge configuration can be completed via the web interface.
-
-
-
