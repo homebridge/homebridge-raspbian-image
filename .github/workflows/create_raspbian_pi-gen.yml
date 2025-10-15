@@ -15,33 +15,9 @@ on:
           - major
         default: 'patch'
       publish:
-        description: 'Publish Release Homebridge Registry'
+        description: 'Publish Release to Homebridge Registry'
         type: boolean
-        default: true
-      release-stream:
-        description: 'Release Stream to build against'
-        type: choice
-        options:
-          - stable
-        default: 'stable'
-        required: false
-
-  workflow_dispatch:
-    inputs:
-      # The github tag. e.g: v1.0.1
-      # Download assets from a specific tag/version
-      release-increment:
-        description: 'Increment Release Version'
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
-        default: 'patch'
-      publish:
-        description: 'Publish Release Homebridge Registry'
-        type: boolean
-        default: true
+        default: false
       release-stream:
         description: 'Release Stream to build against'
         type: choice
