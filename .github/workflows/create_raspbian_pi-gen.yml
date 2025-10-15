@@ -127,124 +127,159 @@ jobs:
 #          docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
 # f022813 aka 1.7.0
-      - uses: usimd/pi-gen-action@v1.11.0
-        name: Run pi-gen ( get some popcorn this will take awhile )
-        id: build
+      - uses: usimd/pi-gen-action@v1
         with:
+          # If you require the use of an apt proxy, set it here. This proxy setting will not 
+          # be included in the image, making it safe to use an apt-cacher or similar package 
+          # for development.
+          apt-proxy: ''
+
           # Compression to apply on final image (either "none", "zip", "xz" or "gz").
           compression: zip
-      
+
           # Compression level to be used. From 0 to 9 (refer to the tool man page for more 
           # information on this. Usually 0 is no compression but very fast, up to 9 with the 
           # best compression but very slow).
           compression-level: 6
-      
+
           # Disable the renaming of the first user during the first boot. This make it so 
           # 'username' stays activated. 'username' must be set for this to work. Please be 
           # aware of the implied security risk of defining a default username and password 
           # for your devices.
           disable-first-boot-user-rename: 0
-      
+
           # Additional options to include in PIGEN_DOCKER_OPTS
-          # '--env IMG_DATE=Raspbian'
-          # docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)"'
-      
-          # docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)" --env HOMEBRIDGE_APT_PKG_VERSION="${{ needs.determine_package_verions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}" --env FFMPEG_FOR_HOMEBRIDGE_VERSION="${{ needs.determine_package_verions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}" --env RELEASE_STREAM=${{ inputs.release-stream }}'
+          docker-opts: ''
+
+          # If set to `1`, cloud-init and netplan will be installed and configured. This 
+          # will allow you to configure your Raspberry Pi using cloud-init configuration 
+          # files. The cloud-init configuration files should be placed in the bootfs or by 
+          # editing the files in `stage2/04-cloud-init/files`. Cloud-init will be configured 
+          # to read them on first boot.
+          enable-cloud-init: 1
+
           # Set whether a NOOBS image should be built as well. If enabled, the output 
           # directory containing the NOOBS files will be saved as output variable 
           # 'image-noobs-path'.
           enable-noobs: false
-      
+
           # Enable SSH access to Pi.
-          enable-ssh: 1
-      
+          enable-ssh: 0
+
           # If this feature is enabled, the action will configure pi-gen to not export any 
           # stage as image but the last one defined in property 'stage-list'. This is 
           # helpful when building a single image flavor (in contrast to building a 
           # lite/server and full-blown desktop image), since it speeds up the build process 
           # significantly.
           export-last-stage-only: true
-      
+
           # Comma or whitespace separated list of additional packages to install on host 
           # before running pi-gen. Use this list to add any packages your custom stages may 
           # require. Note that this is not affecting the final image. In order to add 
           # additional packages, you need to add a respective 'XX-packages' file in your 
           # custom stage.
           extra-host-dependencies: ''
-      
+
           # Comma or whitespace separated list of additional modules to load on host before 
           # running pi-gen. If your custom stage requires additional software or kernel 
           # modules to be loaded, add them here. Note that this is not meant to configure 
           # modules to be loaded in the target image.
           extra-host-modules: ''
-      
+
           # Token to use for checking out pi-gen repo.
           github-token: ${{ github.token }}
-      
+
           # Host name of the image.
-          hostname: homebridge
-      
+          hostname: raspberrypi
+
           # Final image name.
-          image-name: 'Homebridge-${{ matrix.release }}-${{ matrix.name }}'
-      
+          image-name: ''
+
+          # Enabling this option will remove plenty of components from the GitHub Actions 
+          # runner that are not mandatory pre-requisites for a (vanilla) pi-gen build. This 
+          # shall increase the available disk space so that also large images can be 
+          # compiled on a free GHA runner (benchmark is the full image including a desktop 
+          # environment). If any packages are missing during the build consider adding them 
+          # to the `extra-host-dependencies` list.
+          increase-runner-disk-size: false
+
           # Default keyboard keymap.
           keyboard-keymap: gb
-      
+
           # Default keyboard layout.
           keyboard-layout: English (UK)
-      
+
           # Default locale of the system image.
           locale: en_GB.UTF-8
-      
+
           # Password of the intial user account, locked if empty.
-          # password: 'raspberry'
-      
+          password: ''
+
           # Path where selected pi-gen ref will be checked out to. If the path does not yet 
           # exist, it will be created (including its parents).
           pi-gen-dir: pi-gen
-      
+
+          # The release name to use in `/etc/issue.txt`. The default should only be used for 
+          # official Raspberry Pi builds.
+          pi-gen-release: Raspberry Pi reference
+
           # GitHub repository to fetch pi-gen from, must be a fork from RPi-Distro/pi-gen.
           pi-gen-repository: RPi-Distro/pi-gen
-      
+
           # Release version of pi-gen to use. This can both be a branch or tag name known in 
           # the pi-gen repository.
-          pi-gen-version: ${{ matrix.pi-gen-version }}
-      
+          pi-gen-version: arm64
+
+          # Setting to `1` will disable password authentication for SSH and enable public 
+          # key authentication. Note that if SSH is not enabled this will take effect when 
+          # SSH becomes enabled.
+          pubkey-only-ssh: 0
+
+          # Setting this to a value will make that value the contents of the 
+          # FIRST_USER_NAME's ~/.ssh/authorized_keys. Obviously the value should therefore 
+          # be a valid authorized_keys file. Note that this does not automatically enable 
+          # SSH.
+          pubkey-ssh-first-user: ''
+
           # The release version to build images against. Valid values are jessie, stretch, 
-          # buster, bullseye, bookworm, and testing.
-          release: ${{ matrix.release }}
-      
+          # buster, bullseye, bookworm, trixie and testing.
+          release: trixie
+
           # Setting to `1` will prevent pi-gen from dropping the "capabilities" feature. 
           # Generating the root filesystem with capabilities enabled and running it from a 
           # filesystem that does not support capabilities (like NFS) can cause issues. Only 
           # enable this if you understand what it is.
           setfcap: ''
-      
+
           # List of stage name to execute in given order. Relative and absolute paths to 
           # custom stage directories are allowed here. Note that by default pi-gen exports 
           # images in stage2 (lite), stage4 and stage5. You probably want to hook in custom 
           # stages before one of the exported stages. Otherwise, the action will make sure 
           # any custom stage will include an image export directive.
-          stage-list: stage0_prep stage0 stage1 stage2 stage3_homebridge
-      
+          stage-list: stage0 stage1 stage2
+
+          # An additional temporary apt repo to be used during the build process. This could 
+          # be useful if you require pre-release software to be included in the image. The 
+          # variable should contain sources in one-line-style format. "RELEASE" will be 
+          # replaced with the RELEASE variable. (see 
+          # https://manpages.debian.org/stable/apt/sources.list.5.en.html#ONE-LINE-STYLE_FORMAT)
+          temp-repo: ''
+
           # System timezone.
           timezone: Europe/London
-      
-          # Use qcow2 images to reduce space and runtime requirements.
-          # use-qcow2: 0
-      
+
           # Name of the initial user account.
-          # username: pi
-      
+          username: pi
+
           # Print all output from pi-gen.
           verbose-output: false
-      
+
           # Wifi country code of default network to connect to.
           wpa-country: ''
-      
+
           # SSID of a default wifi network to connect to.
           wpa-essid: ''
-      
+
           # Password of default wifi network to connect to.
           wpa-password: ''
 
