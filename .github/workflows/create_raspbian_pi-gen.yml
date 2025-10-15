@@ -97,6 +97,7 @@ jobs:
       matrix:
         name: [
           64bit
+#          32bit
         ]
         include:
           - pi-gen-version: arm64
@@ -105,11 +106,11 @@ jobs:
             devices: '["pi5-64bit", "pi4-64bit", "pi3-64bit"]'
             recommended: "Recommended"
 
-          - pi-gen-version: master
-            release: trixie
-            name: 32bit
-            devices: '["pi5-32bit", "pi4-32bit", "pi3-32bit", "pi2-32bit", "pi1-32bit"]'
-            recommended: "Not Recommended, support will be ending Spring 2027"
+#          - pi-gen-version: master
+#            release: trixie
+#            name: 32bit
+#            devices: '["pi5-32bit", "pi4-32bit", "pi3-32bit", "pi2-32bit", "pi1-32bit"]'
+#            recommended: "Not Recommended, support will be ending Spring 2027"
 
 # The build
 
@@ -142,7 +143,7 @@ jobs:
           # 'username' stays activated. 'username' must be set for this to work. Please be 
           # aware of the implied security risk of defining a default username and password 
           # for your devices.
-          disable-first-boot-user-rename: 1
+          disable-first-boot-user-rename: 0
       
           # Additional options to include in PIGEN_DOCKER_OPTS
           # '--env IMG_DATE=Raspbian'
