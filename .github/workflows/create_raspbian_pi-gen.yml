@@ -67,7 +67,7 @@ jobs:
 
 # Create a release for the new tag
   create_release:
-    name: Create GitHub Release v${{ needs.tag.outputs.version }}
+    name: Create GitHub Release ${{ needs.tag.outputs.version }}
     needs: [tag, determine_package_verions]
     runs-on: ubuntu-latest
     steps:
@@ -75,10 +75,10 @@ jobs:
         id: create_release
         uses: ncipollo/release-action@v1.18.0
         with:
-          tag: v${{ needs.tag.outputs.version }}
-          name: v${{ needs.tag.outputs.version }}
+          tag: ${{ needs.tag.outputs.version }}
+          name: ${{ needs.tag.outputs.version }}
           body: |
-            ## What's New in v${{ needs.tag.outputs.version }}
+            ## What's New in ${{ needs.tag.outputs.version }}
             - Updated Homebridge APT package to version ${{ needs.determine_package_verions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
             - Updated ffmpeg-for-homebridge to version ${{ needs.determine_package_verions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
             - Updated Raspbian base to Raspberry Pi OS trixie (Debian 13)
