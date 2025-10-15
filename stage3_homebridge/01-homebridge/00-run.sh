@@ -25,10 +25,12 @@ install -m 755 files/motd-linux "${ROOTFS_DIR}/etc/update-motd.d/15-linux"
 install -m 755 files/motd-homebridge "${ROOTFS_DIR}/etc/update-motd.d/20-homebridge"
 install -m 633 files/bashrc.partial "${ROOTFS_DIR}/tmp/bashrc.partial"
 
+export 
+
 #
 # Set Version
 #
-echo "$BUILD_VERSION" > "${ROOTFS_DIR}/etc/hb-release"
+echo "$IMG_NAME" > "${ROOTFS_DIR}/etc/hb-release"
 
 on_chroot << EOF
 
