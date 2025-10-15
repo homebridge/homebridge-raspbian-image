@@ -147,7 +147,7 @@ jobs:
       
           # Additional options to include in PIGEN_DOCKER_OPTS
           # '--env IMG_DATE=Raspbian'
-          docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)"'
+          # docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)"'
       
           # docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)" --env HOMEBRIDGE_APT_PKG_VERSION="${{ needs.determine_package_verions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}" --env FFMPEG_FOR_HOMEBRIDGE_VERSION="${{ needs.determine_package_verions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}" --env RELEASE_STREAM=${{ inputs.release-stream }}'
           # Set whether a NOOBS image should be built as well. If enabled, the output 
@@ -225,7 +225,7 @@ jobs:
           # images in stage2 (lite), stage4 and stage5. You probably want to hook in custom 
           # stages before one of the exported stages. Otherwise, the action will make sure 
           # any custom stage will include an image export directive.
-          stage-list: stage0_prep stage0 stage1 stage2 ./stage3_homebridge
+          stage-list: stage0_prep stage0 stage1 stage2 stage3_homebridge
       
           # System timezone.
           timezone: Europe/London
