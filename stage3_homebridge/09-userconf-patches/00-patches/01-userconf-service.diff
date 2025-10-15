@@ -1,0 +1,13 @@
+--- a/rootfs/usr/lib/userconf-pi/userconf-service
++++ b/rootfs/usr/lib/userconf-pi/userconf-service
+@@ -19,6 +19,10 @@
+         MSG="$MSG\nCannot be root."
+         RET=1
+     fi
++    if getent passwd "$NEW_USER" >/dev/null 2>&1; then
++        MSG="$MSG\nCannot use existing username '$NEW_USER'."
++        RET=1
++    fi
+     if [ "$RET" -ne 0 ]; then
+         echo "$MSG"
+     fi

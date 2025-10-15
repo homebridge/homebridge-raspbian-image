@@ -1,0 +1,10 @@
+--- a/rootfs/usr/lib/userconf-pi/userconf
++++ b/rootfs/usr/lib/userconf-pi/userconf
+@@ -1,5 +1,7 @@
+ #!/bin/sh
+ 
++set -e
++
+ rename_user () {
+     usermod -l "$NEWNAME" "$FIRSTUSER"
+     usermod -m -d "/home/$NEWNAME" "$NEWNAME"

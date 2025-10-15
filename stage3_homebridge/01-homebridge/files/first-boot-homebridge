@@ -11,6 +11,14 @@ if grep -q "ssid" "/etc/wpa_supplicant/wpa_supplicant.conf"; then
   systemctl start dhcpcd
 fi
 
+
+# Update /etc/issue to show RPI Model
+if [ -f /proc/device-tree/model ]; then
+  RPI_MODEL=$(cat /proc/device-tree/model)
+  if [ -n "$RPI_MODEL" ]; then
+    sed -i "2iRPI Model: \\\e{yellow}${RPI_MODEL}\\\e{reset}" /etc/issue
+  fi
+fi
 # disable this service so it does not run again
 systemctl disable first-boot-homebridge
 systemctl daemon-reload

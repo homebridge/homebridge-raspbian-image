@@ -33,19 +33,28 @@ echo "$BUILD_VERSION" > "${ROOTFS_DIR}/etc/hb-release"
 on_chroot << EOF
 
 curl -sSfL https://repo.homebridge.io/KEY.gpg | gpg --dearmor | sudo tee /usr/share/keyrings/homebridge.gpg  > /dev/null
-echo "deb [signed-by=/usr/share/keyrings/homebridge.gpg] https://repo.homebridge.io stable main" | tee /etc/apt/sources.list.d/homebridge.list > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/homebridge.gpg] https://repo.homebridge.io ${RELEASE_STREAM} main" | tee /etc/apt/sources.list.d/homebridge.list > /dev/null
 
 apt-get update
-apt-get install homebridge
+echo apt-get install homebridge=${HOMEBRIDGE_APT_PKG_VERSION}
+apt-get install homebridge=${HOMEBRIDGE_APT_PKG_VERSION} 
+
+# Add the homebridge user to the sudo group
+usermod -aG sudo homebridge
+
+mkdir -p /etc/systemd/system/homebridge.service.d
+echo "[Service]" > /etc/systemd/system/homebridge.service.d/override.conf
+echo "Environment=\"UIX_CAN_SHUTDOWN_RESTART_HOST=1\"" >> /etc/systemd/system/homebridge.service.d/override.conf
+echo "Environment=\"UIX_STORAGE_PATH=/var/lib/homebridge\"" >> /etc/systemd/system/homebridge.service.d/override.conf
 
 # correct ownership
-chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /var/lib/homebridge
+# chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /var/lib/homebridge
 
 # empty motd
 > /etc/motd
 
 # make a symlink to the main config directory
-[ -e /home/${FIRST_USER_NAME}/.homebridge ] || ln -fs /var/lib/homebridge /home/${FIRST_USER_NAME}/.homebridge
+#[ -e /home/${FIRST_USER_NAME}/.homebridge ] || ln -fs /var/lib/homebridge /home/${FIRST_USER_NAME}/.homebridge
 [ -e /root/.homebridge ] || ln -fs /var/lib/homebridge /root/.homebridge
 
 # include homebridge bashrc in first user's bashrc

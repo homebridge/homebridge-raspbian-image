@@ -8,6 +8,7 @@ Type=oneshot
 Environment="PATH=/opt/homebridge/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 Environment="npm_config_prefix=/opt/wifi-connect"
 ExecStart=/opt/wifi-connect/bin/wifi-connect
+StandardOutput=journal+console
 
 [Install]
 WantedBy=multi-user.target

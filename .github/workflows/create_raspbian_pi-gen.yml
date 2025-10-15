@@ -1,37 +1,96 @@
-name: Create Raspbian Homebridge Image using pi-gen
-run-name: Create Raspbian Homebridge Image ${{ github.ref }}
+name: Release Stage 2 - Create Raspbian Homebridge Image using pi-gen
+run-name: Release Stage 2 - Create Raspbian Homebridge Image ${{ github.ref }}
 
 on:
-  release:
-     types: [released]
+  workflow_dispatch:
+    inputs:
+      # The github tag. e.g: v1.0.1
+      # Download assets from a specific tag/version
+      release-increment:
+        description: 'Increment Release Version'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: 'patch'
+      publish:
+        description: 'Publish Release Homebridge Registry'
+        type: boolean
+        default: true
+      release-stream:
+        description: 'Release Stream to build against'
+        type: choice
+        options:
+          - stable
+        default: 'stable'
+        required: false
 
 jobs:
   tag:
-    name: Verify Release Tag
+    name: Create Release Tag
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.get_version.outputs.version }}
+      version: ${{ steps.version.outputs.v-version }}
     steps:
-      - name: Get Release Tag
-        id: get_version
-        uses: jannemattila/get-version-from-tag@v3
-      - name: Tag Info
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get next version
+        uses: reecetech/version-increment@2024.10.1
+        id: version
+        with:
+          scheme: semver
+          increment: ${{ inputs.release-increment }}
+       
+  determine_package_verions:
+    name: Determine package versions
+    needs: tag
+    runs-on: ubuntu-latest
+    outputs:
+      HOMEBRIDGE_APT_PKG_VERSION: ${{ steps.get_versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+      FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.get_versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get Homebridge version
+        id: get_versions
         run: |
-          echo "Release Tag: ${{github.ref}}"
-          echo "Latest Tag: ${{ steps.get_version.outputs.version }}"
-      - name: Tag Info Matches
-        if: endsWith(github.ref, steps.get_version.outputs.version )
+          echo "HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' ./stable/package.json | sed 's/\^//')" >> $GITHUB_OUTPUT
+          echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=v$(jq -r '.dependencies["ffmpeg-for-homebridge"]' ./stable/package.json | sed 's/\^//')" >> $GITHUB_OUTPUT
+
+      - name: Show Versions
         run: |
-          echo Latest Tag matches Release tag
-      - name: Tag Info Doesn't Match
-        if: ${{ !endsWith(github.ref, steps.get_version.outputs.version ) }}
-        run: |
-          echo Latest Tag does not matches Release tag
-          exit 1
-          
+          echo "HOMEBRIDGE_APT_PKG_VERSION=${{ steps.get_versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}"
+          echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.get_versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}"
+          echo "Release Version=${{ needs.tag.outputs.version }}"
+
+# Create a release for the new tag
+  create_release:
+    name: Create GitHub Release v${{ needs.tag.outputs.version }}
+    needs: [tag, determine_package_verions]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: ncipollo/release-action@v1.18.0
+        with:
+          tag: v${{ needs.tag.outputs.version }}
+          name: v${{ needs.tag.outputs.version }}
+          body: |
+            ## What's New in v${{ needs.tag.outputs.version }}
+            - Updated Homebridge APT package to version ${{ needs.determine_package_verions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+            - Updated ffmpeg-for-homebridge to version ${{ needs.determine_package_verions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
+            - Updated Raspbian base to Raspberry Pi OS trixie (Debian 13)
+          draft: false
+          prerelease: true
+          generateReleaseNotes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build_images:
     name: Build RPI Homebridge (${{ matrix.name }}) Image ${{ needs.tag.outputs.version }}
-    needs: tag
+    needs: [tag, determine_package_verions]
     runs-on: [ubuntu-latest] 
     strategy:
       fail-fast: false
@@ -42,13 +101,13 @@ jobs:
         ]
         include:
           - pi-gen-version: arm64
-            release: bookworm
+            release: trixie
             name: 64bit
             devices: '["pi5-64bit", "pi4-64bit", "pi3-64bit"]'
             recommended: "Recommended"
 
           - pi-gen-version: master
-            release: bookworm
+            release: trixie
             name: 32bit
             devices: '["pi5-32bit", "pi4-32bit", "pi3-32bit", "pi2-32bit", "pi1-32bit"]'
             recommended: "Not Recommended, support will be ending Spring 2027"
@@ -68,7 +127,7 @@ jobs:
 #          docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
 # f022813 aka 1.7.0
-      - uses: usimd/pi-gen-action@f022813e54a67d9f8fe8a6a6d620a5da3739a632
+      - uses: usimd/pi-gen-action@v1.11.0
         name: Run pi-gen ( get some popcorn this will take awhile )
         id: build
         with:
@@ -88,7 +147,7 @@ jobs:
       
           # Additional options to include in PIGEN_DOCKER_OPTS
           # '--env IMG_DATE=Raspbian'
-          docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)"'
+          docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)" --env HOMEBRIDGE_APT_PKG_VERSION="${{ needs.determine_package_verions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}" --env FFMPEG_FOR_HOMEBRIDGE_VERSION="${{ needs.determine_package_verions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}" --env RELEASE_STREAM=${{ inputs.release-stream }}'
       
           # Set whether a NOOBS image should be built as well. If enabled, the output 
           # directory containing the NOOBS files will be saved as output variable 
@@ -137,7 +196,7 @@ jobs:
           locale: en_GB.UTF-8
       
           # Password of the intial user account, locked if empty.
-          password: 'raspberry'
+          # password: 'raspberry'
       
           # Path where selected pi-gen ref will be checked out to. If the path does not yet 
           # exist, it will be created (including its parents).
@@ -165,16 +224,16 @@ jobs:
           # images in stage2 (lite), stage4 and stage5. You probably want to hook in custom 
           # stages before one of the exported stages. Otherwise, the action will make sure 
           # any custom stage will include an image export directive.
-          stage-list: stage0 stage1 stage2 ./stage3_homebridge
+          stage-list: stage0_prep stage0 stage1 stage2 ./stage3_homebridge
       
           # System timezone.
           timezone: Europe/London
       
           # Use qcow2 images to reduce space and runtime requirements.
-          use-qcow2: 0
+          # use-qcow2: 0
       
           # Name of the initial user account.
-          username: pi
+          # username: pi
       
           # Print all output from pi-gen.
           verbose-output: false
@@ -228,9 +287,41 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           release-tag: v${{ needs.tag.outputs.version }}
 
+      # Extract /opt/homebridge/*manifest from the image and upload to the release
+      - name: Extract /opt/homebridge/*manifest from the image
+        run: |
+          mkdir mnt
+          sudo mount -o loop,offset=4194304 ${{ steps.build.outputs.image-path }} mnt
+          ls -l mnt/opt/homebridge/
+          cp mnt/opt/homebridge/homebridge_raspbian_image*manifest .
+          sudo umount mnt
+          rm -rf mnt
+
+      - name: Upload Manifests to release ${{ needs.tag.outputs.version }} 
+        uses: AButler/upload-release-assets@v3.0
+        with:
+          files: './*manifest'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          release-tag: v${{ needs.tag.outputs.version }}
+
+      - name: Build Release Body
+        id: release_body
+        run: |
+          ./scripts/create-release-body.sh ${{ inputs.release-stream }}
+          cat ./*manifest ./output/release-body.md > ./output/final-release-body.md
+
+      - name: Update Release Body
+        uses: tubone24/update_release@v1.3.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ needs.tag.outputs.version }}
+        with:
+          body_path: ./output/final-release-body.md
+
   finalize_info:
     name: Prep ${{ needs.tag.outputs.version }} Info file
     needs: [tag, build_images]
+    if: ${{ inputs.publish }}
     runs-on: [ubuntu-latest]
     steps:
       - uses: actions/create-github-app-token@v1
@@ -285,6 +376,7 @@ jobs:
   github-releases-to-discord:
     needs: [tag, build_images, finalize_info]
     uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
+    if: ${{ inputs.publish }}
     with:
       title: "Homebridge Raspbian Image Release"
       description: |

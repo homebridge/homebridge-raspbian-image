@@ -1,11 +1,10 @@
-# This is only used for local testing, the main configuration is in the github action.
+#! /bin/bash
 
-IMG_DATE="Raspbian"
 IMG_NAME="Homebridge"
 TARGET_HOSTNAME="homebridge"
 ENABLE_SSH=1
-STAGE_LIST="stage0 stage1 stage2 stage3_homebridge"
-FIRST_USER_NAME="pi"
-FIRST_USER_PASS="raspberry"
-RELEASE="bookworm"
+STAGE_LIST="stage0_prep stage0 stage1 stage2 stage3_homebridge"
+#FIRST_USER_NAME="pi"
+#FIRST_USER_PASS="raspberry"
+RELEASE="trixie"
 #CONTINUE=1

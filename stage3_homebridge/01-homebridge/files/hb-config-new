@@ -676,13 +676,13 @@ This tool provides a straight-forward way of managing Homebridge on a Raspberry 
 
 Image Version: $IMAGE_VERSION
 
-Homebridge - @nfarina
+Homebridge - @homebridge
 https://github.com/homebridge/homebridge
 
-Homebridge Config UI X - @oznu
-https://github.com/oznu/homebridge-config-ui-x
+Homebridge Config UI X - @homebridge
+https://github.com/homebridge/homebridge-config-ui-x
 
-Homebridge Raspberry Pi Image - @oznu
+Homebridge Raspberry Pi Image - @homebridge
 https://github.com/homebridge/homebridge-raspbian-image
 
 
@@ -708,7 +708,7 @@ if [ "$INTERACTIVE" = True ]; then
         "1 Update Node.js" "Update Node.js to the latest LTS version" \
         "2 Update Homebridge" "Update Homebridge and Node.js to the latest version" \
         "3 Restore Config" "Restores the Homebridge config to the factory default" \
-        "4 Extra Packages" "Optional packages, eg. Pi-Hole, UniFi Controller" \
+        "4 Extra Packages" "Optional packages, eg. Pi-Hole, RealVNC" \
         "5 Nginx Options" "Configure Homebridge Nginx settings" \
         "6 Configure OS" "Open the Raspberry Pi OS Configuration Tool" \
         "7 Networking" "Open the NetworkManager UI" \
@@ -720,7 +720,7 @@ if [ "$INTERACTIVE" = True ]; then
         "1 Update Node.js" "Update Node.js to the latest LTS version" \
         "2 Update Homebridge" "Update Homebridge and Node.js to the latest version" \
         "3 Restore Config" "Restores the Homebridge config to the factory default" \
-        "4 Extra Packages" "Optional packages, eg. Pi-Hole, UniFi Controller" \
+        "4 Extra Packages" "Optional packages, eg. Pi-Hole, RealVNC" \
         "5 Nginx Options" "Configure Homebridge Nginx settings" \
         "6 Configure OS" "Open the Raspberry Pi OS Configuration Tool" \
         "7 Networking" "Open the NetworkManager UI" \

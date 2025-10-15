@@ -17,7 +17,6 @@ export-image
 export-noobs
 imagetool.sh
 make_rpi-imager-snipplet.py
-scripts
 stage0
 stage1
 stage2
