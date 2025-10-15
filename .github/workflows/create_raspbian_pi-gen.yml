@@ -147,8 +147,9 @@ jobs:
       
           # Additional options to include in PIGEN_DOCKER_OPTS
           # '--env IMG_DATE=Raspbian'
-          docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)" --env HOMEBRIDGE_APT_PKG_VERSION="${{ needs.determine_package_verions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}" --env FFMPEG_FOR_HOMEBRIDGE_VERSION="${{ needs.determine_package_verions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}" --env RELEASE_STREAM=${{ inputs.release-stream }}'
+          docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)"'
       
+          # docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)" --env HOMEBRIDGE_APT_PKG_VERSION="${{ needs.determine_package_verions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}" --env FFMPEG_FOR_HOMEBRIDGE_VERSION="${{ needs.determine_package_verions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}" --env RELEASE_STREAM=${{ inputs.release-stream }}'
           # Set whether a NOOBS image should be built as well. If enabled, the output 
           # directory containing the NOOBS files will be saved as output variable 
           # 'image-noobs-path'.
