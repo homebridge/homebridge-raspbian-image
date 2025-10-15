@@ -193,7 +193,7 @@ jobs:
           hostname: raspberrypi
 
           # Final image name.
-          image-name: ''
+          image-name: 'test-image'
 
           # Enabling this option will remove plenty of components from the GitHub Actions 
           # runner that are not mandatory pre-requisites for a (vanilla) pi-gen build. This 
