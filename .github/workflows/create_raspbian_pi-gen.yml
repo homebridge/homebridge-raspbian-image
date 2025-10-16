@@ -352,15 +352,20 @@ jobs:
       # Extract /opt/homebridge/*manifest from the image and upload to the release
       - name: Extract /opt/homebridge/*manifest from the image
         run: |
+          # Unzip the image first
+          unzip ${{ steps.build.outputs.image-path }}
+          IMAGE_FILE=$(ls *.img | head -n1)
+          echo "Found image: $IMAGE_FILE"
+
           mkdir mnt
-          
+
           # Use losetup to automatically handle partition detection
-          LOOP_DEVICE=$(sudo losetup -fP --show ${{ steps.build.outputs.image-path }})
+          LOOP_DEVICE=$(sudo losetup -fP --show "$IMAGE_FILE")
           sudo mount ${LOOP_DEVICE}p2 mnt  # p2 is usually the root partition
-          
+
           ls -l mnt/opt/homebridge/
           cp mnt/opt/homebridge/homebridge_raspbian_image*manifest .
-          
+
           sudo umount mnt
           sudo losetup -d $LOOP_DEVICE
           rm -rf mnt
