@@ -149,14 +149,15 @@ jobs:
           disable-first-boot-user-rename: 0
 
           # Additional options to include in PIGEN_DOCKER_OPTS
-          docker-opts: ''
+          # docker-opts: ''
+          docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)" --env HOMEBRIDGE_APT_PKG_VERSION="${{ needs.determine_package_verions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}" --env FFMPEG_FOR_HOMEBRIDGE_VERSION="${{ needs.determine_package_verions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}" --env RELEASE_STREAM=${{ inputs.release-stream }}'
 
           # If set to `1`, cloud-init and netplan will be installed and configured. This 
           # will allow you to configure your Raspberry Pi using cloud-init configuration 
           # files. The cloud-init configuration files should be placed in the bootfs or by 
           # editing the files in `stage2/04-cloud-init/files`. Cloud-init will be configured 
           # to read them on first boot.
-          enable-cloud-init: 1
+          enable-cloud-init: 0
 
           # Set whether a NOOBS image should be built as well. If enabled, the output 
           # directory containing the NOOBS files will be saved as output variable 
@@ -164,7 +165,7 @@ jobs:
           enable-noobs: false
 
           # Enable SSH access to Pi.
-          enable-ssh: 0
+          enable-ssh: 1
 
           # If this feature is enabled, the action will configure pi-gen to not export any 
           # stage as image but the last one defined in property 'stage-list'. This is 
@@ -190,7 +191,7 @@ jobs:
           github-token: ${{ github.token }}
 
           # Host name of the image.
-          hostname: raspberrypi
+          hostname: homebridge
 
           # Final image name.
           image-name: 'Homebridge-${{ matrix.release }}-${{ matrix.name }}'
@@ -228,7 +229,7 @@ jobs:
 
           # Release version of pi-gen to use. This can both be a branch or tag name known in 
           # the pi-gen repository.
-          pi-gen-version: arm64
+          pi-gen-version: ${{ matrix.pi-gen-version }}
 
           # Setting to `1` will disable password authentication for SSH and enable public 
           # key authentication. Note that if SSH is not enabled this will take effect when 
@@ -243,7 +244,7 @@ jobs:
 
           # The release version to build images against. Valid values are jessie, stretch, 
           # buster, bullseye, bookworm, trixie and testing.
-          release: trixie
+          release: ${{ matrix.release }}
 
           # Setting to `1` will prevent pi-gen from dropping the "capabilities" feature. 
           # Generating the root filesystem with capabilities enabled and running it from a 
@@ -256,7 +257,7 @@ jobs:
           # images in stage2 (lite), stage4 and stage5. You probably want to hook in custom 
           # stages before one of the exported stages. Otherwise, the action will make sure 
           # any custom stage will include an image export directive.
-          stage-list: stage0 stage1 stage2
+          stage-list: stage0_prep stage0 stage1 stage2 stage3_homebridge
 
           # An additional temporary apt repo to be used during the build process. This could 
           # be useful if you require pre-release software to be included in the image. The 
