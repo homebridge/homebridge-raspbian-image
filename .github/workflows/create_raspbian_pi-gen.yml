@@ -295,12 +295,12 @@ jobs:
           echo "::notice::Release: ${{ needs.tag.outputs.version }}"
           echo "::notice::image-path: ${{ steps.build.outputs.image-path }}"
           echo "RPI_IMAGER_NAME: Homebridge ${{ matrix.release }} (${{ matrix.name }})"
-          echo "RPI_IMAGER_DESCRIPTION: "Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }}) - ${{ matrix.recommended }}"
-          echo "RPI_IMAGER_ICON: "https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png"
-          echo "RPI_IMAGER_WEBSITE: "https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started"
+          echo "RPI_IMAGER_DESCRIPTION: Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }}) - ${{ matrix.recommended }}"
+          echo "RPI_IMAGER_ICON: https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png"
+          echo "RPI_IMAGER_WEBSITE: https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started"
           IMGFILENAME=`basename ${{ steps.build.outputs.image-path }}`
           echo "RPI_IMAGER_IMAGE_URL: https://github.com/${{ github.repository }}/releases/download/v${{ needs.tag.outputs.version }}/${IMGFILENAME}"
-          echo "RPI_IMAGER_DEVICES: '${{ matrix.devices }}'
+          echo "RPI_IMAGER_DEVICES: '${{ matrix.devices }}'"
 
       - name: Upload Raspbian Image
         uses: actions/upload-artifact@v4
