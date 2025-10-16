@@ -299,7 +299,7 @@ jobs:
           echo "RPI_IMAGER_ICON: https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png"
           echo "RPI_IMAGER_WEBSITE: https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started"
           IMGFILENAME=`basename ${{ steps.build.outputs.image-path }}`
-          echo "RPI_IMAGER_IMAGE_URL: https://github.com/${{ github.repository }}/releases/download/v${{ needs.tag.outputs.version }}/${IMGFILENAME}"
+          echo "RPI_IMAGER_IMAGE_URL: https://github.com/${{ github.repository }}/releases/download/${{ needs.tag.outputs.version }}/${IMGFILENAME}"
           echo "RPI_IMAGER_DEVICES: '${{ matrix.devices }}'"
 
       - name: Upload Raspbian Image
@@ -320,12 +320,12 @@ jobs:
           echo "$IMAGE_SHA256_CHECKSUM ${{ steps.build.outputs.image-path }}"
           echo "::notice::IMAGE_SHA256_CHECKSUM ${IMGFILENAME} ==> ${IMAGE_SHA256_CHECKSUM}"
 
-      - name: Upload Image to release v${{ needs.tag.outputs.version }} 
+      - name: Upload Image to release ${{ needs.tag.outputs.version }} 
         uses: AButler/upload-release-assets@v3.0
         with:
           files: '${{ steps.build.outputs.image-path }}'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: v${{ needs.tag.outputs.version }}
+          release-tag: ${{ needs.tag.outputs.version }}
 
       - name: Generate rpi-image-repo.json 
         id: generate_rpi-image-repo
@@ -334,7 +334,7 @@ jobs:
           export RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }}) - ${{ matrix.recommended }}"
           export RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png"
           export RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started"
-          export RPI_IMAGER_IMAGE_URL="https://github.com/${{ github.repository }}/releases/download/v${{ needs.tag.outputs.version }}/${{ env.IMGFILENAME }}"
+          export RPI_IMAGER_IMAGE_URL="https://github.com/${{ github.repository }}/releases/download/${{ needs.tag.outputs.version }}/${{ env.IMGFILENAME }}"
           export RPI_IMAGER_DEVICES='${{ matrix.devices }}'
           ./make_rpi-imager-snipplet.py --rpi_imager_url ${RPI_IMAGER_IMAGE_URL}
 
@@ -347,7 +347,7 @@ jobs:
         with:
           files: './*.json'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: v${{ needs.tag.outputs.version }}
+          release-tag: ${{ needs.tag.outputs.version }}
 
       # Extract /opt/homebridge/*manifest from the image and upload to the release
       - name: Extract /opt/homebridge/*manifest from the image
@@ -364,7 +364,7 @@ jobs:
         with:
           files: './*manifest'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: v${{ needs.tag.outputs.version }}
+          release-tag: ${{ needs.tag.outputs.version }}
 
       - name: Build Release Body
         id: release_body
@@ -403,7 +403,7 @@ jobs:
           
           # The github tag. e.g: v1.0.1
           # Download assets from a specific tag/version
-          tag: v${{ needs.tag.outputs.version }}
+          tag: ${{ needs.tag.outputs.version }}
           
           # The name of the file to download.
           # Use this field only to specify filenames other than tarball or zipball, if any.
@@ -419,7 +419,7 @@ jobs:
         with:
           files: 'rpi-image-repo.json'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: v${{ needs.tag.outputs.version }}
+          release-tag: ${{ needs.tag.outputs.version }}
 
       - name: Push ${{ needs.tag.outputs.version }} Image to Homebridge Registry
         uses: dmnemec/copy_file_to_another_repo_action@main
@@ -442,7 +442,7 @@ jobs:
     with:
       title: "Homebridge Raspbian Image Release"
       description: |
-        Version `v${{ needs.tag.outputs.version }}`
-      url: "https://github.com/homebridge/homebridge-raspbian-image/releases/tag/v${{ needs.tag.outputs.version }}"
+        Version `${{ needs.tag.outputs.version }}`
+      url: "https://github.com/homebridge/homebridge-raspbian-image/releases/tag/${{ needs.tag.outputs.version }}"
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
