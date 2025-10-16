@@ -91,7 +91,7 @@ jobs:
   build_images:
     name: Build RPI Homebridge (${{ matrix.name }}) Image ${{ needs.tag.outputs.version }}
     needs: [tag, determine_package_verions]
-    runs-on: [ubuntu-latest] 
+    runs-on: [ubuntu-latest]
     strategy:
       fail-fast: false
       matrix:
@@ -100,14 +100,14 @@ jobs:
           32bit
         ]
         include:
-          - pi-gen-version: arm64
-            release: trixie
+          - pi-gen-version: bookworm-arm64
+            release: bookworm
             name: 64bit
             devices: '["pi5-64bit", "pi4-64bit", "pi3-64bit"]'
             recommended: "Recommended"
 
-          - pi-gen-version: master
-            release: trixie
+          - pi-gen-version: bookworm
+            release: bookworm
             name: 32bit
             devices: '["pi5-32bit", "pi4-32bit", "pi3-32bit", "pi2-32bit", "pi1-32bit"]'
             recommended: "Not Recommended, support will be ending Spring 2027"
