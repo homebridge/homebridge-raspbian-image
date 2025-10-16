@@ -353,10 +353,16 @@ jobs:
       - name: Extract /opt/homebridge/*manifest from the image
         run: |
           mkdir mnt
-          sudo mount -o loop,offset=4194304 ${{ steps.build.outputs.image-path }} mnt
+          
+          # Use losetup to automatically handle partition detection
+          LOOP_DEVICE=$(sudo losetup -fP --show ${{ steps.build.outputs.image-path }})
+          sudo mount ${LOOP_DEVICE}p2 mnt  # p2 is usually the root partition
+          
           ls -l mnt/opt/homebridge/
           cp mnt/opt/homebridge/homebridge_raspbian_image*manifest .
+          
           sudo umount mnt
+          sudo losetup -d $LOOP_DEVICE
           rm -rf mnt
 
       - name: Upload Manifests to release ${{ needs.tag.outputs.version }} 
