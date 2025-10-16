@@ -96,8 +96,8 @@ jobs:
       fail-fast: false
       matrix:
         name: [
-          64bit
-#          32bit
+          64bit,
+          32bit
         ]
         include:
           - pi-gen-version: arm64
@@ -106,11 +106,11 @@ jobs:
             devices: '["pi5-64bit", "pi4-64bit", "pi3-64bit"]'
             recommended: "Recommended"
 
-#          - pi-gen-version: master
-#            release: trixie
-#            name: 32bit
-#            devices: '["pi5-32bit", "pi4-32bit", "pi3-32bit", "pi2-32bit", "pi1-32bit"]'
-#            recommended: "Not Recommended, support will be ending Spring 2027"
+          - pi-gen-version: master
+            release: trixie
+            name: 32bit
+            devices: '["pi5-32bit", "pi4-32bit", "pi3-32bit", "pi2-32bit", "pi1-32bit"]'
+            recommended: "Not Recommended, support will be ending Spring 2027"
 
 # The build
 
@@ -128,6 +128,7 @@ jobs:
 
 # f022813 aka 1.7.0
       - uses: usimd/pi-gen-action@v1
+        id: build
         with:
           # If you require the use of an apt proxy, set it here. This proxy setting will not 
           # be included in the image, making it safe to use an apt-cacher or similar package 
@@ -283,6 +284,30 @@ jobs:
 
           # Password of default wifi network to connect to.
           wpa-password: ''
+
+            # Step 3: Upload the IMG file as an artifact
+
+      - name: Build complete
+        run: |
+          echo "::notice::Homebridge VM image version: Homebridge-${{ matrix.release }}-${{ matrix.name }}"
+          echo "::notice::Run ID: ${{ github.run_id }}"
+          echo "::notice::Architecture: ${{ matrix.name }}"
+          echo "::notice::Release: ${{ needs.tag.outputs.version }}"
+          echo "::notice::image-path: ${{ steps.build.outputs.image-path }}"
+          echo "RPI_IMAGER_NAME: Homebridge ${{ matrix.release }} (${{ matrix.name }})"
+          echo "RPI_IMAGER_DESCRIPTION: "Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }}) - ${{ matrix.recommended }}"
+          echo "RPI_IMAGER_ICON: "https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png"
+          echo "RPI_IMAGER_WEBSITE: "https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started"
+          IMGFILENAME=`basename ${{ steps.build.outputs.image-path }}`
+          echo "RPI_IMAGER_IMAGE_URL: https://github.com/${{ github.repository }}/releases/download/v${{ needs.tag.outputs.version }}/${IMGFILENAME}"
+          echo "RPI_IMAGER_DEVICES: '${{ matrix.devices }}'
+
+      - name: Upload Raspbian Image
+        uses: actions/upload-artifact@v4
+        with:
+          retention-days: 7
+          name: raspbian-image-${{ matrix.name }}
+          path: ${{ steps.build.outputs.image-path }}
 
 # This is not currently used
 
