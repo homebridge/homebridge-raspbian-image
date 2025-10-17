@@ -22,14 +22,14 @@ MANIFEST_FILE="/opt/homebridge/homebridge_raspbian_image_${ARCH}.manifest"
 cat <<EOM > "\${MANIFEST_FILE}"
 Homebridge Raspbian ${ARCH} Image Package Manifest
 
-Release Version: \${BUILD_VERSION}
+Release Version: \${BUILD_VERSION//\"/}
 
 | Package | Version |
 |:-------:|:-------:|
 | Debian | \${RELEASE} |
 $( [[ -n "$APT_MANIFEST" ]] && echo "$APT_MANIFEST" )
-| ffmpeg for homebridge | \${FFMPEG_FOR_HOMEBRIDGE_VERSION} |
-| Homebridge APT Package | \${HOMEBRIDGE_APT_PKG_VERSION} |
+| ffmpeg for homebridge | \${FFMPEG_FOR_HOMEBRIDGE_VERSION//\"/} |
+| Homebridge APT Package | \${HOMEBRIDGE_APT_PKG_VERSION//\"/} |
 | WiFi Connect | ${WIFI_CONNECT_VERSION} |
 EOM
 EOF

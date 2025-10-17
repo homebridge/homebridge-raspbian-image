@@ -24,3 +24,5 @@ stage3
 stage4
 stage5
 .DS_Store
+/output
+/.previous

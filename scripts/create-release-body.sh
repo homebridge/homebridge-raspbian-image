@@ -60,13 +60,13 @@ info "Creating release body at ${MANIFEST}"
 # Get the latest tag to compare against, filtered by release type
 if [[ "${PKG_RELEASE_STREAM:-stable}" == "beta" ]]; then
   # For beta releases, only look at beta tags
-  LATEST_TAG=$(git tag -l | grep -E "beta" | sort -V | tail -1 2>/dev/null || echo "")
+  LATEST_TAG=$(git tag -l | grep -E "beta" | sort -V | tail -2 | head -1 2>/dev/null || echo "")
 elif [[ "${PKG_RELEASE_STREAM:-stable}" == "alpha" ]]; then
   # For alpha releases, only look at alpha tags
-  LATEST_TAG=$(git tag -l | grep -E "alpha" | sort -V | tail -1 2>/dev/null || echo "")
+  LATEST_TAG=$(git tag -l | grep -E "alpha" | sort -V | tail -2 | head -1 2>/dev/null || echo "")
 else
   # For stable releases, only look at stable tags (no beta or alpha in name)
-  LATEST_TAG=$(git tag -l | grep -v -E "(beta|alpha)" | sort -V | tail -1 2>/dev/null || echo "")
+  LATEST_TAG=$(git tag -l | grep -v -E "(beta|alpha)" | sort -V | tail -2 | head -1 2>/dev/null || echo "")
 fi
 
 log "Latest tag for stream '${PKG_RELEASE_STREAM:-stable}': ${LATEST_TAG:-none}"
@@ -151,6 +151,7 @@ if gh release download "$LATEST_TAG" --pattern "*.manifest" --dir ${PREVIOUS_DIR
     if [[ -f "$PREVIOUS_MANIFEST" ]]; then
       TMP_DIFF="/tmp/manifest.diff.$$"
       # Compare the manifests and capture differences
+      echo diff -u "$PREVIOUS_MANIFEST" "$OUTPUT_MANIFEST"
       if ! diff -u "$PREVIOUS_MANIFEST" "$OUTPUT_MANIFEST" > ${TMP_DIFF} 2>/dev/null; then
         # Check if there are any meaningful changes in the diff
         if grep -qE "^[+-]\|" ${TMP_DIFF}; then
@@ -160,13 +161,16 @@ if gh release download "$LATEST_TAG" --pattern "*.manifest" --dir ${PREVIOUS_DIR
           grep -E "^[+-]\|" ${TMP_DIFF} | sort -k2 | head -20 >> "$MANIFEST"
           echo "\`\`\`" >> "$MANIFEST"
         else
+          warn "No meaningful changes found in differences for ${MANIFEST_NAME}."
           echo "No meaningful changes detected in ${MANIFEST_NAME}." >> "$MANIFEST"
         fi
         rm -f ${TMP_DIFF} || true
       else
+        warn "No differences found between current ${MANIFEST_NAME} and previous ${PREVIOUS_MANIFEST}."
         echo "No changes detected in ${MANIFEST_NAME}." >> "$MANIFEST"
       fi
     else
+      warn "Previous manifest ${PREVIOUS_MANIFEST} not found for ${MANIFEST_NAME}."
       # If no corresponding file exists in ${PREVIOUS_DIR}, note it in the manifest
       echo "No previous manifest found for ${MANIFEST_NAME}." >> "$MANIFEST"
     fi
@@ -176,6 +180,7 @@ if gh release download "$LATEST_TAG" --pattern "*.manifest" --dir ${PREVIOUS_DIR
 
   # echo "See [commit history](https://github.com/homebridge/homebridge-vm-image/compare/$LATEST_TAG...${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}) for Docker-specific changes." >> "$MANIFEST"
 else
+  warn "Previous release manifest not found for tag ${LATEST_TAG}. Skipping manifest comparison."
   echo -e "\n## Changes Since Previous Release\n" >> "$MANIFEST"
   echo "Previous release manifest not available for comparison." >> "$MANIFEST"
 fi

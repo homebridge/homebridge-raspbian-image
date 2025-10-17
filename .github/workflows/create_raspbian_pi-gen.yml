@@ -364,7 +364,7 @@ jobs:
           sudo mount ${LOOP_DEVICE}p2 mnt  # p2 is usually the root partition
 
           ls -l mnt/opt/homebridge/
-          cp mnt/opt/homebridge/homebridge_raspbian_image*manifest .
+          cp mnt/opt/homebridge/homebridge_raspbian_image*manifest ./output/
 
           sudo umount mnt
           sudo losetup -d $LOOP_DEVICE
@@ -373,7 +373,7 @@ jobs:
       - name: Upload Manifests to release ${{ needs.tag.outputs.version }} 
         uses: AButler/upload-release-assets@v3.0
         with:
-          files: './*manifest'
+          files: './output/*manifest'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           release-tag: ${{ needs.tag.outputs.version }}
 
@@ -381,7 +381,7 @@ jobs:
         id: release_body
         run: |
           ./scripts/create-release-body.sh ${{ inputs.release-stream }}
-          cat ./*manifest ./output/release-body.md > ./output/final-release-body.md
+          cat ./output/*manifest ./output/release-body.md > ./output/final-release-body.md
 
       - name: Update Release Body
         uses: tubone24/update_release@v1.3.1
