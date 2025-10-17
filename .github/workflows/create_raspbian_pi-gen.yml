@@ -38,7 +38,7 @@ jobs:
     steps:
       - name: Get Release Tag
         id: get_version
-        uses: jannemattila/get-version-from-tag@v3
+        uses: jannemattila/get-version-from-tag@v4
       - name: Tag Info
         run: |
           echo "Release Tag: ${{github.ref}}"
