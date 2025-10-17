@@ -38,7 +38,7 @@ jobs:
     steps:
       - name: Get Release Tag
         id: get_version
-        uses: jannemattila/get-version-from-tag@v3
+        uses: jannemattila/get-version-from-tag@v4
       - name: Tag Info
         run: |
           echo "Release Tag: ${{github.ref}}"
@@ -81,7 +81,7 @@ jobs:
 
     steps:
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
 # https://stackoverflow.com/questions/72444103/what-does-running-the-multiarch-qemu-user-static-does-before-building-a-containe
 
@@ -224,7 +224,7 @@ jobs:
           echo "::notice::IMAGE_SHA256_CHECKSUM ${IMGFILENAME} ==> ${IMAGE_SHA256_CHECKSUM}"
 
       - name: Upload Image to release v${{ needs.tag.outputs.version }} 
-        uses: AButler/upload-release-assets@v3.0
+        uses: AButler/upload-release-assets@v3.0.1
         with:
           files: '${{ steps.build.outputs.image-path }}'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -246,7 +246,7 @@ jobs:
           mv pi-gen/deploy/rpi-image-repo.json ./rpi-image-repo-${{ matrix.name }}.json
 
       - name: Upload Info to release ${{ needs.tag.outputs.version }} 
-        uses: AButler/upload-release-assets@v3.0
+        uses: AButler/upload-release-assets@v3.0.1
         with:
           files: './*.json'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
@@ -257,7 +257,7 @@ jobs:
     needs: [tag, build_images]
     runs-on: [ubuntu-latest]
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v2
         id: app-token
         with:
           app-id: ${{ vars.APP_ID }}
@@ -265,10 +265,10 @@ jobs:
           repositories: 'homebridge.io'
           owner: 'homebridge'
       
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       #  with:
       #    token: ${{ steps.app-token.outputs.token }}
-      - uses: robinraju/release-downloader@v1.8
+      - uses: robinraju/release-downloader@v1.12
         name: Downloard image info files from release ${{ needs.tag.outputs.version }}
         with: 
           
@@ -286,7 +286,7 @@ jobs:
           ./combine-rpi-imager-snipplet.py    
 
       - name: Upload combined rpi-image-repo to release ${{ needs.tag.outputs.version }} 
-        uses: AButler/upload-release-assets@v2.0.2
+        uses: AButler/upload-release-assets@v3.0.1
         with:
           files: 'rpi-image-repo.json'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
