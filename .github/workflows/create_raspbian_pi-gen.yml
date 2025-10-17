@@ -268,7 +268,7 @@ jobs:
       - uses: actions/checkout@v4
       #  with:
       #    token: ${{ steps.app-token.outputs.token }}
-      - uses: robinraju/release-downloader@v1.8
+      - uses: robinraju/release-downloader@v1.12
         name: Downloard image info files from release ${{ needs.tag.outputs.version }}
         with: 
           
