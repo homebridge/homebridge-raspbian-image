@@ -1,0 +1,33 @@
+name: Test Workflow
+run-name: Test pi-gen with release ${{ inputs.release }} and ${{ inputs.pi-gen-version }} pi-gen branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      pi-gen-version:
+        description: 'pi-gen branch to use'
+        required: true
+        default: arm64
+        type: string
+      release:
+        description: 'Raspberry Pi OS release to build'
+        required: true
+        default: trixie
+        type: string
+
+jobs:
+  pi-gen-verbose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: usimd/pi-gen-action@v1
+        id: build
+        with:
+          image-name: test
+          verbose-output: true
+          pi-gen-version: ${{ inputs.pi-gen-version }}
+          release: ${{ inputs.release }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pi-gen-image
+          path: ${{ steps.build.outputs.image-path }}
