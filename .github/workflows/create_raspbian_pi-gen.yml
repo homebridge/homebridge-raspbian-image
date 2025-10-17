@@ -81,7 +81,7 @@ jobs:
 
     steps:
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
 # https://stackoverflow.com/questions/72444103/what-does-running-the-multiarch-qemu-user-static-does-before-building-a-containe
 
@@ -257,7 +257,7 @@ jobs:
     needs: [tag, build_images]
     runs-on: [ubuntu-latest]
     steps:
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@v2
         id: app-token
         with:
           app-id: ${{ vars.APP_ID }}
@@ -265,7 +265,7 @@ jobs:
           repositories: 'homebridge.io'
           owner: 'homebridge'
       
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       #  with:
       #    token: ${{ steps.app-token.outputs.token }}
       - uses: robinraju/release-downloader@v1.8
