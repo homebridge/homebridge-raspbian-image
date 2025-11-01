@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Download artifact from run
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: ${{ inputs.artifact_name }}
           run-id: ${{ inputs.run_id }}
@@ -131,7 +131,7 @@ jobs:
 
       - name: Upload manifest files
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: extracted-manifests-${{ inputs.artifact_name }}
           path: '*manifest'
