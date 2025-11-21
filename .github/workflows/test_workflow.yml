@@ -33,7 +33,7 @@ jobs:
           release: ${{ inputs.release }}
           docker-opts: '--debug'
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: pi-gen-image
           path: ${{ steps.build.outputs.image-path }}
