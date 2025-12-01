@@ -37,13 +37,13 @@ jobs:
           fi
           
           # Convert from ASCII armored to binary format if needed
-          if file raspberrypi.gpg | grep -q "PGP public key"; then
-            echo "GPG key is already in binary format"
-          elif file raspberrypi.gpg | grep -q "ASCII"; then
+          # if file raspberrypi.gpg | grep -q "PGP public key"; then
+          #  echo "GPG key is already in binary format"
+          #elif file raspberrypi.gpg | grep -q "ASCII"; then
             echo "Converting ASCII armored key to binary format..."
             gpg --dearmor < raspberrypi.gpg > raspberrypi.gpg.tmp
             mv raspberrypi.gpg.tmp raspberrypi.gpg
-          fi
+          #fi
           
           # Ensure target directory exists
           echo "Installing GPG key to stage0/files..."
