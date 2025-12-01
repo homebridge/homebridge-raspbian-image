@@ -27,7 +27,7 @@ jobs:
           wget https://github.com/RPi-Distro/pi-gen/raw/676ba8a7476bd5923e5b677473b11ba52b21c6bd/stage0/files/raspberrypi.gpg
           pwd
           ls -lR ..
-          cp raspberrypi.gpg ../stage0/files/raspberrypi.gpg
+          cp raspberrypi.gpg ../pi-gen/stage0/files/raspberrypi.gpg
           EOF
           } &&
           chmod +x fix-stage/prerun.sh
