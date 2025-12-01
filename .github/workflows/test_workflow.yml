@@ -26,6 +26,11 @@ jobs:
           #!/bin/bash
           set -e
           
+          # Install required tools
+          echo "Installing required tools..."
+          apt-get update -qq
+          apt-get install -y -qq binutils wget
+          
           # Download the package index to find the latest version
           echo "Fetching latest raspberrypi-archive-keyring package..."
           POOL_URL="http://archive.raspberrypi.org/debian/pool/main/r/raspberrypi-archive-keyring"
