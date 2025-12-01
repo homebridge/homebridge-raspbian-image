@@ -19,6 +19,17 @@ jobs:
   pi-gen-verbose:
     runs-on: ubuntu-latest
     steps:
+      - run: |
+          mkdir -p fix-stage &&
+          {
+          cat > fix-stage/prerun.sh <<-EOF
+          #!/bin/bash
+          wget https://github.com/RPi-Distro/pi-gen/raw/676ba8a7476bd5923e5b677473b11ba52b21c6bd/stage0/files/raspberrypi.gpg
+          cp raspberrypi.gpg stage0/files/raspberrypi.gpg
+          EOF
+          } &&
+          chmod +x fix-stage/prerun.sh
+
       - uses: usimd/pi-gen-action@v1
         id: build
         with:
@@ -26,6 +37,7 @@ jobs:
           verbose-output: true
           pi-gen-version: ${{ inputs.pi-gen-version }}
           release: ${{ inputs.release }}
+          stage-list: fix-stage stage0 stage1 stage2
 
       - uses: actions/upload-artifact@v4
         with:
