@@ -26,29 +26,49 @@ jobs:
           #!/bin/bash
           set -e
           
-          # Download the official Raspberry Pi Archive Signing Key
-          echo "Downloading official Raspberry Pi Archive Signing Key..."
-          wget -q -O raspberrypi.gpg http://archive.raspberrypi.org/debian/raspberrypi.gpg.key
+          # Download the package index to find the latest version
+          echo "Fetching latest raspberrypi-archive-keyring package..."
+          POOL_URL="http://archive.raspberrypi.org/debian/pool/main/r/raspberrypi-archive-keyring"
           
-          # Verify the file was downloaded and is not empty
-          if [ ! -s raspberrypi.gpg ]; then
-            echo "Error: Failed to download GPG key or file is empty"
+          # Get the directory listing and extract the latest .deb filename
+          LATEST_DEB=$(wget -q -O - "$POOL_URL/" | grep -oP 'raspberrypi-archive-keyring_[^"]+_all\.deb' | sort -V | tail -1)
+          
+          if [ -z "$LATEST_DEB" ]; then
+            echo "Error: Could not find raspberrypi-archive-keyring package"
             exit 1
           fi
           
-          # Convert from ASCII armored to binary format if needed
-          # if file raspberrypi.gpg | grep -q "PGP public key"; then
-          #  echo "GPG key is already in binary format"
-          #elif file raspberrypi.gpg | grep -q "ASCII"; then
-            echo "Converting ASCII armored key to binary format..."
-            gpg --dearmor < raspberrypi.gpg > raspberrypi.gpg.tmp
-            mv raspberrypi.gpg.tmp raspberrypi.gpg
-          #fi
+          echo "Found latest package: $LATEST_DEB"
           
-          # Ensure target directory exists
+          # Download the package
+          wget -q "$POOL_URL/$LATEST_DEB"
+          
+          # Verify the package was downloaded
+          if [ ! -f "$LATEST_DEB" ]; then
+            echo "Error: Failed to download $LATEST_DEB"
+            exit 1
+          fi
+          
+          # Extract the package
+          echo "Extracting keyring package..."
+          ar x "$LATEST_DEB"
+          tar xf data.tar.gz
+          
+          # Copy the GPG key from the extracted package
           echo "Installing GPG key to stage0/files..."
           mkdir -p ../pi-gen/stage0/files
-          cp raspberrypi.gpg ../pi-gen/stage0/files/raspberrypi.gpg
+          
+          # The keyring package contains .pgp files (raspberrypi-archive-keyring.gpg is a symlink)
+          # Copy the actual .pgp file and rename it to .gpg for pi-gen
+          if [ -f usr/share/keyrings/raspberrypi-archive-keyring.pgp ]; then
+            cp usr/share/keyrings/raspberrypi-archive-keyring.pgp ../pi-gen/stage0/files/raspberrypi.gpg
+          elif [ -f usr/share/keyrings/raspberrypi-archive-keyring.gpg ]; then
+            # Fallback to symlink target if structure changes
+            cp usr/share/keyrings/raspberrypi-archive-keyring.gpg ../pi-gen/stage0/files/raspberrypi.gpg
+          else
+            echo "Error: GPG key not found in keyring package"
+            exit 1
+          fi
           
           # Verify the copy was successful
           if [ ! -s ../pi-gen/stage0/files/raspberrypi.gpg ]; then
@@ -58,6 +78,10 @@ jobs:
           
           echo "GPG key successfully installed"
           ls -lh ../pi-gen/stage0/files/raspberrypi.gpg
+          
+          # Cleanup
+          rm -f "$LATEST_DEB" control.tar.xz data.tar.gz debian-binary
+          rm -rf usr
           EOF
           } &&
           chmod +x fix-stage/prerun.sh
