@@ -35,8 +35,8 @@ jobs:
           echo "Contains: Raspberry Pi Archive Signing Key + Mike Thompson's key (Raspbian)"
           echo ""
           
-          ls -lR ..
-          
+          ls -lR ../..
+
           # Verify the committed keyring file exists
           if [ ! -f ../stage0_prep/files/raspberrypi.gpg ]; then
             echo "Error: Verified keyring not found at ../stage0_prep/files/raspberrypi.gpg"
