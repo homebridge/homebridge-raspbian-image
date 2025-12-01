@@ -19,9 +19,6 @@ jobs:
   pi-gen-verbose:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - run: |
           mkdir -p fix-stage &&
           {
@@ -29,39 +26,42 @@ jobs:
           #!/bin/bash
           set -e
           
-          echo "=== Installing verified Raspberry Pi GPG keyring ==="
+          echo "=== Downloading verified Raspberry Pi GPG keyring ==="
           echo ""
-          echo "Using pre-verified keyring with SHA256 signatures from repository."
+          echo "Source: https://github.com/homebridge/homebridge-raspbian-image"
+          echo "Branch: Update-Build-Process"
           echo "Contains: Raspberry Pi Archive Signing Key + Mike Thompson's key (Raspbian)"
           echo ""
           
+          # Download the verified keyring file from GitHub
+          KEYRING_URL="https://github.com/homebridge/homebridge-raspbian-image/raw/refs/heads/Update-Build-Process/stage0_prep/files/raspberrypi.gpg"
+          
+          echo "Downloading keyring from: $KEYRING_URL"
+          wget -q "$KEYRING_URL" -O raspberrypi.gpg || {
+            echo "Error: Failed to download keyring from $KEYRING_URL"
+            exit 1
+          }
+          
           ls -lR ../../..
-
-          # Verify the committed keyring file exists
-          if [ ! -f ../stage0_prep/files/raspberrypi.gpg ]; then
-            echo "Error: Verified keyring not found at ../stage0_prep/files/raspberrypi.gpg"
-            echo "This file must be committed to the repository."
+          
+          # Verify the file was downloaded and is not empty
+          if [ ! -s raspberrypi.gpg ]; then
+            echo "Error: Downloaded keyring is empty"
             exit 1
           fi
           
-          # Install keyring
-          echo "Installing GPG keyring to stage0/files..."
-          mkdir -p ../pi-gen/stage0/files
-          cp ../stage0_prep/files/raspberrypi.gpg ../pi-gen/stage0/files/raspberrypi.gpg
-          
-          # Validate installation
-          KEYRING_SIZE=$(stat -c%s ../pi-gen/stage0/files/raspberrypi.gpg 2>/dev/null || stat -f%z ../pi-gen/stage0/files/raspberrypi.gpg)
-          echo "✓ GPG keyring installed: $KEYRING_SIZE bytes"
+          KEYRING_SIZE=$(stat -c%s raspberrypi.gpg 2>/dev/null || stat -f%z raspberrypi.gpg)
+          echo "✓ Downloaded keyring: $KEYRING_SIZE bytes"
           
           # Display keyring info
           echo ""
           echo "=== Keyring contents ==="
           apt-get update -qq
           apt-get install -y -qq gnupg
-          gpg --import-options show-only --import ../pi-gen/stage0/files/raspberrypi.gpg 2>&1 | grep -E "(pub|uid)" || true
+          gpg --import-options show-only --import raspberrypi.gpg 2>&1 | grep -E "(pub|uid)" || true
           
           # Verify digest algorithms
-          SHA256_COUNT=$(gpg --list-packets ../pi-gen/stage0/files/raspberrypi.gpg 2>&1 | grep -c "digest algo 8" || echo "0")
+          SHA256_COUNT=$(gpg --list-packets raspberrypi.gpg 2>&1 | grep -c "digest algo 8" || echo "0")
           echo ""
           echo "Digest algorithm check: SHA256 signatures found: $SHA256_COUNT"
           if [ "$SHA256_COUNT" -ge 2 ]; then
@@ -70,6 +70,13 @@ jobs:
             echo "⚠️  WARNING: Keyring missing SHA256 signatures - build may fail"
           fi
           
+          # Install keyring
+          echo ""
+          echo "Installing GPG keyring to stage0/files..."
+          mkdir -p ../pi-gen/stage0/files
+          cp raspberrypi.gpg ../pi-gen/stage0/files/raspberrypi.gpg
+          
+          echo "✓ GPG keyring installed successfully"
           ls -lh ../pi-gen/stage0/files/raspberrypi.gpg
           EOF
           } &&
