@@ -100,7 +100,7 @@ jobs:
           KEY_COUNT=$(gpg --with-colons --import-options show-only --import /tmp/combined.gpg 2>&1 | grep -c "^pub:" || echo "0")
           echo "Total keys in combined keyring: $KEY_COUNT"
           
-          if [ "$KEY_COUNT" -ne 2 ]; then
+          if [ "$KEY_COUNT" -ne 3 ]; then
             echo "Error: Expected 2 keys but found $KEY_COUNT"
             exit 1
           fi
