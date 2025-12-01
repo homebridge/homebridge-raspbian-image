@@ -22,12 +22,42 @@ jobs:
       - run: |
           mkdir -p fix-stage &&
           {
-          cat > fix-stage/prerun.sh <<-EOF
+          cat > fix-stage/prerun.sh <<-'EOF'
           #!/bin/bash
-          wget https://github.com/RPi-Distro/pi-gen/raw/676ba8a7476bd5923e5b677473b11ba52b21c6bd/stage0/files/raspberrypi.gpg
-          pwd
-          ls -lR ..
+          set -e
+          
+          # Download the official Raspberry Pi Archive Signing Key
+          echo "Downloading official Raspberry Pi Archive Signing Key..."
+          wget -q -O raspberrypi.gpg http://archive.raspberrypi.org/debian/raspberrypi.gpg.key
+          
+          # Verify the file was downloaded and is not empty
+          if [ ! -s raspberrypi.gpg ]; then
+            echo "Error: Failed to download GPG key or file is empty"
+            exit 1
+          fi
+          
+          # Convert from ASCII armored to binary format if needed
+          if file raspberrypi.gpg | grep -q "PGP public key"; then
+            echo "GPG key is already in binary format"
+          elif file raspberrypi.gpg | grep -q "ASCII"; then
+            echo "Converting ASCII armored key to binary format..."
+            gpg --dearmor < raspberrypi.gpg > raspberrypi.gpg.tmp
+            mv raspberrypi.gpg.tmp raspberrypi.gpg
+          fi
+          
+          # Ensure target directory exists
+          echo "Installing GPG key to stage0/files..."
+          mkdir -p ../pi-gen/stage0/files
           cp raspberrypi.gpg ../pi-gen/stage0/files/raspberrypi.gpg
+          
+          # Verify the copy was successful
+          if [ ! -s ../pi-gen/stage0/files/raspberrypi.gpg ]; then
+            echo "Error: Failed to copy GPG key to stage0/files"
+            exit 1
+          fi
+          
+          echo "GPG key successfully installed"
+          ls -lh ../pi-gen/stage0/files/raspberrypi.gpg
           EOF
           } &&
           chmod +x fix-stage/prerun.sh
