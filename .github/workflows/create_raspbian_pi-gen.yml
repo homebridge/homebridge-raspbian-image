@@ -361,7 +361,7 @@ jobs:
           IMAGE_FILE=$(ls *.img | head -n1)
           echo "Found image: $IMAGE_FILE"
 
-          mkdir mnt
+          mkdir mnt output
 
           # Use losetup to automatically handle partition detection
           LOOP_DEVICE=$(sudo losetup -fP --show "$IMAGE_FILE")
