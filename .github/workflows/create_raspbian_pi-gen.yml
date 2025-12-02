@@ -100,7 +100,7 @@ jobs:
       fail-fast: false
       matrix:
         name: [
-          32bit
+          32bit,
           64bit
         ]
         include:
