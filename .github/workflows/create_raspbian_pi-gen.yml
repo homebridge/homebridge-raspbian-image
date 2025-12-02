@@ -96,8 +96,8 @@ jobs:
       fail-fast: false
       matrix:
         name: [
-          64bit,
           32bit
+          64bit
         ]
         include:
           - pi-gen-version: arm64
