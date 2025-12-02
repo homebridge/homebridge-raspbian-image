@@ -26,6 +26,10 @@ on:
         default: 'stable'
         required: false
 
+concurrency:
+  group: release-stage-2-build-raspbian-image
+  cancel-in-progress: false
+
 jobs:
   tag:
     name: Create Release Tag
