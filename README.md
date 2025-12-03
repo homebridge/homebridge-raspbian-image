@@ -27,89 +27,13 @@ This image also provides a command called `hb-config` which helps you keep Node.
 
 The Homebridge service is installed using the method described in the official [Raspberry Pi Installation Guide](https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Raspbian) on the [Homebridge](https://github.com/homebridge/homebridge) project wiki.
 
-## Download and Flash to SD Card
-
-The *Homebridge Raspberry Pi Image* is completely free (no sign up required).
-
-The easiest way to flash the *Homebridge Raspberry Pi Image* to your SD card is to use the [Raspberry Pi Imager](https://www.raspberrypi.org/software/).
+## Installation Instructions
 
 <p align="center">
     <img src="./media/Raspbian Image.gif" width="600">
 </p>
 
-1. Download and install the latest version of [Raspberry Pi Imager](https://www.raspberrypi.org/software/).
-2. Open the *Raspberry Pi Imager* application.
-3. Click **Choose Device**
-4. Scroll down and select the **No filtering** option.
-5. Click **Choose OS**.
-6. Scroll down and select the **Other specific purpose OS** category.
-7. Select the **Home assistants and home automation** category.
-8. Select **Homebridge**, then choose your Homebridge image.
-  - **32bit** - For all RPI Models (Not recommended, support will be ending Spring 2027 )
-  - **64bit** - For RPI 3B, 3B+, 3A+, 4B, 400, 5, CM3, CM3+, CM4, CM4S, Zero 2 W (**Recommended**)
-9. Click **Choose Storage** and select your SD card.
-10. Click **Next**
-11. For **Use OS Customisation**, select **No**
-12. Click **Write**
-
-*Raspberry Pi Imager* will now download and flash the latest version of the *Homebridge Raspberry Pi Image* to your SD card, this may take several minutes depending on the speed of your internet connection and SD card.
-
----
-
-**Advanced users:**
-
-If you wish to use another tool such as [Etcher](https://www.balena.io/etcher/) or [`dd`](https://www.raspberrypi.org/documentation/installation/installing-images/mac.md) to flash the Homebridge Raspberry Pi Image, you can manually download the image from our releases page:
-
-<span align="center">
-
-### [Download Latest Version](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
-
-</span>
-
-## First Boot / Network Setup
-
-Now that you have flashed your SD card, you can insert it into your Raspberry Pi.
-
-Before powering on your Raspberry Pi decide if you want to use Ethernet or WiFi to connect to your network.
-
-### Ethernet
-
-**:warning: An Ethernet connection is recommended as this provides the most simple and stable Homebridge setup.**
-
-If you have decided to connect your Raspberry Pi using ethernet, do so before you power on your device for the first time. 
-
-### WiFi Setup
-
-Follow these steps to connect your device to WiFi:
-
-1. Power on your device without an Ethernet cable attached.
-2. Wait 1-2 minutes
-3. Use your mobile phone to scan for new WiFi networks
-4. Connect to the hotspot named **Homebridge WiFi Setup**
-5. Wait a few moments until the captive portal opens, this portal will allow you to connect the Raspberry Pi to your local WiFi network.
-
-If you enter your WiFi credentials incorrectly the **Homebridge WiFi Setup** hotspot will reappear allowing you to try again.
-
-![wifi-connect-setup](https://user-images.githubusercontent.com/3979615/75397237-7e525b80-594a-11ea-9be0-4f064b6a4178.png)
-
-## Managing Homebridge
-
-The [Homebridge UI](https://github.com/homebridge/homebridge-config-ui-x) web interface will allow you to install, remove and update plugins, and modify the Homebridge config.json and manage other aspects of your Homebridge service.
-
-If you're using macOS or a mobile device, you should be able to access the UI via http://homebridge.local.
-
-If you're using Windows, or `http://homebridge.local` does not work for you, you will need to find the IP address of your Raspberry Pi another way:
-
-1. Login to your router and find the "connected devices" or "dhcp clients" page to find the IP address that was assigned to the Raspberry Pi.
-2. Use an iPhone to access `http://homebridge.local`, once you login using the default username and password (admin/admin) you can find the IP address under System Information.
-3. Download the [Fing](https://www.fing.com/) app for [iOS](https://itunes.apple.com/us/app/fing-network-scanner/id430921107?mt=8) or [Android](https://play.google.com/store/apps/details?id=com.overlook.android.fing&hl=en_GB) to scan your network to find the IP address of your Raspberry Pi.
-4. As a last resort, if you plug a monitor into your Raspberry Pi, the IP address will be displayed on the attached screen once it has finished booting.
-
-Once you've found your IP address, login to the web interface by going to `http://<ip address of your server>`.
-
-<p align="center">
-  <img width="600px" src="https://user-images.githubusercontent.com/3979615/71886653-b16d3f80-3190-11ea-9ff8-49dc4ae4fff0.png">
-</p>
+For full installation instructions, please refer to the [Homebridge Raspbian Image Wiki](https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started)
 
 ## Security and Privacy
 
