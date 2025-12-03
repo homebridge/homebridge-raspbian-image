@@ -38,7 +38,7 @@ jobs:
       version: ${{ steps.version.outputs.v-version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get next version
         uses: reecetech/version-increment@2024.10.1
@@ -55,7 +55,7 @@ jobs:
       HOMEBRIDGE_APT_PKG_VERSION: ${{ steps.get_versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
       FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.get_versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Get Homebridge version
         id: get_versions
@@ -77,7 +77,7 @@ jobs:
     steps:
       - name: Create Release
         id: create_release
-        uses: ncipollo/release-action@v1.18.0
+        uses: ncipollo/release-action@v1.20.0
         with:
           tag: ${{ needs.tag.outputs.version }}
           name: ${{ needs.tag.outputs.version }}
@@ -120,7 +120,7 @@ jobs:
 
     steps:
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
 # https://stackoverflow.com/questions/72444103/what-does-running-the-multiarch-qemu-user-static-does-before-building-a-containe
 
@@ -307,7 +307,7 @@ jobs:
           echo "RPI_IMAGER_DEVICES: '${{ matrix.devices }}'"
 
       - name: Upload Raspbian Image
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           retention-days: 7
           name: raspbian-image-${{ matrix.name }}
@@ -409,7 +409,7 @@ jobs:
           repositories: 'homebridge.io'
           owner: 'homebridge'
       
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       #  with:
       #    token: ${{ steps.app-token.outputs.token }}
       - uses: robinraju/release-downloader@v1.12
