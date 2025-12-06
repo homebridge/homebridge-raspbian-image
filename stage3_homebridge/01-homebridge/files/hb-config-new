@@ -341,19 +341,60 @@ do_install_deconz() {
       esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
     fi
 
-    # Import Phoscon public key
-    wget -O - http://phoscon.de/apt/deconz.pub.key | sudo apt-key add -
+    # Detect Debian version
+    if [ -f /etc/os-release ]; then
+      . /etc/os-release
+      DEBIAN_VERSION=$(echo $VERSION_ID | cut -d. -f1)
+      DEBIAN_CODENAME=$(lsb_release -cs)
+    else
+      whiptail --title "Error" --msgbox "Cannot detect OS version" 20 60 1
+      return 1
+    fi
 
-    # Configure the APT repository for deCONZ
-    # remove -beta when https://forum.phoscon.de/t/please-create-a-repo-for-debian-11-bullseye/432 is resolved
-    sudo sh -c "echo 'deb http://phoscon.de/apt/deconz \
-            $(lsb_release -cs)-beta main' > \
-            /etc/apt/sources.list.d/deconz.list"
+    echo "Detected Debian version: $DEBIAN_VERSION ($DEBIAN_CODENAME)"
+
+    # Determine which repository to use
+    if [ "$DEBIAN_VERSION" -ge 13 ]; then
+      echo "Debian 13+ detected - using bookworm repository as fallback"
+      REPO_CODENAME="bookworm"
+      USE_MODERN_METHOD=true
+    elif [ "$DEBIAN_VERSION" -ge 12 ]; then
+      echo "Debian 12 detected"
+      REPO_CODENAME="bookworm"
+      USE_MODERN_METHOD=true
+    else
+      echo "Debian < 12 detected"
+      REPO_CODENAME="${DEBIAN_CODENAME}"
+      USE_MODERN_METHOD=false
+    fi
+
+    if [ "$USE_MODERN_METHOD" = true ]; then
+      echo "Using modern keyring method"
+      
+      # Create keyrings directory if it doesn't exist
+      mkdir -p /etc/apt/keyrings
+      
+      # Download and install the deCONZ GPG key
+      wget -O - http://phoscon.de/apt/deconz.pub.key | gpg --dearmor -o /etc/apt/keyrings/deconz.gpg
+      
+      # Configure the APT repository with signed-by
+      sh -c "echo 'deb [signed-by=/etc/apt/keyrings/deconz.gpg] http://phoscon.de/apt/deconz ${REPO_CODENAME} main' > /etc/apt/sources.list.d/deconz.list"
+    else
+      echo "Using legacy apt-key method"
+      
+      # Legacy method with apt-key
+      wget -O - http://phoscon.de/apt/deconz.pub.key | apt-key add -
+      
+      # Configure the APT repository
+      sh -c "echo 'deb http://phoscon.de/apt/deconz ${REPO_CODENAME} main' > /etc/apt/sources.list.d/deconz.list"
+    fi
 
     # Update APT package list
+    echo "Updating package lists..."
     apt update --allow-releaseinfo-change
 
     # Install deCONZ
+    echo "Installing deCONZ..."
     apt install -y deconz
 
     # Add override service
