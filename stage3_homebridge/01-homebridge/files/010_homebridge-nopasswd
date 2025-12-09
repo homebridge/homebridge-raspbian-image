@@ -1,1 +1,3 @@
+# Allow homebridge user to run shutdown/reboot commands without password
+# Both /sbin and /usr/sbin paths are included for compatibility across Debian versions
 homebridge ALL=(root) NOPASSWD: /sbin/shutdown, /sbin/reboot, /sbin/poweroff, /usr/sbin/shutdown, /usr/sbin/reboot, /usr/sbin/poweroff
