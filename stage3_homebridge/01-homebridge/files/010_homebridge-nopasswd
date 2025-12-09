@@ -1,1 +1,1 @@
-homebridge ALL=(ALL) NOPASSWD: /sbin/shutdown, /sbin/reboot, /sbin/poweroff
+homebridge ALL=(root) NOPASSWD: /sbin/shutdown, /sbin/reboot, /sbin/poweroff
