@@ -7,6 +7,12 @@ If you have already installed a Homebridge Raspberry Pi image and upgraded to De
 Run the following command to patch your existing installation:
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/homebridge/homebridge-raspbian-image/latest/stage3_homebridge/01-homebridge/files/010_homebridge-nopasswd | sudo tee /etc/sudoers.d/010_homebridge-nopasswd > /dev/null && sudo chmod 0440 /etc/sudoers.d/010_homebridge-nopasswd && sudo visudo -c
+```
+
+### Alternative (if you prefer to see the content first):
+
+```bash
 sudo bash -c 'cat > /etc/sudoers.d/010_homebridge-nopasswd << "EOF"
 # Allow homebridge user to run shutdown/reboot commands without password
 # Both /sbin and /usr/sbin paths are included for compatibility across Debian versions
