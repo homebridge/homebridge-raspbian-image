@@ -17,6 +17,10 @@ install -m 755 files/20-hb-nginx-check "${ROOTFS_DIR}/etc/hb-service/homebridge/
 install -m 644 files/first-boot-homebridge.service "${ROOTFS_DIR}/etc/systemd/system/"
 install -m 755 files/first-boot-homebridge "${ROOTFS_DIR}/usr/local/sbin/"
 
+# Sudoers configuration for homebridge user
+install -v -d "${ROOTFS_DIR}/etc/sudoers.d"
+install -m 0440 files/010_homebridge-nopasswd "${ROOTFS_DIR}/etc/sudoers.d/"
+
 #
 # MOTD
 #
