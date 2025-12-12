@@ -1,460 +1,212 @@
 name: Release Stage 3 - Package and Publish Raspbian Homebridge Image
-run-name: Release Stage 3 - Package and Publish Raspbian Homebridge Image ${{ github.release_tag }} - ${{ inputs.run_id }}
+run-name: Release Stage 3 - Package and Publish Raspbian Homebridge Image - ${{ inputs.release_tag }} - Run ${{ inputs.run_id }}
 
 on:
   workflow_dispatch:
     inputs:
-      # The github tag. e.g: v1.0.1
-      # Download assets from a specific tag/version
-
-      publish:
-        description: 'Publish Release to RPI Imager Registry'
-        type: boolean
-        default: false
       run_id:
-        description: 'GitHub Run ID of the build workflow that produced the artifacts'
+        description: 'GitHub Run ID of the stage 2 build workflow that produced the artifacts'
         required: true
         type: string
       release_tag:
         description: 'Release TAG to use for this release (e.g. v1.0.1)'
         required: true
         type: string
-
+      publish:
+        description: 'Publish Release to RPI Imager Registry'
+        type: boolean
+        default: false
 
 concurrency:
   group: release-stage-3-package-raspbian-image
   cancel-in-progress: false
 
 jobs:
-  tag:
-    name: Create Release Tag
+  download-and-prepare:
+    name: Download Artifacts and Prepare Release
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.v-version }}
+      has-32bit: ${{ steps.check-artifacts.outputs.has-32bit }}
+      has-64bit: ${{ steps.check-artifacts.outputs.has-64bit }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-      - name: Get next version
-        uses: reecetech/version-increment@2024.10.1
-        id: version
+      - name: Download Build Artifacts (32-bit)
+        id: download-32bit
+        continue-on-error: true
+        uses: actions/download-artifact@v4
         with:
-          scheme: semver
-          increment: ${{ inputs.release-increment }}
-       
-  determine_package_verions:
-    name: Determine package versions
-    needs: tag
-    runs-on: ubuntu-latest
-    outputs:
-      HOMEBRIDGE_APT_PKG_VERSION: ${{ steps.get_versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-      FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.get_versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-    steps:
-      - uses: actions/checkout@v4
+          name: build-32bit
+          path: ./artifacts/32bit
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get Homebridge version
-        id: get_versions
+      - name: Download Build Artifacts (64-bit)
+        id: download-64bit
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: build-64bit
+          path: ./artifacts/64bit
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check Downloaded Artifacts
+        id: check-artifacts
         run: |
-          echo "HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' ./stable/package.json | sed 's/\^//')" >> $GITHUB_OUTPUT
-          echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=v$(jq -r '.dependencies["ffmpeg-for-homebridge"]' ./stable/package.json | sed 's/\^//')" >> $GITHUB_OUTPUT
+          echo "Checking downloaded artifacts..."
+          ls -lR ./artifacts/
+          
+          if [ -d "./artifacts/32bit" ] && [ "$(ls -A ./artifacts/32bit)" ]; then
+            echo "has-32bit=true" >> $GITHUB_OUTPUT
+            echo "✅ 32-bit artifacts found"
+          else
+            echo "has-32bit=false" >> $GITHUB_OUTPUT
+            echo "⚠️ 32-bit artifacts not found"
+          fi
+          
+          if [ -d "./artifacts/64bit" ] && [ "$(ls -A ./artifacts/64bit)" ]; then
+            echo "has-64bit=true" >> $GITHUB_OUTPUT
+            echo "✅ 64-bit artifacts found"
+          else
+            echo "has-64bit=false" >> $GITHUB_OUTPUT
+            echo "⚠️ 64-bit artifacts not found"
+          fi
 
-      - name: Show Versions
+      - name: Prepare Release Assets
         run: |
-          echo "HOMEBRIDGE_APT_PKG_VERSION=${{ steps.get_versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}"
-          echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ steps.get_versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}"
-          echo "Release Version=${{ needs.tag.outputs.version }}"
+          mkdir -p ./release-assets
+          
+          # Copy all artifacts to release assets directory
+          if [ -d "./artifacts/32bit" ]; then
+            cp ./artifacts/32bit/*.zip ./release-assets/ 2>/dev/null || true
+            cp ./artifacts/32bit/*manifest ./release-assets/ 2>/dev/null || true
+            cp ./artifacts/32bit/rpi-image-repo-32bit.json ./release-assets/ 2>/dev/null || true
+          fi
+          
+          if [ -d "./artifacts/64bit" ]; then
+            cp ./artifacts/64bit/*.zip ./release-assets/ 2>/dev/null || true
+            cp ./artifacts/64bit/*manifest ./release-assets/ 2>/dev/null || true
+            cp ./artifacts/64bit/rpi-image-repo-64bit.json ./release-assets/ 2>/dev/null || true
+          fi
+          
+          echo "Release assets prepared:"
+          ls -lh ./release-assets/
 
-# Create a release for the new tag
-  create_release:
-    name: Create GitHub Release ${{ needs.tag.outputs.version }}
-    needs: [tag, determine_package_verions]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create Release
-        id: create_release
-        uses: ncipollo/release-action@v1.18.0
-        with:
-          tag: ${{ needs.tag.outputs.version }}
-          name: ${{ needs.tag.outputs.version }}
-          body: |
-            ## What's New in ${{ needs.tag.outputs.version }}
-            - Updated Homebridge APT package to version ${{ needs.determine_package_verions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
-            - Updated ffmpeg-for-homebridge to version ${{ needs.determine_package_verions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
-            - Updated Raspbian base to Raspberry Pi OS trixie (Debian 13)
-          draft: false
-          prerelease: true
-          generateReleaseNotes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build_images:
-    name: Build RPI Homebridge (${{ matrix.name }}) Image ${{ needs.tag.outputs.version }}
-    needs: [tag, determine_package_verions]
-    runs-on: [ubuntu-latest]
-    strategy:
-      fail-fast: false
-      matrix:
-        name: [
-          32bit,
-          64bit
-        ]
-        include:
-          - pi-gen-version: arm64
-            release: trixie
-            name: 64bit
-            devices: '["pi5-64bit", "pi4-64bit", "pi3-64bit"]'
-            recommended: "Recommended"
-
-          - pi-gen-version: master
-            release: trixie
-            name: 32bit
-            devices: '["pi5-32bit", "pi4-32bit", "pi3-32bit", "pi2-32bit", "pi1-32bit"]'
-            recommended: "Not Recommended, support will be ending Spring 2027"
-
-# The build
-
-    steps:
-
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-# https://stackoverflow.com/questions/72444103/what-does-running-the-multiarch-qemu-user-static-does-before-building-a-containe
-
-#      - name: Setup Dependencies
-#        run: |
-#          sudo apt-get update
-#          sudo apt-get --yes --no-install-recommends install binfmt-support qemu-user-static
-#          docker run --rm --privileged multiarch/qemu-user-static:register --reset
-
-# f022813 aka 1.7.0
-      - uses: usimd/pi-gen-action@v1
-        id: build
-        with:
-          # If you require the use of an apt proxy, set it here. This proxy setting will not 
-          # be included in the image, making it safe to use an apt-cacher or similar package 
-          # for development.
-          apt-proxy: ''
-
-          # Compression to apply on final image (either "none", "zip", "xz" or "gz").
-          compression: zip
-
-          # Compression level to be used. From 0 to 9 (refer to the tool man page for more 
-          # information on this. Usually 0 is no compression but very fast, up to 9 with the 
-          # best compression but very slow).
-          compression-level: 6
-
-          # Disable the renaming of the first user during the first boot. This make it so 
-          # 'username' stays activated. 'username' must be set for this to work. Please be 
-          # aware of the implied security risk of defining a default username and password 
-          # for your devices.
-          disable-first-boot-user-rename: 0
-
-          # Additional options to include in PIGEN_DOCKER_OPTS
-          # docker-opts: ''
-          docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)" --env HOMEBRIDGE_APT_PKG_VERSION="${{ needs.determine_package_verions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}" --env FFMPEG_FOR_HOMEBRIDGE_VERSION="${{ needs.determine_package_verions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}" --env RELEASE_STREAM=${{ inputs.release-stream }} --env IMG_SIZE=5G'
-
-          # If set to `1`, cloud-init and netplan will be installed and configured. This 
-          # will allow you to configure your Raspberry Pi using cloud-init configuration 
-          # files. The cloud-init configuration files should be placed in the bootfs or by 
-          # editing the files in `stage2/04-cloud-init/files`. Cloud-init will be configured 
-          # to read them on first boot.
-          enable-cloud-init: 0
-
-          # Set whether a NOOBS image should be built as well. If enabled, the output 
-          # directory containing the NOOBS files will be saved as output variable 
-          # 'image-noobs-path'.
-          enable-noobs: false
-
-          # Enable SSH access to Pi.
-          enable-ssh: 1
-
-          # If this feature is enabled, the action will configure pi-gen to not export any 
-          # stage as image but the last one defined in property 'stage-list'. This is 
-          # helpful when building a single image flavor (in contrast to building a 
-          # lite/server and full-blown desktop image), since it speeds up the build process 
-          # significantly.
-          export-last-stage-only: true
-
-          # Comma or whitespace separated list of additional packages to install on host 
-          # before running pi-gen. Use this list to add any packages your custom stages may 
-          # require. Note that this is not affecting the final image. In order to add 
-          # additional packages, you need to add a respective 'XX-packages' file in your 
-          # custom stage.
-          extra-host-dependencies: ''
-
-          # Comma or whitespace separated list of additional modules to load on host before 
-          # running pi-gen. If your custom stage requires additional software or kernel 
-          # modules to be loaded, add them here. Note that this is not meant to configure 
-          # modules to be loaded in the target image.
-          extra-host-modules: ''
-
-          # Token to use for checking out pi-gen repo.
-          github-token: ${{ github.token }}
-
-          # Host name of the image.
-          hostname: homebridge
-
-          # Final image name.
-          image-name: 'Homebridge-${{ matrix.release }}-${{ matrix.name }}'
-
-          # Enabling this option will remove plenty of components from the GitHub Actions 
-          # runner that are not mandatory pre-requisites for a (vanilla) pi-gen build. This 
-          # shall increase the available disk space so that also large images can be 
-          # compiled on a free GHA runner (benchmark is the full image including a desktop 
-          # environment). If any packages are missing during the build consider adding them 
-          # to the `extra-host-dependencies` list.
-          increase-runner-disk-size: true
-
-          # Default keyboard keymap.
-          keyboard-keymap: gb
-
-          # Default keyboard layout.
-          keyboard-layout: English (UK)
-
-          # Default locale of the system image.
-          locale: en_GB.UTF-8
-
-          # Password of the intial user account, locked if empty.
-          password: ''
-
-          # Path where selected pi-gen ref will be checked out to. If the path does not yet 
-          # exist, it will be created (including its parents).
-          pi-gen-dir: pi-gen
-
-          # The release name to use in `/etc/issue.txt`. The default should only be used for 
-          # official Raspberry Pi builds.
-          pi-gen-release: Raspberry Pi reference
-
-          # GitHub repository to fetch pi-gen from, must be a fork from RPi-Distro/pi-gen.
-          pi-gen-repository: RPi-Distro/pi-gen
-
-          # Release version of pi-gen to use. This can both be a branch or tag name known in 
-          # the pi-gen repository.
-          pi-gen-version: ${{ matrix.pi-gen-version }}
-
-          # Setting to `1` will disable password authentication for SSH and enable public 
-          # key authentication. Note that if SSH is not enabled this will take effect when 
-          # SSH becomes enabled.
-          pubkey-only-ssh: 0
-
-          # Setting this to a value will make that value the contents of the 
-          # FIRST_USER_NAME's ~/.ssh/authorized_keys. Obviously the value should therefore 
-          # be a valid authorized_keys file. Note that this does not automatically enable 
-          # SSH.
-          pubkey-ssh-first-user: ''
-
-          # The release version to build images against. Valid values are jessie, stretch, 
-          # buster, bullseye, bookworm, trixie and testing.
-          release: ${{ matrix.release }}
-
-          # Setting to `1` will prevent pi-gen from dropping the "capabilities" feature. 
-          # Generating the root filesystem with capabilities enabled and running it from a 
-          # filesystem that does not support capabilities (like NFS) can cause issues. Only 
-          # enable this if you understand what it is.
-          setfcap: ''
-
-          # List of stage name to execute in given order. Relative and absolute paths to 
-          # custom stage directories are allowed here. Note that by default pi-gen exports 
-          # images in stage2 (lite), stage4 and stage5. You probably want to hook in custom 
-          # stages before one of the exported stages. Otherwise, the action will make sure 
-          # any custom stage will include an image export directive.
-          stage-list: stage0_prep stage0 stage1 stage2 stage3_homebridge
-
-          # An additional temporary apt repo to be used during the build process. This could 
-          # be useful if you require pre-release software to be included in the image. The 
-          # variable should contain sources in one-line-style format. "RELEASE" will be 
-          # replaced with the RELEASE variable. (see 
-          # https://manpages.debian.org/stable/apt/sources.list.5.en.html#ONE-LINE-STYLE_FORMAT)
-          temp-repo: ''
-
-          # System timezone.
-          timezone: Europe/London
-
-          # Name of the initial user account.
-          username: pi
-
-          # Print all output from pi-gen.
-          verbose-output: true
-
-          # Wifi country code of default network to connect to.
-          wpa-country: ''
-
-          # SSID of a default wifi network to connect to.
-          wpa-essid: ''
-
-          # Password of default wifi network to connect to.
-          wpa-password: ''
-
-            # Step 3: Upload the IMG file as an artifact
-
-      - name: Build complete
+      - name: Combine RPI Imager JSON files
+        if: steps.check-artifacts.outputs.has-32bit == 'true' || steps.check-artifacts.outputs.has-64bit == 'true'
         run: |
-          echo "::notice::Homebridge VM image version: Homebridge-${{ matrix.release }}-${{ matrix.name }}"
-          echo "::notice::Run ID: ${{ github.run_id }}"
-          echo "::notice::Architecture: ${{ matrix.name }}"
-          echo "::notice::Release: ${{ needs.tag.outputs.version }}"
-          echo "::notice::image-path: ${{ steps.build.outputs.image-path }}"
-          echo "RPI_IMAGER_NAME: Homebridge ${{ matrix.release }} (${{ matrix.name }})"
-          echo "RPI_IMAGER_DESCRIPTION: Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }}) - ${{ matrix.recommended }}"
-          echo "RPI_IMAGER_ICON: https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png"
-          echo "RPI_IMAGER_WEBSITE: https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started"
-          IMGFILENAME=`basename ${{ steps.build.outputs.image-path }}`
-          echo "RPI_IMAGER_IMAGE_URL: https://github.com/${{ github.repository }}/releases/download/${{ needs.tag.outputs.version }}/${IMGFILENAME}"
-          echo "RPI_IMAGER_DEVICES: '${{ matrix.devices }}'"
+          # Copy individual JSON files for combination
+          [ -f "./release-assets/rpi-image-repo-32bit.json" ] && cp "./release-assets/rpi-image-repo-32bit.json" ./ || true
+          [ -f "./release-assets/rpi-image-repo-64bit.json" ] && cp "./release-assets/rpi-image-repo-64bit.json" ./ || true
+          
+          # Combine JSON files
+          ./combine-rpi-imager-snipplet.py
+          
+          # Move combined file to release assets
+          mv rpi-image-repo.json ./release-assets/
 
-      - name: Upload Raspbian Image
+      - name: Create Combined Release Body
+        run: |
+          # Combine all manifest files and release body
+          cat ./artifacts/*/final-release-body.md > ./release-assets/combined-release-body.md 2>/dev/null || \
+            echo "# Homebridge Raspbian Image ${{ inputs.release_tag }}" > ./release-assets/combined-release-body.md
+          
+          echo "Release body created"
+
+      - name: Upload Prepared Assets
         uses: actions/upload-artifact@v4
         with:
+          name: release-assets
+          path: ./release-assets/
           retention-days: 7
-          name: raspbian-image-${{ matrix.name }}
-          path: ${{ steps.build.outputs.image-path }}
 
-# This is not currently used
-
-      - name: Calculate Image Checksum
-        id: get_sha256_checksum
-        run: |
-          export IMGFILENAME=`basename ${{ steps.build.outputs.image-path }}`
-          echo "IMGFILENAME=${IMGFILENAME}" >> $GITHUB_ENV
-          export IMAGE_SHA256_CHECKSUM=$(shasum -a 256 ${{ steps.build.outputs.image-path }} | awk '{print $1}')
-          echo "$IMAGE_SHA256_CHECKSUM ${{ steps.build.outputs.image-path }}"
-          echo "::notice::IMAGE_SHA256_CHECKSUM ${IMGFILENAME} ==> ${IMAGE_SHA256_CHECKSUM}"
-
-      - name: Upload Image to release v${{ needs.tag.outputs.version }} 
-        uses: AButler/upload-release-assets@v3.0.1
-        with:
-          files: '${{ steps.build.outputs.image-path }}'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: ${{ needs.tag.outputs.version }}
-
-      - name: Generate rpi-image-repo.json 
-        id: generate_rpi-image-repo
-        run: |
-          export RPI_IMAGER_NAME="Homebridge ${{ matrix.release }} (${{ matrix.name }})"
-          export RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }}) - ${{ matrix.recommended }}"
-          export RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png"
-          export RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started"
-          export RPI_IMAGER_IMAGE_URL="https://github.com/${{ github.repository }}/releases/download/${{ needs.tag.outputs.version }}/${{ env.IMGFILENAME }}"
-          export RPI_IMAGER_DEVICES='${{ matrix.devices }}'
-          ./make_rpi-imager-snipplet.py --rpi_imager_url ${RPI_IMAGER_IMAGE_URL}
-
-      - name: Rename rpi-image-repo to ./rpi-image-repo-${{ matrix.name }}.json
-        run: |
-          mv pi-gen/deploy/rpi-image-repo.json ./rpi-image-repo-${{ matrix.name }}.json
-
-      - name: Upload Info to release ${{ needs.tag.outputs.version }} 
-        uses: AButler/upload-release-assets@v3.0.1
-        with:
-          files: './*.json'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: ${{ needs.tag.outputs.version }}
-
-      # Extract /opt/homebridge/*manifest from the image and upload to the release
-      - name: Extract /opt/homebridge/*manifest from the image
-        run: |
-          # Unzip the image first
-          unzip ${{ steps.build.outputs.image-path }}
-          IMAGE_FILE=$(ls *.img | head -n1)
-          echo "Found image: $IMAGE_FILE"
-
-          mkdir mnt output
-
-          # Use losetup to automatically handle partition detection
-          LOOP_DEVICE=$(sudo losetup -fP --show "$IMAGE_FILE")
-          sudo mount ${LOOP_DEVICE}p2 mnt  # p2 is usually the root partition
-
-          ls -l mnt/opt/homebridge/
-          cp mnt/opt/homebridge/homebridge_raspbian_image*manifest ./output/
-
-          sudo umount mnt
-          sudo losetup -d $LOOP_DEVICE
-          rm -rf mnt
-
-      - name: Upload Manifests to release ${{ needs.tag.outputs.version }} 
-        uses: AButler/upload-release-assets@v3.0
-        with:
-          files: './output/*manifest'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: ${{ needs.tag.outputs.version }}
-
-      - name: Build Release Body
-        id: release_body
-        run: |
-          ./scripts/create-release-body.sh ${{ inputs.release-stream }}
-          cat ./output/*manifest ./output/release-body.md > ./output/final-release-body.md
-
-      - name: Update Release Body
-        uses: tubone24/update_release@v1.3.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG_NAME: ${{ needs.tag.outputs.version }}
-        with:
-          body_path: ./output/final-release-body.md
-
-  finalize_info:
-    name: Prep ${{ needs.tag.outputs.version }} Info file
-    needs: [tag, build_images]
-    if: ${{ inputs.publish }}
-    runs-on: [ubuntu-latest]
+  create-release:
+    name: Create GitHub Release
+    needs: download-and-prepare
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/create-github-app-token@v2
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Download Prepared Assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: ./release-assets
+
+      - name: Create GitHub Release
+        run: |
+          gh release create "${{ inputs.release_tag }}" \
+            --title "${{ inputs.release_tag }}" \
+            --notes-file ./release-assets/combined-release-body.md \
+            --draft=false \
+            --prerelease=false \
+            ./release-assets/*.zip \
+            ./release-assets/*.json \
+            ./release-assets/*manifest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release Created
+        run: |
+          echo "::notice::Release ${{ inputs.release_tag }} created successfully"
+          RELEASE_URL=$(gh release view "${{ inputs.release_tag }}" --json url --jq '.url')
+          echo "::notice::Release URL: $RELEASE_URL"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-to-registry:
+    name: Publish to Homebridge Registry
+    needs: [create-release]
+    if: ${{ inputs.publish }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App Token
         id: app-token
+        uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.PRIVATE_KEY }}
           repositories: 'homebridge.io'
           owner: 'homebridge'
-      
-      - uses: actions/checkout@v5
-      #  with:
-      #    token: ${{ steps.app-token.outputs.token }}
-      - uses: robinraju/release-downloader@v1.12
-        name: Downloard image info files from release ${{ needs.tag.outputs.version }}
-        with: 
-          
-          # The github tag. e.g: v1.0.1
-          # Download assets from a specific tag/version
-          tag: ${{ needs.tag.outputs.version }}
-          
-          # The name of the file to download.
-          # Use this field only to specify filenames other than tarball or zipball, if any.
-          # Supports wildcard pattern (eg: '*', '*.deb', '*.zip' etc..)
-          fileName: "*.json"
 
-      - name: Combine rpi-image-repo JSON's
-        run: |
-          ./combine-rpi-imager-snipplet.py    
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-      - name: Upload combined rpi-image-repo to release ${{ needs.tag.outputs.version }} 
-        uses: AButler/upload-release-assets@v3.0.1
+      - name: Download Release Assets
+        uses: actions/download-artifact@v4
         with:
-          files: 'rpi-image-repo.json'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: ${{ needs.tag.outputs.version }}
+          name: release-assets
+          path: ./release-assets
 
-      - name: Push ${{ needs.tag.outputs.version }} Image to Homebridge Registry
+      - name: Push Image Info to Homebridge Registry
         uses: dmnemec/copy_file_to_another_repo_action@main
         env:
           API_TOKEN_GITHUB: ${{ steps.app-token.outputs.token }}
         with:
-          source_file: 'rpi-image-repo.json'
+          source_file: './release-assets/rpi-image-repo.json'
           destination_repo: 'homebridge/homebridge.io'
           destination_branch: 'source'
           destination_folder: 'src/public/'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           user_name: 'github-actions[bot]'
-          commit_message: 'New Homebridge Image Release ${{ needs.tag.outputs.version }}'
-  
+          commit_message: 'New Homebridge Raspbian Image Release ${{ inputs.release_tag }}'
 
-  github-releases-to-discord:
-    needs: [tag, build_images, finalize_info]
+      - name: Registry Updated
+        run: |
+          echo "::notice::Homebridge registry updated with ${{ inputs.release_tag }}"
+
+  notify-discord:
+    name: Send Discord Notification
+    needs: [create-release, publish-to-registry]
+    if: ${{ always() && inputs.publish && needs.create-release.result == 'success' }}
     uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
-    if: ${{ inputs.publish }}
     with:
       title: "Homebridge Raspbian Image Release"
       description: |
-        Version `${{ needs.tag.outputs.version }}`
-      url: "https://github.com/homebridge/homebridge-raspbian-image/releases/tag/${{ needs.tag.outputs.version }}"
+        Version `${{ inputs.release_tag }}`
+      url: "https://github.com/homebridge/homebridge-raspbian-image/releases/tag/${{ inputs.release_tag }}"
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
