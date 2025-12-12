@@ -142,7 +142,7 @@ if [ -n "$LATEST_TAG" ]; then
     fi
 fi
 
-if gh release download "$LATEST_TAG" --pattern "*.manifest" --dir ${PREVIOUS_DIR} 2>/dev/null; then
+if gh release download "$LATEST_TAG" --pattern "*arm64.manifest" --clobber --dir ${PREVIOUS_DIR} 2>/dev/null; then
   echo -e "\n## Changes Since Previous Release ($LATEST_TAG)\n" >> "$MANIFEST"
   
   # Iterate through all manifest files in ${OUTPUT_DIR}
