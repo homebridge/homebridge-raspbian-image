@@ -116,7 +116,7 @@ jobs:
           echo "Release body created"
 
       - name: Upload Prepared Assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: release-assets
           path: ./release-assets/
