@@ -348,23 +348,34 @@ jobs:
       # Extract /opt/homebridge/*manifest from the image and upload to the release
       - name: Extract /opt/homebridge/*manifest from the image
         run: |
-          # Unzip the image first
-          unzip ${{ steps.build.outputs.image-path }}
-          IMAGE_FILE=$(ls *.img | head -n1)
-          echo "Found image: $IMAGE_FILE"
+            # Unzip the image first
+            unzip ${{ steps.build.outputs.image-path }}
+            IMAGE_FILE=$(ls *.img | head -n1)
+            echo "Found image: $IMAGE_FILE"
 
-          mkdir mnt
+            mkdir mnt
 
-          # Use losetup to automatically handle partition detection
-          LOOP_DEVICE=$(sudo losetup -fP --show "$IMAGE_FILE")
-          sudo mount ${LOOP_DEVICE}p2 mnt  # p2 is usually the root partition
+            # Use losetup to automatically handle partition detection
+            LOOP_DEVICE=$(sudo losetup -fP --show "$IMAGE_FILE")
+            sudo mount ${LOOP_DEVICE}p2 mnt  # p2 is usually the root partition
 
-          ls -l mnt/opt/homebridge/
-          cp mnt/opt/homebridge/homebridge_raspbian_image*manifest output/
+            ls -l mnt/opt/homebridge/
+            cp mnt/opt/homebridge/homebridge_raspbian_image*manifest output/
 
-          sudo umount mnt
-          sudo losetup -d $LOOP_DEVICE
-          rm -rf mnt
+            # Add extracted manifest(s) to the GitHub step summary (Markdown)
+            for f in output/homebridge_raspbian_image*manifest; do
+            if [ -f "$f" ]; then
+              echo "## Extracted manifest: $(basename "$f")" >> $GITHUB_STEP_SUMMARY
+              echo '' >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              sed -n '1,10000p' "$f" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
+            done
+
+            sudo umount mnt
+            sudo losetup -d $LOOP_DEVICE
+            rm -rf mnt
 
       - name: Build Release Body
         id: release_body
