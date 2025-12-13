@@ -142,11 +142,11 @@ if [ -n "$LATEST_TAG" ]; then
     fi
 fi
 
-if gh release download "$LATEST_TAG" --pattern "*arm64.manifest" --clobber --dir ${PREVIOUS_DIR} 2>/dev/null; then
+if gh release download "$LATEST_TAG" --pattern "*arm64.manifest" --clobber --dir "${PREVIOUS_DIR}"; then
   echo -e "\n## Changes Since Previous Release ($LATEST_TAG)\n" >> "$MANIFEST"
   
   # Iterate through all manifest files in ${OUTPUT_DIR}
-  for OUTPUT_MANIFEST in ${OUTPUT_DIR}/*manifest; do
+  for OUTPUT_MANIFEST in "${OUTPUT_DIR}"/*manifest; do
     # Extract the base name of the manifest file
     MANIFEST_NAME=$(basename "$OUTPUT_MANIFEST")
     log "Processing manifest: $MANIFEST_NAME"
@@ -156,19 +156,19 @@ if gh release download "$LATEST_TAG" --pattern "*arm64.manifest" --clobber --dir
       TMP_DIFF="/tmp/manifest.diff.$$"
       # Compare the manifests and capture differences
       echo diff -u "$PREVIOUS_MANIFEST" "$OUTPUT_MANIFEST"
-      if ! diff -u "$PREVIOUS_MANIFEST" "$OUTPUT_MANIFEST" > ${TMP_DIFF} 2>/dev/null; then
+      if ! diff -u "$PREVIOUS_MANIFEST" "$OUTPUT_MANIFEST" > "${TMP_DIFF}"; then
         # Check if there are any meaningful changes in the diff
-        if grep -qE "^[+-]\|" ${TMP_DIFF}; then
+        if grep -qE "^[+-]\|" "${TMP_DIFF}"; then
           echo "### Changes in ${MANIFEST_NAME}" >> "$MANIFEST"
           echo "\`\`\`diff" >> "$MANIFEST"
           # Include the diff output, sorted for readability
-          grep -E "^[+-]\|" ${TMP_DIFF} | sort -k2 | head -20 >> "$MANIFEST"
+          grep -E "^[+-]\|" "${TMP_DIFF}" | sort -k2 | head -20 >> "$MANIFEST"
           echo "\`\`\`" >> "$MANIFEST"
         else
           warn "No meaningful changes found in differences for ${MANIFEST_NAME}."
           echo "No meaningful changes detected in ${MANIFEST_NAME}." >> "$MANIFEST"
         fi
-        rm -f ${TMP_DIFF} || true
+        rm -f "${TMP_DIFF}" || true
       else
         warn "No differences found between current ${MANIFEST_NAME} and previous ${PREVIOUS_MANIFEST}."
         echo "No changes detected in ${MANIFEST_NAME}." >> "$MANIFEST"
