@@ -382,6 +382,8 @@ jobs:
         run: |
           ./scripts/create-release-body.sh ${{ inputs.release-stream }}
           cat output/*manifest ./output/release-body.md > output/final-release-body.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v5
