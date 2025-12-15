@@ -406,7 +406,7 @@ jobs:
             --ref ${{ github.sha }} \
             --field run_id="${{ github.run_id }}" \
             --field release_tag="${{ needs.tag.outputs.version }}" \
-            --field publish="${{ inputs.publish }}"
+            --field publish="${{ inputs.publish && 'true' || 'false' }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
