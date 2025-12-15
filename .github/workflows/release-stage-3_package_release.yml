@@ -139,13 +139,13 @@ jobs:
       - name: Create GitHub Release
         run: |
           gh release create "${{ inputs.release_tag }}" \
-            --title "${{ inputs.release_tag }}" \
-            --notes-file ./release-assets/combined-release-body.md \
-            --draft=false \
-            --prerelease=false \
-            ./release-assets/*.zip \
-            ./release-assets/*.json \
-            ./release-assets/*manifest
+          --title "${{ inputs.release_tag }}" \
+          --notes-file ./release-assets/combined-release-body.md \
+          --draft=false \
+          --prerelease=${{ inputs.publish == false }} \
+          ./release-assets/*.zip \
+          ./release-assets/*.json \
+          ./release-assets/*manifest
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
