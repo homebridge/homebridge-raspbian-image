@@ -142,9 +142,12 @@ if [ -n "$LATEST_TAG" ]; then
     fi
 fi
 
-if gh release download "$LATEST_TAG" --pattern "*arm64.manifest" --clobber --dir "${PREVIOUS_DIR}"; then
+if gh release download "$LATEST_TAG" --pattern "*.manifest" --clobber --dir "${PREVIOUS_DIR}"; then
   echo -e "\n## Changes Since Previous Release ($LATEST_TAG)\n" >> "$MANIFEST"
-  
+  group_log "Available previous manifests in ${PREVIOUS_DIR} and current manifests in ${OUTPUT_DIR}"
+    ls -l "${PREVIOUS_DIR}"
+    ls -l "${OUTPUT_DIR}"
+  group_end
   # Iterate through all manifest files in ${OUTPUT_DIR}
   for OUTPUT_MANIFEST in "${OUTPUT_DIR}"/*manifest; do
     # Extract the base name of the manifest file
