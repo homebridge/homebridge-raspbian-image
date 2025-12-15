@@ -403,7 +403,7 @@ jobs:
       - name: Trigger Release Stage 3 Workflow
         run: |
           gh workflow run release-stage-3_package_release.yml \
-            --ref latest \
+            --ref ${{ github.sha }} \
             --field run_id="${{ github.run_id }}" \
             --field release_tag="${{ needs.tag.outputs.version }}" \
             --field publish="${{ inputs.publish }}"
