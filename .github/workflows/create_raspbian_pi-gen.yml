@@ -218,7 +218,7 @@ jobs:
           # compiled on a free GHA runner (benchmark is the full image including a desktop 
           # environment). If any packages are missing during the build consider adding them 
           # to the `extra-host-dependencies` list.
-          increase-runner-disk-size: true
+          increase-runner-disk-size: false
 
           # Default keyboard keymap.
           keyboard-keymap: gb
