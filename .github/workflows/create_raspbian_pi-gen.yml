@@ -104,7 +104,7 @@ jobs:
   build_images:
     name: Build RPI Homebridge (${{ matrix.name }}) Image ${{ needs.tag.outputs.version }}
     needs: [tag, determine_package_versions]
-    runs-on: [ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
@@ -118,12 +118,14 @@ jobs:
             name: 64bit
             devices: '["pi5-64bit", "pi4-64bit", "pi3-64bit"]'
             recommended: "Recommended"
+            runs-on: ubuntu-24.04-arm
 
           - pi-gen-version: master
             release: trixie
             name: 32bit
             devices: '["pi5-32bit", "pi4-32bit", "pi3-32bit", "pi2-32bit", "pi1-32bit"]'
             recommended: "Not Recommended, support will be ending Spring 2027"
+            runs-on: ubuntu-22.04
 
 # The build
 
@@ -140,6 +142,11 @@ jobs:
 #          sudo apt-get update
 #          sudo apt-get --yes --no-install-recommends install binfmt-support qemu-user-static
 #          docker run --rm --privileged multiarch/qemu-user-static:register --reset
+
+      # Only needed for 32bit build on x86_64 runner
+      - name: Set up QEMU
+        if: matrix.name == '32bit'
+        uses: docker/setup-qemu-action@v3
 
 # f022813 aka 1.7.0
       - uses: usimd/pi-gen-action@v1
