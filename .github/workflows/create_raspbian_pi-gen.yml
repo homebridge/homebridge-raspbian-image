@@ -146,7 +146,7 @@ jobs:
       # Only needed for 32bit build on x86_64 runner
       - name: Set up QEMU
         if: matrix.name == '32bit'
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
 
 # f022813 aka 1.7.0
       - uses: usimd/pi-gen-action@v1
@@ -393,7 +393,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           retention-days: 7
           name: build-${{ matrix.name }}
