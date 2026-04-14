@@ -35,7 +35,7 @@ jobs:
       - name: Download Build Artifacts (32-bit)
         id: download-32bit
         continue-on-error: true
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: build-32bit
           path: ./artifacts/32bit
@@ -45,7 +45,7 @@ jobs:
       - name: Download Build Artifacts (64-bit)
         id: download-64bit
         continue-on-error: true
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: build-64bit
           path: ./artifacts/64bit
@@ -116,7 +116,7 @@ jobs:
           echo "Release body created"
 
       - name: Upload Prepared Assets
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: release-assets
           path: ./release-assets/
@@ -131,7 +131,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Download Prepared Assets
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: release-assets
           path: ./release-assets
@@ -165,7 +165,7 @@ jobs:
     steps:
       - name: Generate GitHub App Token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ vars.APP_ID }}
           private-key: ${{ secrets.PRIVATE_KEY }}
@@ -176,7 +176,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Download Release Assets
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: release-assets
           path: ./release-assets
