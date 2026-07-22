@@ -97,5 +97,5 @@ jobs:
           workflow-fields: |
             release-stream=${{ matrix.stream }}
             Scheduled=${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Scheduled' }}
-            publish=${{ github.event.inputs.publish }}
+            publish=${{ github.event.inputs.publish || 'true' }}
           run-name: "${{ matrix.stream }}:${{ github.run_id }}"
