@@ -26,7 +26,7 @@ set -x
 
 wget -q "https://github.com/homebridge/ffmpeg-for-homebridge/releases/download/${FFMPEG_FOR_HOMEBRIDGE_VERSION}/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz"
 tar xzf "ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz" -C / --no-same-owner
-rm -rf ffmpeg-alpine-${FFMPEG_ARCH}.tar.gzz
+rm -rf "ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz"
 
 ffmpeg || exit 0
 EOF
