@@ -51,7 +51,7 @@ jobs:
       version: ${{ steps.version.outputs.v-version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -77,7 +77,7 @@ jobs:
       FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.get_versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Get Homebridge version
         id: get_versions
@@ -131,7 +131,7 @@ jobs:
 
     steps:
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -405,7 +405,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Trigger Release Stage 3 Workflow
         run: |
