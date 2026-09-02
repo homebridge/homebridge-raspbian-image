@@ -30,7 +30,7 @@ jobs:
       has-64bit: ${{ steps.check-artifacts.outputs.has-64bit }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Download Build Artifacts (32-bit)
         id: download-32bit
@@ -128,7 +128,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Download Prepared Assets
         uses: actions/download-artifact@v8
@@ -173,7 +173,7 @@ jobs:
           owner: 'homebridge'
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Download Release Assets
         uses: actions/download-artifact@v8
