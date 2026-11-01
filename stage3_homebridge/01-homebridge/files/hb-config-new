@@ -256,8 +256,13 @@ do_install_adguard_home() {
       rm -rf /tmp/adguardhome
       mkdir -p /tmp/adguardhome
       cd /tmp/adguardhome
-      wget https://static.adguard.com/adguardhome/release/AdGuardHome_linux_armv6.tar.gz
-      tar xvf AdGuardHome_linux_armv6.tar.gz -C /opt
+      # AdGuard Home publishes a build for each architecture - use the one for this system
+      case "$(dpkg --print-architecture)" in
+        arm64) ADGUARD_ARCH="arm64" ;;
+        *) ADGUARD_ARCH="armv7" ;;
+      esac
+      wget "https://static.adguard.com/adguardhome/release/AdGuardHome_linux_${ADGUARD_ARCH}.tar.gz"
+      tar xvf "AdGuardHome_linux_${ADGUARD_ARCH}.tar.gz" -C /opt
       rm -rf /tmp/adguardhome
       cd /opt/AdGuardHome
       ./AdGuardHome -s install
@@ -291,14 +296,14 @@ do_install_deconz() {
       apt update --allow-releaseinfo-change
       sudo apt install -y i2c-tools build-essential raspberrypi-kernel-headers
 
-      # WiringPi (Pi4 Only)
-      if [ is_pifour ]; then
-        curl -o /tmp/wiringpi-latest.deb https://project-downloads.drogon.net/wiringpi-latest.deb
-        dpkg -i /tmp/wiringpi-latest.deb
-        rm -rf /tmp/wiringpi-latest.deb
-      else
-        apt install wiringpi
-      fi
+      # WiringPi is no longer packaged by Raspberry Pi OS, and the old download is gone,
+      # so install the package published by the maintained WiringPi project
+      WIRINGPI_ARCH=$(dpkg --print-architecture)
+      WIRINGPI_URL=$(curl -sL https://api.github.com/repos/WiringPi/WiringPi/releases/latest \
+        | grep -o "https://[^\"]*wiringpi_[^\"]*_${WIRINGPI_ARCH}\.deb" | head -n 1)
+      curl -L -o /tmp/wiringpi.deb "$WIRINGPI_URL"
+      dpkg -i /tmp/wiringpi.deb
+      rm -f /tmp/wiringpi.deb
 
       # Enable UART
       set_config_var enable_uart 1 $CONFIG
@@ -749,7 +754,7 @@ if [ "$INTERACTIVE" = True ]; then
         "1 Update Node.js" "Update Node.js to the latest LTS version" \
         "2 Update Homebridge" "Update Homebridge and Node.js to the latest version" \
         "3 Restore Config" "Restores the Homebridge config to the factory default" \
-        "4 Extra Packages" "Optional packages, eg. Pi-Hole, RealVNC" \
+        "4 Extra Packages" "Optional packages, eg. Pi-hole, AdGuard Home" \
         "5 Nginx Options" "Configure Homebridge Nginx settings" \
         "6 Configure OS" "Open the Raspberry Pi OS Configuration Tool" \
         "7 Networking" "Open the NetworkManager UI" \
@@ -761,7 +766,7 @@ if [ "$INTERACTIVE" = True ]; then
         "1 Update Node.js" "Update Node.js to the latest LTS version" \
         "2 Update Homebridge" "Update Homebridge and Node.js to the latest version" \
         "3 Restore Config" "Restores the Homebridge config to the factory default" \
-        "4 Extra Packages" "Optional packages, eg. Pi-Hole, RealVNC" \
+        "4 Extra Packages" "Optional packages, eg. Pi-hole, AdGuard Home" \
         "5 Nginx Options" "Configure Homebridge Nginx settings" \
         "6 Configure OS" "Open the Raspberry Pi OS Configuration Tool" \
         "7 Networking" "Open the NetworkManager UI" \
