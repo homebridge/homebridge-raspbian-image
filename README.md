@@ -14,16 +14,16 @@
 
 </span>
 
-This project provides a free [Raspbian](https://www.raspberrypi.org/downloads/raspbian/) based Raspberry Pi image with [Homebridge](https://github.com/homebridge/homebridge) and [Homebridge Config UI X](https://github.com/homebridge/homebridge-config-ui-x) pre-installed.
+This project provides a free [Raspberry Pi OS](https://www.raspberrypi.com/software/operating-systems/) based Raspberry Pi image with [Homebridge](https://github.com/homebridge/homebridge) and the [Homebridge UI](https://github.com/homebridge/homebridge-config-ui-x) pre-installed.
 
-* Runs on RPI 2 or higher models supporting ARMv7 cpu's or greater ( Last version supporting RPI 1 and RPi Zero W was [v1.2.4](https://github.com/homebridge/homebridge-raspbian-image/releases/tag/v1.2.4))
-* Built on Raspbian Lite (no desktop)
+* Runs on the Raspberry Pi 2 or later (the 64-bit image is recommended for the Pi 3 and later). The last version supporting the Raspberry Pi 1 and Pi Zero W was [v1.2.4](https://github.com/homebridge/homebridge-raspbian-image/releases/tag/v1.2.4)
+* Built on Raspberry Pi OS Lite, based on Debian 13 "Trixie" (no desktop)
 * Simple WiFi Setup
 * Includes [ffmpeg](https://github.com/homebridge/ffmpeg-for-homebridge) pre-compiled with audio support (libfdk-aac)
 * Includes a user friendly, easy to use web based GUI to configure Homebridge and monitor your Raspberry Pi
 * Visual configuration for over 400 plugins (no manual config.json editing required)
 
-This image also provides a command called `hb-config` which helps you keep Node.js up-to-date, perform maintenance on your Homebridge server, and install additional optional software such as *[Pi Hole](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Install-Pi-Hole)* and *[deCONZ](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Install-deCONZ-for-ConBee-or-RaspBee)*.
+This image also provides a command called `hb-config` which helps you keep Node.js up-to-date, perform maintenance on your Homebridge server, and install additional optional software such as *[Pi-hole](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Install-Pi-Hole)* and *[deCONZ](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Install-deCONZ-for-ConBee-or-RaspBee)*.
 
 The Homebridge service is installed using the method described in the official [Raspberry Pi Installation Guide](https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Raspbian) on the [Homebridge](https://github.com/homebridge/homebridge) project wiki.
 
@@ -37,9 +37,9 @@ For full installation instructions, please refer to the [Homebridge Raspbian Ima
 
 ## Security and Privacy
 
-* **Privacy:** The *Homebridge Raspbian Image*, as well as the [Homebridge](https://github.com/homebridge/homebridge) and [Homebridge Config UI X](https://github.com/homebridge/homebridge-config-ui-x) software components, do not contain any *analytics*, *call home*, or similar features that would allow the project maintainers to track you or the usage of this image.
-* **Security:** The *Homebridge Raspbian Image* is kept up-to-date with the latest [official Raspbian builds](https://github.com/RPi-Distro/pi-gen). To find out more, or to report a security issue or vulnerability, please see the project's [SECURITY](.github/SECURITY.md) policy.
-* **Transparency:** The *Homebridge Raspbian Image* project is open source and each image is built using the public GitHub Action runners. The build logs for each release are publicly available on the project's [GitHub Actions](https://github.com/homebridge/homebridge-raspbian-image/actions/workflows/main.yml) page and every release contains a SHA-256 checksum of the image you can use to verify the integrity of your download.
+* **Privacy:** The *Homebridge Raspbian Image*, as well as the [Homebridge](https://github.com/homebridge/homebridge) and [Homebridge UI](https://github.com/homebridge/homebridge-config-ui-x) software components, do not contain any *analytics*, *call home*, or similar features that would allow the project maintainers to track you or the usage of this image.
+* **Security:** The *Homebridge Raspbian Image* is kept up-to-date with the latest [official Raspberry Pi OS builds](https://github.com/RPi-Distro/pi-gen). To find out more, or to report a security issue or vulnerability, please see the project's [SECURITY](.github/SECURITY.md) policy.
+* **Transparency:** The *Homebridge Raspbian Image* project is open source and each image is built using the public GitHub Action runners. The build logs for each release are publicly available on the project's [GitHub Actions](https://github.com/homebridge/homebridge-raspbian-image/actions/workflows/create_raspbian_pi-gen.yml) page and every release contains a SHA-256 checksum of the image you can use to verify the integrity of your download.
 
 ## Community
 
