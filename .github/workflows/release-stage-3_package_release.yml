@@ -127,6 +127,15 @@ jobs:
     needs: download-and-prepare
     runs-on: ubuntu-latest
     steps:
+      - name: Create GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.DEPENDENCY_BOT_APP_ID }}
+          private-key: ${{ secrets.DEPENDENCY_BOT_PRIVATE_KEY }}
+          owner: homebridge
+          repositories: homebridge-raspbian-image
+          permission-contents: write
       - name: Checkout repository
         uses: actions/checkout@v7
 
@@ -147,7 +156,7 @@ jobs:
           ./release-assets/*.json \
           ./release-assets/*manifest
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Release Created
         run: |
