@@ -79,8 +79,16 @@ echo "Environment=\"UIX_STORAGE_PATH=/var/lib/homebridge\"" >> /etc/systemd/syst
 # set ui port for use in motd message
 echo "8581" > /etc/hb-ui-port
 
-# prioritise dns over mdns
-sed -i 's/files mdns4_minimal \[NOTFOUND=return\] dns/files dns mdns4_minimal \[NOTFOUND=return\]/' /etc/nsswitch.conf
+# prioritise dns over mdns: in the "hosts:" line, "dns" must come before "mdns4_minimal".
+# The build stops when the line has another form than expected, so this can not be skipped unseen.
+if grep -q '^hosts:.*mdns4_minimal' /etc/nsswitch.conf; then
+  sed -i 's/files mdns4_minimal \[NOTFOUND=return\] dns/files dns mdns4_minimal \[NOTFOUND=return\]/' /etc/nsswitch.conf
+  if ! grep -Eq '^hosts:.*[[:space:]]dns[[:space:]].*mdns4_minimal' /etc/nsswitch.conf; then
+    echo "The hosts line in /etc/nsswitch.conf has an unexpected form:" >&2
+    grep '^hosts:' /etc/nsswitch.conf >&2
+    exit 1
+  fi
+fi
 
 systemctl daemon-reload
 systemctl enable homebridge

@@ -8,7 +8,7 @@
 : "${WIFI_CONNECT_VERSION:?WIFI_CONNECT_VERSION is not set}"
 
 install -m 644 files/wifi-connect.service "${ROOTFS_DIR}/etc/systemd/system/"
-install -m 755 files/log-iface-events.sh "${ROOTFS_DIR}/etc/NetworkManager/dispatcher.d/"
+install -m 755 files/50-wifi-connect-stop-on-cable "${ROOTFS_DIR}/etc/NetworkManager/dispatcher.d/"
 install -m 644 files/wifi-powersave-off.conf "${ROOTFS_DIR}/etc/NetworkManager/conf.d/"
 
 on_chroot << EOF

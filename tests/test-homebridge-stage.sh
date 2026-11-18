@@ -87,6 +87,20 @@ has "apt-get install does not ask (-y)" "$W/calls.log" "apt-get install -y homeb
 has "the lines after apt-get still run (the last line turns on the first boot service)" "$W/calls.log" "systemctl enable first-boot-homebridge"
 is "the service settings file is written after apt-get" grep -q 'UIX_CAN_SHUTDOWN_RESTART_HOST=1' "$W/rootfs/etc/systemd/system/homebridge.service.d/override.conf"
 
+# name lookups: "dns" must come before "mdns4_minimal", and an unexpected line must stop the build
+# nsswitch <hosts line>: runs the lines for inside the image with that line in /etc/nsswitch.conf
+nsswitch() {
+  printf '%s\n' "$1" > "$W/rootfs/etc/nsswitch.conf"
+  ( cd "$W" && PATH="$W/bin:$PATH" bash -e < "$W/chroot-script.moved" ) > "$W/chroot.log" 2>&1
+}
+nsswitch 'hosts:          files mdns4_minimal [NOTFOUND=return] dns'
+same "the hosts line of Debian 13 is changed so dns comes first" "$?:$(cat "$W/rootfs/etc/nsswitch.conf")" "0:hosts:          files dns mdns4_minimal [NOTFOUND=return]"
+nsswitch 'hosts:          files dns'
+same "a hosts line with no mdns entry is left as it is" "$?:$(cat "$W/rootfs/etc/nsswitch.conf")" "0:hosts:          files dns"
+nsswitch 'hosts:          files mymachines mdns4_minimal [NOTFOUND=return] resolve dns'
+isnt "the build stops on a hosts line it does not know, in place of skipping the change unseen" test "$?" -eq 0
+printf '%s\n' 'hosts:          files mdns4_minimal [NOTFOUND=return] dns' > "$W/rootfs/etc/nsswitch.conf"
+
 # the key of the Homebridge package repo is only trusted when it is the known key
 has "the build asks for the key over https" "$W/calls.log" "curl -sSfL https://repo.homebridge.io/KEY.gpg"
 echo "0000000000000000000000000000000000000000" > "$W/fingerprint"

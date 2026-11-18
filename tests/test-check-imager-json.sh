@@ -89,13 +89,24 @@ isnt "stops when the file does not exist" "$CHECK" "$W/none.json" --tag v2.0.26
 
 # the file the build makes today must pass its own gate (the shape is an outside contract)
 mkdir -p "$W/d/pi-gen/deploy" && cp "$REPO/make_rpi-imager-snipplet.py" "$W/d/"
-( cd "$W/d/pi-gen/deploy" && head -c 4096 /dev/zero > test.img && python3 -c "import zipfile; zipfile.ZipFile('image_test.zip', 'w', zipfile.ZIP_DEFLATED).write('test.img')" && rm test.img )
+( cd "$W/d/pi-gen/deploy" && head -c 4096 /dev/zero > test.img && python3 -c "import zipfile; zipfile.ZipFile('image_2026-11-19-Homebridge-trixie-64bit.zip', 'w', zipfile.ZIP_DEFLATED).write('test.img')" && rm test.img )
 ( cd "$W/d" && RPI_IMAGER_NAME="Homebridge trixie (64bit)" RPI_IMAGER_DESCRIPTION=d RPI_IMAGER_ICON=https://example.invalid/i.png \
   RPI_IMAGER_WEBSITE=https://example.invalid/w RPI_IMAGER_DEVICES='["pi5-64bit"]' \
-  python3 ./make_rpi-imager-snipplet.py --rpi_imager_url "$URL/v2.0.26/image_test.zip" > /dev/null )
+  python3 ./make_rpi-imager-snipplet.py --rpi_imager_url "$URL/v2.0.26/image_2026-11-19-Homebridge-trixie-64bit.zip" > /dev/null )
 is "the file the build makes passes the gate" "$CHECK" "$W/d/pi-gen/deploy/rpi-image-repo.json" --tag v2.0.26 --entries 1
 same "the file the build makes has the fields Imager reads, in the same order as today" \
   "$(jq -c '.os_list[0] | keys_unsorted' "$W/d/pi-gen/deploy/rpi-image-repo.json")" \
   '["name","description","init_format","url","icon","release_date","devices","website","extract_size","image_download_size","extract_sha256","image_download_sha256"]'
+
+same "the release date is the date in the image file name" "$(jq -r '.os_list[0].release_date' "$W/d/pi-gen/deploy/rpi-image-repo.json")" "2026-11-19"
+same "the sizes are those of the zip and of the image inside it" \
+  "$(jq -r '.os_list[0] | "\(.extract_size) \(.image_download_size)"' "$W/d/pi-gen/deploy/rpi-image-repo.json")" \
+  "4096 $(stat -c '%s' "$W/d/pi-gen/deploy/image_2026-11-19-Homebridge-trixie-64bit.zip")"
+same "the checksum of the zip is the real one" "$(jq -r '.os_list[0].image_download_sha256' "$W/d/pi-gen/deploy/rpi-image-repo.json")" \
+  "$(sha256sum "$W/d/pi-gen/deploy/image_2026-11-19-Homebridge-trixie-64bit.zip" | cut -d' ' -f1)"
+
+# two zip files in the folder: the script must not pick one by chance
+cp "$W/d/pi-gen/deploy/image_2026-11-19-Homebridge-trixie-64bit.zip" "$W/d/pi-gen/deploy/image_2026-11-18-Homebridge-trixie-64bit.zip"
+isnt "the build stops when the folder holds two images" bash -c "cd '$W/d' && RPI_IMAGER_NAME=n RPI_IMAGER_DESCRIPTION=d RPI_IMAGER_ICON=i RPI_IMAGER_DEVICES='[\"pi5-64bit\"]' python3 ./make_rpi-imager-snipplet.py"
 
 finish

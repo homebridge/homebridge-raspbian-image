@@ -9,7 +9,7 @@ Homebridge Raspbian - \n (\r)
                                                  __/ |     
                                                 |___/      \e{reset} 
 
-Browse to the one of the following addresses from another device on your network:
+Browse to one of the following addresses from another device on your network:
 
 * \e{green}http://\n.local\e{reset}
 * \e{green}http://\4\e{reset}
