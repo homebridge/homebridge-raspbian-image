@@ -135,7 +135,7 @@ jobs:
     needs: [tag, determine_package_versions]
     runs-on: ${{ matrix.runs-on }}
     permissions:
-      contents: read  # checkout, and reading the previous release for the release notes
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -341,15 +341,6 @@ jobs:
           sudo umount mnt || true
           sudo losetup -d "$LOOP_DEVICE" || true
           rm -rf mnt ./*.img
-
-      - name: Build Release Body
-        id: release_body
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_STREAM: ${{ inputs.release-stream }}
-        run: |
-          ./scripts/create-release-body.sh "${RELEASE_STREAM:-stable}"
-          cat output/*manifest output/release-body.md > output/final-release-body.md
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v7

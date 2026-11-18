@@ -45,8 +45,11 @@ jobs:
       has-32bit: ${{ steps.check-artifacts.outputs.has-32bit }}
       has-64bit: ${{ steps.check-artifacts.outputs.has-64bit }}
     steps:
+      # the full history and the tags are needed for the release notes
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Download Build Artifacts (32-bit)
         id: download-32bit
@@ -119,15 +122,25 @@ jobs:
           # another tag would get a list whose links do not exist, so this stops here.
           ../scripts/check-imager-json.py rpi-image-repo.json --tag "$RELEASE_TAG"
 
-      - name: Create Combined Release Body
+      # The notes are built once for the whole release: the manifest of each image, the
+      # checksums, and what changed since the previous release.
+      - name: Create Release Body
         env:
+          GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.release_tag }}
+          TARGET_SHA: ${{ inputs.target_sha }}
         run: |
-          # Combine all manifest files and release body
-          cat ./artifacts/*/final-release-body.md > ./release-assets/combined-release-body.md 2>/dev/null || \
-            echo "# Homebridge Raspbian Image ${RELEASE_TAG}" > ./release-assets/combined-release-body.md
+          mkdir -p output
+          cp ./release-assets/*manifest output/ 2>/dev/null || true
 
-          echo "Release body created"
+          if IMAGER_JSON=./release-assets/rpi-image-repo.json RELEASE_COMMIT="${TARGET_SHA:-HEAD}" ./scripts/create-release-body.sh stable; then
+            cp output/release-body.md ./release-assets/combined-release-body.md
+          else
+            echo "::warning::The release notes could not be built. The release gets a short text."
+            echo "# Homebridge Raspbian Image ${RELEASE_TAG}" > ./release-assets/combined-release-body.md
+          fi
+
+          cat ./release-assets/combined-release-body.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Prepared Assets
         uses: actions/upload-artifact@v7

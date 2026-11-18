@@ -1,209 +1,174 @@
-#! /bin/bash
+#!/usr/bin/env bash
+# Writes the notes of a release to output/release-body.md.
+#
+# Usage: create-release-body.sh [stream]     (default: stable)
+#
+# Stage 3 runs it once per release, with the manifests of all built images in output/.
+# The notes hold, in this order:
+#   - the manifest of each image (what is in it),
+#   - the SHA-256 checksums of the download files (when IMAGER_JSON names rpi-image-repo.json),
+#   - what changed since the previous release: package versions, manifest rows, commits.
+#
+# It runs BEFORE the tag of the new release is made, so the newest existing tag is the previous
+# release.
+#
+# Optional values:
+#   RELEASE_COMMIT  the commit the images were built from (default: HEAD)
+#   IMAGER_JSON     path to the combined rpi-image-repo.json
+#
+# Needs: git with the full history and tags, jq, and gh with GH_TOKEN (to download the manifests
+# of the previous release; the notes are still written when that fails).
 
-# If used in GitHub Actions, ensure we have a full git history
-#     - name: Checkout
-#      uses: actions/checkout@v4
-#      with:
-#        fetch-depth: 0
+set -euo pipefail
 
-# Exit on error
-set -e
+# how many changed manifest rows are shown per image before the list is cut
+MAX_DIFF_LINES=20
 
-# Logging functions
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+log() { echo "[$(date +'%H:%M:%S')] $*" >&2; }
+warn() { echo "[$(date +'%H:%M:%S')] WARN: $*" >&2; }
 
-log() { echo -e "${GREEN}[$(date +'%H:%M:%S')]${NC} $*" >&2; }
-warn() { echo -e "${YELLOW}[$(date +'%H:%M:%S')] WARN:${NC} $*" >&2; }
-error() { echo -e "${RED}[$(date +'%H:%M:%S')] ERROR:${NC} $*" >&2; }
-info() { echo -e "${BLUE}[$(date +'%H:%M:%S')] INFO:${NC} $*" >&2; }
-group_log() {
-    if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-        echo -e "::group::$*"
-    else
-        log "$*"
-    fi
-}
-group_end() {
-    if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
-        echo -e "::endgroup::"
-    fi
-}
-
-# Determine repository root
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
 
+STREAM="${1:-stable}"
+COMMIT="${RELEASE_COMMIT:-HEAD}"
+
+if ! [[ "$STREAM" =~ ^[a-z]+$ ]]; then
+  echo "create-release-body.sh: not a stream name: ${STREAM}" >&2
+  exit 1
+fi
+
+OUTPUT_DIR="${REPO_ROOT}/output"
 PREVIOUS_DIR="${REPO_ROOT}/.previous"
+BODY="${OUTPUT_DIR}/release-body.md"
+PACKAGE_JSON="${STREAM}/package.json"
+
+mkdir -p "$OUTPUT_DIR"
 rm -rf "$PREVIOUS_DIR"
 mkdir -p "$PREVIOUS_DIR"
 
-OUTPUT_DIR="${REPO_ROOT}/output"
-
-# Create output directory if it doesn't exist
-mkdir -p "$OUTPUT_DIR"
-
-MANIFEST="${OUTPUT_DIR}/release-body.md"
-rm -f "$MANIFEST"
-touch "$MANIFEST"
-
-PKG_RELEASE_STREAM="${1:-stable}"
-
-info "Creating release body at ${MANIFEST}"
-
-# Get the latest tag to compare against, filtered by release type.
-# This runs BEFORE the tag of the new release is made (Stage 3 makes it), so the newest
-# existing tag is the previous release.
-if [[ "$PKG_RELEASE_STREAM" == "stable" ]]; then
-  # stable tags have no "beta" or "alpha" in the name
-  LATEST_TAG=$(git tag -l | grep -v -E "(beta|alpha)" | sort -V | tail -1 || echo "")
+# the newest existing tag of this stream (stable tags have no "beta" or "alpha" in the name)
+if [[ "$STREAM" == "stable" ]]; then
+  LATEST_TAG="$(git tag -l 'v*' | grep -v -E '(beta|alpha)' | sort -V | tail -n 1 || true)"
 else
-  LATEST_TAG=$(git tag -l | grep -F -- "$PKG_RELEASE_STREAM" | sort -V | tail -1 || echo "")
+  LATEST_TAG="$(git tag -l 'v*' | grep -F -- "$STREAM" | sort -V | tail -n 1 || true)"
 fi
 
-group_log "Latest Tag Lookup"
-  git tag -l
-group_end
+log "Previous release for stream '${STREAM}': ${LATEST_TAG:-none}"
 
-log "Latest tag for stream '${PKG_RELEASE_STREAM:-stable}': ${LATEST_TAG:-none}"
-
-# Check for package manifest changes if we have a previous tag
-HAS_PACKAGE_CHANGES=false
-if [ -n "$LATEST_TAG" ]; then
-  # Get the previous package.json for comparison
-  PACKAGE_JSON_PATH="${PKG_RELEASE_STREAM}/package.json"
-
-  log "Previous package.json path for comparison: ${PACKAGE_JSON_PATH:-none}"
-
-  # Compare package versions with previous tag
-  if [ -n "$PACKAGE_JSON_PATH" ] && git show "$LATEST_TAG:$PACKAGE_JSON_PATH" >/dev/null 2>&1; then
-    # Define the list of dependencies to check
-    DEPENDENCIES=(
-      "@homebridge/homebridge-apt-pkg"
-      "@homebridge/wifi-connect"
-      "ffmpeg-for-homebridge"
-    )
-
-    # Iterate through the dependencies
-    for DEP in "${DEPENDENCIES[@]}"; do
-      # Get the previous version of the dependency from the latest tag
-      PREV_VERSION=$(git show "$LATEST_TAG:$PACKAGE_JSON_PATH" 2>/dev/null | jq -r ".dependencies[\"$DEP\"] // \"unknown\"")
-
-      # Get the current version of the dependency from the current package.json
-      CURR_VERSION=$(jq -r ".dependencies[\"$DEP\"] // \"unknown\"" "${REPO_ROOT}/${PACKAGE_JSON_PATH}")
-
-      # Check if the version has changed and add it to the changelog
-      if [[ "$PREV_VERSION" != "$CURR_VERSION" && "$CURR_VERSION" != "unknown" ]]; then
-        if [ "$HAS_PACKAGE_CHANGES" = false ]; then
-          echo "### Package Manifest Changes" >> "$MANIFEST"
-          echo >> "$MANIFEST"
-          HAS_PACKAGE_CHANGES=true
-        fi
-        echo "* **${DEP}**: Updated from $PREV_VERSION to $CURR_VERSION" >> "$MANIFEST"
-      fi
-    done
-
-    # Add a blank line to the manifest if there were package changes
-    if [ "$HAS_PACKAGE_CHANGES" = true ]; then
-      echo >> "$MANIFEST"
-    fi
-    else
-      warn "Could not find previous package.json at tag ${LATEST_TAG} for comparison."
-    fi
-fi
-
-if gh release download "$LATEST_TAG" --pattern "*.manifest" --clobber --dir "${PREVIOUS_DIR}"; then
-  echo -e "\n## Changes Since Previous Release ($LATEST_TAG)\n" >> "$MANIFEST"
-  group_log "Available previous manifests in ${PREVIOUS_DIR} and current manifests in ${OUTPUT_DIR}"
-    ls -l "${PREVIOUS_DIR}"
-    ls -l "${OUTPUT_DIR}"
-  group_end
-  # Iterate through all manifest files in ${OUTPUT_DIR}
-  for OUTPUT_MANIFEST in "${OUTPUT_DIR}"/*manifest; do
-    # Extract the base name of the manifest file
-    MANIFEST_NAME=$(basename "$OUTPUT_MANIFEST")
-    log "Processing manifest: $MANIFEST_NAME"
-    # Check if a corresponding file exists in ${PREVIOUS_DIR}
-    PREVIOUS_MANIFEST="${PREVIOUS_DIR}/${MANIFEST_NAME}"
-    if [[ -f "$PREVIOUS_MANIFEST" ]]; then
-      TMP_DIFF="/tmp/manifest.diff.$$"
-      # Compare the manifests and capture differences
-      echo diff -u "$PREVIOUS_MANIFEST" "$OUTPUT_MANIFEST"
-      if ! diff -u "$PREVIOUS_MANIFEST" "$OUTPUT_MANIFEST" > "${TMP_DIFF}"; then
-        # Check if there are any meaningful changes in the diff
-        if grep -qE "^[+-]\|" "${TMP_DIFF}"; then
-          {
-            echo "### Changes in ${MANIFEST_NAME}"
-            echo "\`\`\`diff"
-            # Include the diff output, sorted for readability
-            grep -E "^[+-]\|" "${TMP_DIFF}" | sort -k2 | head -20
-            echo "\`\`\`"
-          } >> "$MANIFEST"
-        else
-          warn "No meaningful changes found in differences for ${MANIFEST_NAME}."
-          echo "No meaningful changes detected in ${MANIFEST_NAME}." >> "$MANIFEST"
-        fi
-        rm -f "${TMP_DIFF}" || true
-      else
-        warn "No differences found between current ${MANIFEST_NAME} and previous ${PREVIOUS_MANIFEST}."
-        echo "No changes detected in ${MANIFEST_NAME}." >> "$MANIFEST"
-      fi
-    else
-      warn "Previous manifest ${PREVIOUS_MANIFEST} not found for ${MANIFEST_NAME}."
-      # If no corresponding file exists in ${PREVIOUS_DIR}, note it in the manifest
-      echo "No previous manifest found for ${MANIFEST_NAME}." >> "$MANIFEST"
-    fi
+# ---- the manifest of each image
+manifests() {
+  local manifest
+  for manifest in "$OUTPUT_DIR"/*manifest; do
+    [ -f "$manifest" ] || continue
+    cat "$manifest"
+    echo
   done
-  
-else
-  warn "Previous release manifest not found for tag ${LATEST_TAG}. Skipping manifest comparison."
-  echo -e "\n## Changes Since Previous Release\n" >> "$MANIFEST"
-  echo "Previous release manifest not available for comparison." >> "$MANIFEST"
-fi
+}
 
-echo -e "\n### Homebridge Rasbian Image Changes" >> "$MANIFEST"
-if [ -n "$LATEST_TAG" ]; then
-  # Get commits since the latest tag of the same type
-  CHANGELOG_COMMITS=$(git log --oneline --no-merges "$LATEST_TAG"..HEAD 2>/dev/null)
-  
-  if [ -n "$CHANGELOG_COMMITS" ]; then
-    # Add code changes section header
-    if [ "$HAS_PACKAGE_CHANGES" = true ]; then
-      echo "### Code Changes" >> "$MANIFEST"
-      echo >> "$MANIFEST"
-    fi
-    # Format commits as changelog entries
-    while IFS= read -r commit; do
-      if [ -n "$commit" ]; then
-        # Extract commit hash and message
-        COMMIT_HASH=$(echo "$commit" | cut -d' ' -f1)
-        COMMIT_MSG=$(echo "$commit" | cut -d' ' -f2-)
-        echo "* $COMMIT_MSG (\`$COMMIT_HASH\`)" >> "$MANIFEST"
-      fi
-    done <<< "$CHANGELOG_COMMITS"
-  else
-    if [ "$HAS_PACKAGE_CHANGES" = false ]; then
-      echo "* No new commits since last ${PKG_RELEASE_STREAM:-stable} release" >> "$MANIFEST"
-    fi
-  fi
-else
-  # If no tags of this type exist, show recent commits
-  RECENT_COMMITS=$(git log --oneline --no-merges -5 2>/dev/null)
-  if [ -n "$RECENT_COMMITS" ]; then
-    echo "### Recent Changes" >> "$MANIFEST"
-    echo >> "$MANIFEST"
-    while IFS= read -r commit; do
-      if [ -n "$commit" ]; then
-        COMMIT_HASH=$(echo "$commit" | cut -d' ' -f1)
-        COMMIT_MSG=$(echo "$commit" | cut -d' ' -f2-)
-        echo "* $COMMIT_MSG (\`$COMMIT_HASH\`)" >> "$MANIFEST"
-      fi
-    done <<< "$RECENT_COMMITS"
-  else
-    echo "* No commit history available" >> "$MANIFEST"
-  fi
-fi
+# ---- the checksums of the download files
+checksums() {
+  [ -n "${IMAGER_JSON:-}" ] && [ -f "$IMAGER_JSON" ] || return 0
+  echo "## Checksums (SHA-256)"
+  echo
+  echo "| File | SHA-256 |"
+  echo "|:-----|:--------|"
+  jq -r '.os_list[] | "| `\(.url | split("/") | last)` | `\(.image_download_sha256)` |"' "$IMAGER_JSON"
+  echo
+  # shellcheck disable=SC2016  # the backticks are Markdown, not a command
+  echo 'The checksum of the `.img` file inside each zip is in `rpi-image-repo.json` (`extract_sha256`).'
+  echo
+}
 
-echo >> "$MANIFEST"
+# ---- package versions that changed since the previous release
+package_changes() {
+  local name previous current lines=""
+
+  if ! git show "${LATEST_TAG}:${PACKAGE_JSON}" > "$PREVIOUS_DIR/package.json" 2> /dev/null; then
+    warn "No ${PACKAGE_JSON} in ${LATEST_TAG}"
+    return 0
+  fi
+  git show "${COMMIT}:${PACKAGE_JSON}" > "$PREVIOUS_DIR/package.current.json"
+
+  while read -r name; do
+    previous="$(jq -r --arg name "$name" '.dependencies[$name] // "not included"' "$PREVIOUS_DIR/package.json")"
+    current="$(jq -r --arg name "$name" '.dependencies[$name]' "$PREVIOUS_DIR/package.current.json")"
+    if [ "$previous" != "$current" ]; then
+      lines+="* **${name}**: Updated from ${previous} to ${current}"$'\n'
+    fi
+  done < <(jq -r '.dependencies | keys[]' "$PREVIOUS_DIR/package.current.json")
+
+  if [ -n "$lines" ]; then
+    echo "### Package Version Changes"
+    echo
+    printf '%s\n' "$lines"
+  fi
+}
+
+# ---- manifest rows that changed since the previous release
+manifest_changes() {
+  local manifest name previous changed total
+
+  if ! gh release download "$LATEST_TAG" --pattern "*.manifest" --clobber --dir "$PREVIOUS_DIR" >&2; then
+    warn "The manifests of ${LATEST_TAG} could not be downloaded"
+    return 0
+  fi
+
+  for manifest in "$OUTPUT_DIR"/*manifest; do
+    [ -f "$manifest" ] || continue
+    name="$(basename "$manifest")"
+    previous="${PREVIOUS_DIR}/${name}"
+    [ -f "$previous" ] || continue
+
+    # the table rows that were added (+) or removed (-)
+    changed="$(diff -u "$previous" "$manifest" | grep -E '^[+-]\|' | sort -k2 || true)"
+    [ -n "$changed" ] || continue
+
+    total="$(printf '%s\n' "$changed" | wc -l | tr -d ' ')"
+    echo "### Changes in ${name}"
+    echo
+    echo '```diff'
+    printf '%s\n' "$changed" | head -n "$MAX_DIFF_LINES"
+    echo '```'
+    if [ "$total" -gt "$MAX_DIFF_LINES" ]; then
+      echo
+      echo "(${MAX_DIFF_LINES} of ${total} changed lines are shown. The manifest files of both releases have them all.)"
+    fi
+    echo
+  done
+}
+
+# ---- commits since the previous release
+commit_changes() {
+  local commits
+  # shellcheck disable=SC2016  # the backticks are Markdown, not a command
+  commits="$(git log --no-merges --format='* %s (`%h`)' "${LATEST_TAG}..${COMMIT}")"
+  echo "### Homebridge Raspbian Image Changes"
+  echo
+  if [ -n "$commits" ]; then
+    printf '%s\n' "$commits"
+  else
+    echo "* No new commits since ${LATEST_TAG}"
+  fi
+  echo
+}
+
+{
+  manifests
+  checksums
+
+  if [ -n "$LATEST_TAG" ]; then
+    echo "## Changes Since Previous Release (${LATEST_TAG})"
+    echo
+    package_changes
+    manifest_changes
+    commit_changes
+  else
+    echo "## Changes"
+    echo
+    echo "This is the first release of the ${STREAM} stream."
+    echo
+  fi
+} > "$BODY"
+
+log "Release notes written to ${BODY}"
