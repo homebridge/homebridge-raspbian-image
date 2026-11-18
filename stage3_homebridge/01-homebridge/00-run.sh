@@ -34,7 +34,12 @@ export
 #
 # Set Version
 #
-echo "$IMG_NAME" > "${ROOTFS_DIR}/etc/hb-release"
+# /etc/hb-release holds the release this image was built as, for example "v2.0.26 (64bit)".
+# The login message and "hb-config -> About" show it. The homebridge package and the UI only
+# check that the file exists. The build passes the two values in (see the build workflow).
+: "${HB_IMAGE_VERSION:?HB_IMAGE_VERSION is not set}"
+: "${HB_IMAGE_BITS:?HB_IMAGE_BITS is not set}"
+echo "${HB_IMAGE_VERSION} (${HB_IMAGE_BITS})" > "${ROOTFS_DIR}/etc/hb-release"
 
 on_chroot << EOF
 

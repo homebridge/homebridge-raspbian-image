@@ -90,7 +90,7 @@ breaks "the first boot service does not start at boot" 'rm etc/systemd/system/mu
 breaks "the service settings file is the one from the apt package" 'printf "[Service]\nUser=1000\n" > etc/systemd/system/homebridge.service.d/override.conf'
 breaks "the homebridge user is in the sudo group" 'printf "sudo:x:27:pi,homebridge\n" > etc/group'
 breaks "the sudo rule file can be read by everyone" 'chmod 644 etc/sudoers.d/010_homebridge-nopasswd'
-breaks "/etc/hb-release is empty" ': > etc/hb-release'
+breaks "/etc/hb-release does not hold the release tag" 'echo Homebridge-trixie-64bit > etc/hb-release'
 breaks "the apt package is another version" 'sed -i "s/^Version: 2.0.26/Version: 2.0.25/" var/lib/dpkg/status'
 breaks "wifi-connect is another version" 'echo "{\"version\":\"4.2.1\"}" > opt/wifi-connect/lib/node_modules/@homebridge/wifi-connect/package.json'
 breaks "wifi-connect has no Node.js of its own" 'rm opt/wifi-connect/bin/node'
