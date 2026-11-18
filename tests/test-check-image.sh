@@ -88,6 +88,7 @@ breaks "nginx does not start at boot" 'rm etc/systemd/system/multi-user.target.w
 breaks "wifi-connect does not start at boot" 'rm etc/systemd/system/multi-user.target.wants/wifi-connect.service'
 breaks "the first boot service does not start at boot" 'rm etc/systemd/system/multi-user.target.wants/first-boot-homebridge.service'
 breaks "the service settings file is the one from the apt package" 'printf "[Service]\nUser=1000\n" > etc/systemd/system/homebridge.service.d/override.conf'
+breaks "the homebridge user is in the sudo group" 'printf "sudo:x:27:pi,homebridge\n" > etc/group'
 breaks "the sudo rule file can be read by everyone" 'chmod 644 etc/sudoers.d/010_homebridge-nopasswd'
 breaks "/etc/hb-release is empty" ': > etc/hb-release'
 breaks "the apt package is another version" 'sed -i "s/^Version: 2.0.26/Version: 2.0.25/" var/lib/dpkg/status'

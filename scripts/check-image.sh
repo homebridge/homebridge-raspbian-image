@@ -108,6 +108,7 @@ check "the homebridge service starts at boot" enabled homebridge.service
 check "the service settings file is in place" grep -q 'UIX_CAN_SHUTDOWN_RESTART_HOST=1' "$ROOT/etc/systemd/system/homebridge.service.d/override.conf"
 check "the service settings file does not change the service user" bash -c "! grep -q '^User=' '$ROOT/etc/systemd/system/homebridge.service.d/override.conf'"
 check "the homebridge user exists" grep -q '^homebridge:' "$ROOT/etc/passwd"
+check "the homebridge user is not in the sudo group" bash -c "! grep -E '^sudo:' '$ROOT/etc/group' | cut -d: -f4 | tr ',' '\n' | grep -qx homebridge"
 check "the sudo rule for shutdown and reboot is in place, readable by root only" has_mode "$ROOT/etc/sudoers.d/010_homebridge-nopasswd" 440
 if [ -n "$APT_PKG" ]; then
   check "the homebridge apt package is version ${APT_PKG}" bash -c "awk '/^Package: homebridge\$/ { found = 1 } found && /^Version: / { print \$2; exit }' '$ROOT/var/lib/dpkg/status' | grep -qxF '$APT_PKG'"

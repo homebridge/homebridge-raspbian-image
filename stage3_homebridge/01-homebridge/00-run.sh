@@ -45,9 +45,6 @@ apt-get update
 echo apt-get install homebridge=${HOMEBRIDGE_APT_PKG_VERSION}
 apt-get install homebridge=${HOMEBRIDGE_APT_PKG_VERSION} 
 
-# Add the homebridge user to the sudo group
-usermod -aG sudo homebridge
-
 mkdir -p /etc/systemd/system/homebridge.service.d
 echo "[Service]" > /etc/systemd/system/homebridge.service.d/override.conf
 echo "Environment=\"UIX_CAN_SHUTDOWN_RESTART_HOST=1\"" >> /etc/systemd/system/homebridge.service.d/override.conf
