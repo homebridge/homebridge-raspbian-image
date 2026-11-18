@@ -57,16 +57,18 @@ PKG_RELEASE_STREAM="${1:-stable}"
 
 info "Creating release body at ${MANIFEST}"
 
-# Get the latest tag to compare against, filtered by release type
+# Get the latest tag to compare against, filtered by release type.
+# This runs BEFORE the tag of the new release is made (Stage 3 makes it), so the newest
+# existing tag is the previous release.
 if [[ "${PKG_RELEASE_STREAM:-stable}" == "beta" ]]; then
   # For beta releases, only look at beta tags
-  LATEST_TAG=$(git tag -l | grep -E "beta" | sort -V | tail -2 | head -1 2>/dev/null || echo "")
+  LATEST_TAG=$(git tag -l | grep -E "beta" | sort -V | tail -1 2>/dev/null || echo "")
 elif [[ "${PKG_RELEASE_STREAM:-stable}" == "alpha" ]]; then
   # For alpha releases, only look at alpha tags
-  LATEST_TAG=$(git tag -l | grep -E "alpha" | sort -V | tail -2 | head -1 2>/dev/null || echo "")
+  LATEST_TAG=$(git tag -l | grep -E "alpha" | sort -V | tail -1 2>/dev/null || echo "")
 else
   # For stable releases, only look at stable tags (no beta or alpha in name)
-  LATEST_TAG=$(git tag -l | grep -v -E "(beta|alpha)" | sort -V | tail -2 | head -1 2>/dev/null || echo "")
+  LATEST_TAG=$(git tag -l | grep -v -E "(beta|alpha)" | sort -V | tail -1 2>/dev/null || echo "")
 fi
 
 group_log "Latest Tag Lookup"
