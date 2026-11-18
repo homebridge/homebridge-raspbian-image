@@ -99,6 +99,7 @@ breaks "the wifi-connect service holds up Homebridge" 'sed -i "s#^Before=.*#Befo
 breaks "the manifest has no Node.js row" 'sed -i "/NodeJS/d" opt/homebridge/homebridge_raspbian_image_arm64.manifest'
 breaks "the manifest is missing" 'rm opt/homebridge/homebridge_raspbian_image_arm64.manifest'
 breaks "ffmpeg is missing" 'rm usr/local/bin/ffmpeg'
+breaks "/etc/issue is marked as a program" 'chmod 755 etc/issue'
 breaks "dnsmasq starts at boot" 'ln -s /usr/lib/systemd/system/dnsmasq.service etc/systemd/system/multi-user.target.wants/dnsmasq.service'
 breaks "an SSH host key is in the image" 'touch etc/ssh/ssh_host_ed25519_key'
 breaks "a certificate is in the image" 'mkdir -p etc/nginx/ssl && touch etc/nginx/ssl/homebridge.local.key'

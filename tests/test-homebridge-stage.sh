@@ -37,6 +37,29 @@ same "the sudo rule only names shutdown, reboot and poweroff" \
   "$(grep -v '^#' "$FILES/010_homebridge-nopasswd" | sed 's/.*NOPASSWD: //' | tr ',' '\n' | sed 's#.*/##; s/ //g' | sort -u | tr '\n' ' ')" \
   "poweroff reboot shutdown "
 
+# file modes: programs can be run (755), text files can not (644), the sudo rule is root-only (440)
+mode() { stat -c '%a' "$W/rootfs/$1"; }
+same "hb-config is installed as a program" "$(mode usr/local/sbin/hb-config)" "755"
+same "the first boot script is installed as a program" "$(mode usr/local/sbin/first-boot-homebridge)" "755"
+same "the nginx port script is installed as a program" "$(mode etc/hb-service/homebridge/prestart.d/20-hb-nginx-check)" "755"
+same "the login message scripts are installed as programs" "$(mode etc/update-motd.d/15-linux)$(mode etc/update-motd.d/20-homebridge)" "755755"
+same "/etc/issue is installed as a text file" "$(mode etc/issue)" "644"
+same "the first boot service file is installed as a text file" "$(mode etc/systemd/system/first-boot-homebridge.service)" "644"
+same "the sudo rule file is readable by root only" "$(mode etc/sudoers.d/010_homebridge-nopasswd)" "440"
+isnt "nothing is left in /tmp of the image" test -n "$(ls -A "$W/rootfs/tmp")"
+
+# the nginx build step
+rm -rf "$W/nginx-root" && mkdir -p "$W/nginx-root/etc/nginx/sites-available" "$W/nginx-root/usr/share/nginx/html" "$W/nginx-root/etc/systemd/system" "$W/nginx-root/usr/local/sbin"
+(
+  cd "$REPO/stage3_homebridge/03-nginx" || exit 1
+  on_chroot() { cat > /dev/null; }
+  export -f on_chroot
+  ROOTFS_DIR="$W/nginx-root" bash -e ./01-run.sh
+) > /dev/null 2>&1
+same "the nginx build step runs" "$?" "0"
+same "the certificate script is installed as a program" "$(stat -c '%a' "$W/nginx-root/usr/local/sbin/nginx-homebridge-self-signed-cert")" "755"
+same "the nginx site config is installed as a text file" "$(stat -c '%a' "$W/nginx-root/etc/nginx/sites-available/homebridge.local")" "644"
+
 # The lines that run inside the image are fed to a shell on its standard input. A command that
 # reads its input would swallow the lines after it, and the build would still pass.
 # Here the saved lines run with every path moved into the scratch folder, and with stand-ins for

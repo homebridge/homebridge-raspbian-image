@@ -121,6 +121,7 @@ check "hb-config is installed" is_program "$ROOT/usr/local/sbin/hb-config"
 check "the nginx port script is installed" is_program "$ROOT/etc/hb-service/homebridge/prestart.d/20-hb-nginx-check"
 check "the first boot service starts at boot" enabled first-boot-homebridge.service
 check "the first boot script is installed" is_program "$ROOT/usr/local/sbin/first-boot-homebridge"
+check "/etc/issue is a plain text file (mode 644)" has_mode "$ROOT/etc/issue" 644
 check "ffmpeg is installed" is_program "$ROOT/usr/local/bin/ffmpeg"
 
 echo "Manifest"
