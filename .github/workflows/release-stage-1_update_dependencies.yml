@@ -3,7 +3,7 @@ run-name: Release Stage 1 - Dependency Management - ${{ github.event_name == 'wo
 
 on:
   schedule:
-    # Daily updates - 6 AM Eastern (10 AM UTC), processes stable, beta and alpha streams
+    # Daily, at 10:00 UTC. This repo has one stream: stable.
     - cron: '0 10 * * *'
   workflow_dispatch:
     inputs:
@@ -51,7 +51,7 @@ jobs:
               echo "matrix=$(jq -cn --arg stream "$RELEASE_STREAM" '{stream: [$stream]}')" >> "$GITHUB_OUTPUT"
             fi
           else
-            # Scheduled run - process stable, beta, and alpha streams
+            # Scheduled run - this repo has one stream: stable
             echo 'matrix={"stream":["stable"]}' >> "$GITHUB_OUTPUT"
           fi
 

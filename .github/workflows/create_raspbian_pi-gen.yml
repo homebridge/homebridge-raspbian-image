@@ -4,8 +4,7 @@ run-name: Release Stage 2 - Create Raspbian Homebridge Image ${{ github.ref }} -
 on:
   workflow_dispatch:
     inputs:
-      # The github tag. e.g: v1.0.1
-      # Download assets from a specific tag/version
+      # Which part of the version goes up for this release. e.g: patch takes v2.0.25 to v2.0.26
       release-increment:
         description: 'Increment Release Version'
         type: choice
@@ -47,8 +46,9 @@ concurrency:
 permissions: {}
 
 jobs:
+  # Works out the version of this release. The tag itself is made later, by Stage 3.
   tag:
-    name: Create Release Tag
+    name: Work out the next version
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -371,8 +371,6 @@ jobs:
           echo "RPI_IMAGER_WEBSITE: https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started"
           echo "RPI_IMAGER_IMAGE_URL: https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${IMGFILENAME}"
           echo "RPI_IMAGER_DEVICES: '${DEVICES}'"
-
-# This is not currently used
 
       - name: Calculate Image Checksum
         id: get_sha256_checksum
