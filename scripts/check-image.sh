@@ -123,6 +123,12 @@ check "the first boot script is installed" is_program "$ROOT/usr/local/sbin/firs
 check "/etc/issue is a plain text file (mode 644)" has_mode "$ROOT/etc/issue" 644
 check "ffmpeg is installed" is_program "$ROOT/usr/local/bin/ffmpeg"
 
+echo "Timezone"
+check "the script that looks up the timezone once is installed" is_program "$ROOT/etc/NetworkManager/dispatcher.d/60-hb-timezone-once"
+check "the tzupdate tool is installed" is_program "$ROOT/usr/local/bin/tzupdate"
+check "no service looks up the timezone at every boot" not_enabled tzupdate.service
+check "the timezone has not been looked up yet (that happens on the Pi)" test ! -e "$ROOT/var/lib/hb-image/timezone-set-once"
+
 echo "Manifest"
 check "the manifest exists" test -s "$MANIFEST"
 check "the manifest lists Node.js" manifest_has "NodeJS"
@@ -160,6 +166,7 @@ check "hostapd does not start at boot (wifi-connect starts its own copy when nee
 echo "Nothing left behind by the build"
 check "no SSH host keys are part of the image" bash -c "! ls '$ROOT'/etc/ssh/ssh_host_*_key 2>/dev/null | grep -q ."
 check "no npm cache of root is part of the image" test ! -e "$ROOT/root/.npm"
+check "no pip cache of root is part of the image" test ! -e "$ROOT/root/.cache/pip"
 
 if [ "$RUN" -eq 1 ]; then
   echo "Programs from the image run"

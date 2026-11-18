@@ -17,11 +17,13 @@ good_image() {
     "$r/var/lib/homebridge/node_modules/homebridge" "$r/var/lib/dpkg" "$wants" \
     "$r/etc/systemd/system/homebridge.service.d" "$r/etc/sudoers.d" "$r/etc/nginx/sites-available" \
     "$r/etc/nginx/sites-enabled" "$r/etc/hb-service/homebridge/prestart.d" "$r/etc/ssh" \
+    "$r/etc/NetworkManager/dispatcher.d" "$r/var/lib/hb-image" \
     "$r/usr/local/sbin" "$r/usr/local/bin" "$r/root" "$r/tmp" \
     "$r/opt/wifi-connect/bin" "$r/opt/wifi-connect/lib/node_modules/@homebridge/wifi-connect"
   for program in opt/homebridge/bin/node opt/wifi-connect/bin/node usr/local/bin/ffmpeg usr/local/sbin/hb-config \
     usr/local/sbin/first-boot-homebridge usr/local/sbin/nginx-homebridge-self-signed-cert \
-    etc/hb-service/homebridge/prestart.d/20-hb-nginx-check; do
+    etc/hb-service/homebridge/prestart.d/20-hb-nginx-check etc/NetworkManager/dispatcher.d/60-hb-timezone-once \
+    usr/local/bin/tzupdate; do
     printf '#!/bin/sh\n' > "$r/$program"
     chmod 755 "$r/$program"
   done
@@ -106,6 +108,10 @@ breaks "dnsmasq starts at boot" 'ln -s /usr/lib/systemd/system/dnsmasq.service e
 breaks "an SSH host key is in the image" 'touch etc/ssh/ssh_host_ed25519_key'
 breaks "a certificate is in the image" 'mkdir -p etc/nginx/ssl && touch etc/nginx/ssl/homebridge.local.key'
 breaks "root has an npm cache" 'mkdir root/.npm'
+breaks "root has a pip cache" 'mkdir -p root/.cache/pip'
+breaks "the timezone script is missing" 'rm etc/NetworkManager/dispatcher.d/60-hb-timezone-once'
+breaks "the old every-boot timezone service is turned on" 'ln -s /etc/systemd/system/tzupdate.service etc/systemd/system/multi-user.target.wants/tzupdate.service'
+breaks "the timezone was already looked up during the build" 'touch var/lib/hb-image/timezone-set-once'
 if [ "$(id -u)" -eq 0 ]; then
   breaks "a file in /opt/wifi-connect belongs to another user" 'chown 1000 opt/wifi-connect/bin/node'
   breaks "a file in /opt/wifi-connect can be changed by everyone" 'chmod 777 opt/wifi-connect/bin/node'

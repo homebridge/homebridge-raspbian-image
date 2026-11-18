@@ -1,0 +1,57 @@
+#!/bin/sh
+#
+# Homebridge Raspbian Image - set the timezone once
+#
+# NetworkManager runs this script when a network device changes (it is a "dispatcher" script).
+# The first time the Pi has a network, it looks up the timezone for the Pi's public IP address
+# and sets it. After that it never does anything again.
+#
+#   - It asks public "where is this IP address" web services (the tzupdate tool does that).
+#     This is the only time the image contacts such a service.
+#   - It does NOT look anything up when a timezone was already picked, for example in
+#     Raspberry Pi Imager or raspi-config. It can tell because the timezone is then no longer
+#     the one the image is built with.
+#   - If the lookup fails (no internet yet), it tries again the next time a network comes up.
+#
+# $1 = the device, $2 = what happened to it
+
+# the timezone the image is built with ("timezone:" in the build workflow)
+IMAGE_TIMEZONE="Europe/London"
+
+DONE=/var/lib/hb-image/timezone-set-once
+LOCK=/run/hb-timezone-once.lock
+
+[ "$2" = "up" ] || exit 0
+[ "$1" != "lo" ] || exit 0
+[ ! -e "$DONE" ] || exit 0
+
+# only one copy at a time (two devices can come up together)
+mkdir "$LOCK" 2> /dev/null || exit 0
+trap 'rmdir "$LOCK" 2> /dev/null' EXIT
+
+done_for_good() {
+  mkdir -p "$(dirname "$DONE")"
+  echo "$1" > "$DONE"
+}
+
+CURRENT=$(readlink -f /etc/localtime | sed 's#^.*/zoneinfo/##')
+if [ "$CURRENT" != "$IMAGE_TIMEZONE" ]; then
+  done_for_good "kept $CURRENT: it was set by the user"
+  exit 0
+fi
+
+# no answer (for example no internet yet): try again at the next "up"
+ZONE=$(/usr/local/bin/tzupdate --print-only --timeout 10 2> /dev/null) || exit 0
+
+# the answer comes from the internet, so it is only used when it is the name of a real timezone
+case "$ZONE" in
+  "" | /* | *..* | *[!A-Za-z0-9_/+-]*) exit 0 ;;
+esac
+[ -f "/usr/share/zoneinfo/$ZONE" ] || exit 0
+
+if timedatectl set-timezone "$ZONE"; then
+  echo "Timezone set to $ZONE (looked up once, at the first network connection)"
+  done_for_good "set to $ZONE"
+fi
+
+exit 0
