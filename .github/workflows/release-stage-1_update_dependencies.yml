@@ -88,23 +88,48 @@ jobs:
           PUBLISH_TOKEN: ${{ steps.dependency-bot-token.outputs.token }}  # GitHub App on latest's bypass list, for direct pushes
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      - name: Log Skipped ${{ matrix.stream }} Stage 2 Trigger
-        if: steps.homebridge-bot.outputs.changes_detected != 'true' || steps.homebridge-bot.outputs.auto_merge != 'true'
-        run: |
-          echo "::warning::${{ matrix.stream }} Stage 2 not triggered: Changes Detected=${{ steps.homebridge-bot.outputs.changes_detected }}, Auto Merge=${{ steps.homebridge-bot.outputs.auto_merge }}"
-  
-      - name: Checkout repository (for trigger step)
-        if: steps.homebridge-bot.outputs.changes_detected == 'true' && steps.homebridge-bot.outputs.auto_merge == 'true'
+      # The full history and the tags are needed to compare with the newest release.
+      # The branch tip is checked out, so a push the bot just made is included.
+      - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
 
+      - name: Decide whether to build
+        id: plan
+        env:
+          STREAM: ${{ matrix.stream }}
+          CHANGES_DETECTED: ${{ steps.homebridge-bot.outputs.changes_detected }}
+          AUTO_MERGE: ${{ steps.homebridge-bot.outputs.auto_merge }}
+        run: |
+          # true when the versions on the branch are not in the newest release, for example
+          # because the build that should have released them failed
+          UNRELEASED="$(./scripts/unreleased-versions.sh "$STREAM")"
+
+          BUILD=false
+          if [[ "$AUTO_MERGE" != "true" ]]; then
+            echo "::warning::${STREAM} Stage 2 not triggered: the bot does not merge by itself (Auto Merge=${AUTO_MERGE})"
+          elif [[ "$CHANGES_DETECTED" == "true" ]]; then
+            echo "::notice::${STREAM}: the bot found new versions, starting a build"
+            BUILD=true
+          elif [[ "$UNRELEASED" == "true" ]]; then
+            echo "::notice::${STREAM}: the versions on the branch were never released, starting a build"
+            BUILD=true
+          else
+            echo "::notice::${STREAM} Stage 2 not triggered: nothing new (Changes Detected=${CHANGES_DETECTED})"
+          fi
+          echo "build=${BUILD}" >> "$GITHUB_OUTPUT"
+
+      # This step fails when the build fails or takes too long, so this workflow run shows red.
       - name: Trigger and Wait for ${{ matrix.stream }} Stage 2 Workflow
-        if: steps.homebridge-bot.outputs.changes_detected == 'true' && steps.homebridge-bot.outputs.auto_merge == 'true'
+        if: steps.plan.outputs.build == 'true'
         uses: ./.github/actions/trigger-and-wait-workflow
         with:
           workflow-file: 'create_raspbian_pi-gen.yml'
-          ref: 'latest'
+          ref: ${{ github.ref_name }}
           github-token: ${{ secrets.GH_TOKEN }}
-          timeout-minutes: '120'
+          timeout-minutes: '180'
           workflow-fields: |
             release-stream=${{ matrix.stream }}
             Scheduled=${{ github.event_name == 'workflow_dispatch' && 'Manual' || 'Scheduled' }}
