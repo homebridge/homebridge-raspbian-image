@@ -2,7 +2,6 @@
 
 INTERACTIVE=True
 ASK_TO_REBOOT=0
-CONFIG=/boot/config.txt
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -74,14 +73,6 @@ is_fkms() {
   fi
 }
 
-is_installed() {
-    if [ "$(dpkg -l "$1" 2> /dev/null | tail -n 1 | cut -d ' ' -f 1)" != "ii" ]; then
-      return 1
-    else
-      return 0
-    fi
-}
-
 deb_ver () {
   ver=`cat /etc/debian_version | cut -d . -f 1`
   echo $ver
@@ -103,27 +94,6 @@ calc_wt_size() {
   WT_MENU_HEIGHT=$(($WT_HEIGHT-7))
 }
 
-set_config_var() {
-  lua - "$1" "$2" "$3" <<EOF > "$3.bak"
-local key=assert(arg[1])
-local value=assert(arg[2])
-local fn=assert(arg[3])
-local file=assert(io.open(fn))
-local made_change=false
-for line in file:lines() do
-  if line:match("^#?%s*"..key.."=.*$") then
-    line=key.."="..value
-    made_change=true
-  end
-  print(line)
-end
-if not made_change then
-  print(key.."="..value)
-end
-EOF
-mv "$3.bak" "$3"
-}
-
 get_web_addresses() {
   IP=$(hostname -I)
 
@@ -138,20 +108,6 @@ get_web_addresses() {
   done
 }
 
-get_ip_and_port() {
-  IP=$(hostname -I)
-
-  printf "  ${BOLD}*${NC} ${GREEN}$(hostname).local:$1$2${NC}\n"
-
-  for ip in $IP; do
-    if expr "$ip" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null; then
-      printf "  ${BOLD}*${NC} ${GREEN}$ip:$1$2${NC}\n"
-    else
-      printf "  ${BOLD}*${NC} ${GREEN}[$ip]:$1$2${NC}\n"
-    fi
-  done
-}
-
 do_finish() {
   if [ $ASK_TO_REBOOT -eq 1 ]; then
     whiptail --yesno "Would you like to reboot now?" 20 60 2
@@ -161,10 +117,6 @@ do_finish() {
     fi
   fi
   exit 0
-}
-
-get_first_user() {
-  printf "$(getent passwd 1000 | cut -d: -f1)"
 }
 
 HB_KEYRING=/usr/share/keyrings/homebridge.gpg
@@ -335,256 +287,11 @@ do_install_adguard_home() {
   fi
 }
 
-do_install_deconz() {
-  whiptail --title "Warning" --yesno "This will install the deCONZ and Phoscon software which will use the following ports:\n\n* 4530 - Phoscon Web App\n* 4531 - WebSockets\n\nAre you sure you want to continue?" 20 60 1
-  RET=$?
-  if [ $RET -eq 0 ]; then
-    isRaspbee="0"
-    isRaspbee2="0"
-
-    do_raspbee_setup() {
-      echo "Setting up for RaspBee..."
-      isRaspbee="1"
-
-      # Install deps
-      apt update --allow-releaseinfo-change
-      sudo apt install -y i2c-tools build-essential raspberrypi-kernel-headers
-
-      # WiringPi is no longer packaged by Raspberry Pi OS, and the old download is gone,
-      # so install the package published by the maintained WiringPi project
-      WIRINGPI_ARCH=$(dpkg --print-architecture)
-      WIRINGPI_URL=$(curl -sL https://api.github.com/repos/WiringPi/WiringPi/releases/latest \
-        | grep -o "https://[^\"]*wiringpi_[^\"]*_${WIRINGPI_ARCH}\.deb" | head -n 1)
-      curl -L -o /tmp/wiringpi.deb "$WIRINGPI_URL"
-      dpkg -i /tmp/wiringpi.deb
-      rm -f /tmp/wiringpi.deb
-
-      # Enable UART
-      set_config_var enable_uart 1 $CONFIG
-    }
-
-    do_raspbee2_setup() {
-      isRaspbee2="1"
-      do_raspbee_setup
-
-      # RTC-Installation
-      [ -d /tmp/raspbee2-rtc-master ] && rm -rf /tmp/raspbee2-rtc-master
-      curl -o /tmp/raspbee2-rtc.zip -L# https://github.com/dresden-elektronik/raspbee2-rtc/archive/master.zip
-      unzip /tmp/raspbee2-rtc.zip -d /tmp
-      cd /tmp/raspbee2-rtc-master
-      make
-      make install
-      cd ~
-      rm -rf /tmp/raspbee2-rtc-master
-    }
-
-    do_conbee_setup() {
-      echo "Setting up for ConBee / ConBee II..."
-      isRaspbee="0"
-    }
-
-    FUN=$(whiptail --title "Choose Device" --menu "\nPlease select the type of device you have:" 20 60 3 --cancel-button Cancel --ok-button Select \
-      "C1 ConBee or ConBee II" "" \
-      "C2 RaspBee I" "" \
-      "C3 RaspBee II" "" \
-      3>&1 1>&2 2>&3)
-    RET=$?
-    if [ $RET -eq 1 ]; then
-      return 0
-    elif [ $RET -eq 0 ]; then
-      case "$FUN" in
-        C1\ *) do_conbee_setup ;;
-        C2\ *) do_raspbee_setup ;;
-        C3\ *) do_raspbee2_setup ;;
-        *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
-      esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
-    fi
-
-    # Detect Debian version
-    if [ -f /etc/os-release ]; then
-      . /etc/os-release
-      DEBIAN_VERSION=$(echo $VERSION_ID | cut -d. -f1)
-      DEBIAN_CODENAME=$(lsb_release -cs)
-    else
-      whiptail --title "Error" --msgbox "Cannot detect OS version" 20 60 1
-      return 1
-    fi
-
-    echo "Detected Debian version: $DEBIAN_VERSION ($DEBIAN_CODENAME)"
-
-    # Determine which repository to use
-    if [ "$DEBIAN_VERSION" -ge 13 ]; then
-      echo "Debian 13+ detected - using bookworm repository as fallback"
-      REPO_CODENAME="bookworm"
-      USE_MODERN_METHOD=true
-    elif [ "$DEBIAN_VERSION" -ge 12 ]; then
-      echo "Debian 12 detected"
-      REPO_CODENAME="bookworm"
-      USE_MODERN_METHOD=true
-    else
-      echo "Debian < 12 detected"
-      REPO_CODENAME="${DEBIAN_CODENAME}"
-      USE_MODERN_METHOD=false
-    fi
-
-    if [ "$USE_MODERN_METHOD" = true ]; then
-      echo "Using modern keyring method"
-      
-      # Create keyrings directory if it doesn't exist
-      mkdir -p /etc/apt/keyrings
-      
-      # Download and install the deCONZ GPG key
-      wget -O - http://phoscon.de/apt/deconz.pub.key | gpg --dearmor -o /etc/apt/keyrings/deconz.gpg
-      
-      # Configure the APT repository with signed-by
-      sh -c "echo 'deb [signed-by=/etc/apt/keyrings/deconz.gpg] http://phoscon.de/apt/deconz ${REPO_CODENAME} main' > /etc/apt/sources.list.d/deconz.list"
-    else
-      echo "Using legacy apt-key method"
-      
-      # Legacy method with apt-key
-      wget -O - http://phoscon.de/apt/deconz.pub.key | apt-key add -
-      
-      # Configure the APT repository
-      sh -c "echo 'deb http://phoscon.de/apt/deconz ${REPO_CODENAME} main' > /etc/apt/sources.list.d/deconz.list"
-    fi
-
-    # Update APT package list
-    echo "Updating package lists..."
-    apt update --allow-releaseinfo-change
-
-    # Install deCONZ
-    echo "Installing deCONZ..."
-    apt install -y deconz
-
-    # Add override service
-    mkdir -p /etc/systemd/system/deconz.service.d
-    cat > /etc/systemd/system/deconz.service.d/override.conf <<EOL
-[Service]
-User=$(get_first_user)
-ExecStart=
-ExecStart=/usr/bin/deCONZ -platform minimal --http-port=4530 --ws-port=4531
-EOL
-
-    # Enable and start
-    systemctl daemon-reload
-
-    systemctl stop deconz-gui
-    systemctl disable deconz-gui
-
-    systemctl enable deconz
-    systemctl restart deconz
-
-    # Complete
-    PHOSCON_WEB=$(get_web_addresses http 4530 | sed 's/\x1b\[[0-9;]*m//g')
-    whiptail --title "Success" --msgbox "deCONZ and Phoscon have been installed.\n\nYou can access the Phoscon web app via:\n\n$PHOSCON_WEB" 20 60 1
-
-    # Ask to reboot on RaspBee
-    if [ "$isRaspbee" = "1" ]; then
-      if [ "$isRaspbee2" = "1" ]; then
-        whiptail --title "Final Steps" --msgbox "You need to reboot your device to complete installation.\n\nOnce you have reboot you need to configure the RTC module by running:\n\nsudo hwclock --systohc\nsudo hwclock --verbose\n\nSee the RaspBee II install guide for further instructions: https://phoscon.de/en/raspbee2/install#raspbian" 20 60 1
-      else
-        whiptail --title "Final Steps" --msgbox "You need to reboot your device to complete installation." 20 60 1
-      fi
-      whiptail --title "Reboot Required" --yesno "Would you like to reboot now?" 20 60 2
-      if [ $? -eq 0 ]; then # yes
-        sync
-        reboot
-      fi
-    fi
-  fi
-}
-
-do_install_desktop_and_vnc() {
-  get_vnc() {
-    if systemctl status vncserver-x11-serviced.service  | grep -q -w active; then
-      echo 0
-    else
-      echo 1
-    fi
-  }
-
-  do_vnc() {
-    DEFAULT=--defaultno
-    if [ $(get_vnc) -eq 0 ]; then
-      DEFAULT=
-    fi
-    whiptail --yesno "Would you like the VNC Server and virtual desktop service enabled?" $DEFAULT 20 60 2 --no-button "Disable" --yes-button "Enable"
-    RET=$?
-    if [ $RET -eq 0 ]; then
-
-      # install desktop
-      if is_installed raspberrypi-ui-mods; then
-        echo "Raspbian Desktop Already Installed"
-      else
-        whiptail --title "Warning" --yesno "The Raspbian Desktop will now be installed.\n\nThis may take between 5 and 45 minutes to complete depending on your device." 20 60 2 --no-button "Cancel" --yes-button "Continue"
-        if [ $? -eq 0 ]; then
-          apt update --allow-releaseinfo-change
-          apt install -y raspberrypi-ui-mods
-        else
-          return 0;
-        fi
-      fi
-
-      # install and setup VNC
-      if is_installed realvnc-vnc-server || (apt update --allow-releaseinfo-change && apt install -y realvnc-vnc-server); then
-#        cat > /etc/systemd/system/vncserver-pi.service <<EOL
-#[Unit]
-#Description=VNC Virtual Desktop Service
-#After=syslog.target network.target
-
-#[Service]
-#Type=forking
-#User=$(get_first_user)
-#Group=$(get_first_user)
-#WorkingDirectory=/home/$(get_first_user)
-
-#PIDFile=/home/$(get_first_user)/.vnc/%H:12.pid
-#ExecStartPre=-/usr/bin/vncserver -kill :12 > /dev/null 2>&1
-#ExecStart=/usr/bin/vncserver -depth 24 -geometry 1280x800 :12
-#ExecStop=/usr/bin/vncserver -kill :12
-
-#[Install]
-#WantedBy=multi-user.target
-#EOL
-        systemctl enable vncserver-x11-serviced.service &&
-        systemctl start vncserver-x11-serviced.service &&
-#        systemctl enable vncserver-pi.service &&
-#        systemctl start vncserver-pi.service &&
-        STATUS=enabled
-      else
-        return 1
-      fi
-    elif [ $RET -eq 1 ]; then
-      if is_installed realvnc-vnc-server; then
-          systemctl disable vncserver-x11-serviced.service
-          systemctl stop vncserver-x11-serviced.service
-#          systemctl disable vncserver-pi.service
-#          systemctl stop vncserver-pi.service
-      fi
-      STATUS=disabled
-    else
-      return $RET
-    fi
-
-    if [ "$STATUS" = "disabled" ]; then
-      whiptail --title "Success" --msgbox "The VNC Server and virtual desktop have been disabled." 20 60 1
-    else
-      # Complete
-      VNC_ACCESS_URI=$(get_ip_and_port 5912 | sed 's/\x1b\[[0-9;]*m//g')
-      whiptail --title "Success" --msgbox "The VNC Server and virtual desktop have been configured.\n\nYou can connect to the virtual desktop using the RealVNC Viewer on port 5912:\n\n$VNC_ACCESS_URI\n\nDownload RealVNC Viewer:\n\n  * https://www.realvnc.com/download/viewer/" 20 60 1
-    fi
-  }
-
-  do_vnc
-}
-
 do_extra_packages() {
   FUN=$(whiptail --title "Homebridge Raspberry Pi Configuration Tool (hb-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
     "A0 AdGuard Home" "Install / Uninstall AdGuard Home" \
     "A1 Pi-hole" "Install / Reconfigure Pi-hole" \
-    "A2 deCONZ / Phoscon" "Install / Update to manage your ConBee or RaspBee device" \
     3>&1 1>&2 2>&3)
-    # "A3 RealVNC Server" "Enable / Disable desktop access over VNC" \
   RET=$?
   if [ $RET -eq 1 ]; then
     return 0
@@ -592,8 +299,6 @@ do_extra_packages() {
     case "$FUN" in
       A0\ *) do_install_adguard_home ;;
       A1\ *) do_install_pihole ;;
-      A2\ *) do_install_deconz ;;
-      # A3\ *) do_install_desktop_and_vnc ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
@@ -800,7 +505,6 @@ fi
 # Interactive use loop
 #
 if [ "$INTERACTIVE" = True ]; then
-  [ -e $CONFIG ] || touch $CONFIG
   calc_wt_size
   while true; do
     if is_pi ; then
