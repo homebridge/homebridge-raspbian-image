@@ -82,15 +82,19 @@ calls() {
 }
 
 # nginx_accepts <site config file>: runs nginx's own config check on a site file, with a
-# throw-away certificate. Prints nginx's answer. Returns 2 when nginx is not installed.
+# throw-away certificate. Prints nginx's answer. Returns 0 when nginx accepts the file with no
+# warning, 1 when it does not, and 2 when nginx is not installed.
 nginx_accepts() {
-  command -v nginx > /dev/null || return 2
-  local dir
+  local dir nginx_bin
+  nginx_bin="$(PATH=/usr/sbin:/usr/bin command -v nginx)" || return 2
   dir="$(mktemp -d "$W/nginx.XXXXXX")"
   openssl req -x509 -nodes -newkey rsa:2048 -days 1 -subj /CN=test -keyout "$dir/key" -out "$dir/crt" 2> /dev/null
-  sed -e "s#/etc/nginx/ssl/homebridge.local.crt#$dir/crt#" -e "s#/etc/nginx/ssl/homebridge.local.key#$dir/key#" "$1" > "$dir/site"
+  sed -E -e "s#^([[:space:]]*ssl_certificate)[[:space:]].*;#\\1 $dir/crt;#" -e "s#^([[:space:]]*ssl_certificate_key)[[:space:]].*;#\\1 $dir/key;#" "$1" > "$dir/site"
   printf 'pid %s/pid;\nerror_log %s/error.log;\nevents {}\nhttp { access_log off; include %s/site; }\n' "$dir" "$dir" "$dir" > "$dir/nginx.conf"
-  nginx -t -c "$dir/nginx.conf" 2>&1
+  "$nginx_bin" -t -c "$dir/nginx.conf" > "$dir/answer" 2>&1
+  local code=$?
+  cat "$dir/answer"
+  [ "$code" -eq 0 ] && ! grep -q '\[warn\]\|\[emerg\]' "$dir/answer"
 }
 
 # hb_config_functions <file>: writes the functions of hb-config (everything above its menu loop)

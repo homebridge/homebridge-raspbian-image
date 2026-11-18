@@ -1,11 +1,60 @@
 #!/bin/bash
+#
+# Makes the self-signed certificate that nginx uses for https://
+#
+# It runs before nginx at every boot, and from "hb-config -> Nginx Options".
+#   - No certificate yet: it makes one.
+#   - A certificate made by this script that has expired, or will within 30 days: it makes a new one.
+#   - Any other certificate (for example one the user put in place): it is never touched.
 
-if [ -e /etc/nginx/sites-available/homebridge.local ]; then
-  mkdir -p /etc/nginx/ssl
-  if [ ! -f /etc/nginx/ssl/homebridge.local.crt ] || [ ! -f /etc/nginx/ssl/homebridge.local.key ]; then
-    openssl req -x509 -out /etc/nginx/ssl/homebridge.local.crt -keyout /etc/nginx/ssl/homebridge.local.key \
-      -newkey rsa:2048 -nodes -sha256 -days 1000 \
-      -subj '/CN=localhost' -extensions EXT -config <( \
-      printf "[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth")
+CERT=/etc/nginx/ssl/homebridge.local.crt
+KEY=/etc/nginx/ssl/homebridge.local.key
+
+# the organisation name in certificates made by this script
+MADE_BY="Homebridge Raspberry Pi Image"
+
+[ -e /etc/nginx/sites-available/homebridge.local ] || exit 0
+
+mkdir -p /etc/nginx/ssl
+
+if [ -f "$CERT" ] && [ -f "$KEY" ]; then
+  # still valid for more than 30 days: nothing to do
+  if openssl x509 -checkend 2592000 -noout -in "$CERT" > /dev/null 2>&1; then
+    exit 0
   fi
+
+  # Only replace a certificate that this script made: it signed itself, and it is named
+  # "localhost" (images before 2026-11) or carries the name above.
+  SUBJECT=$(openssl x509 -noout -subject -nameopt RFC2253 -in "$CERT" 2> /dev/null | sed 's/^subject=//')
+  ISSUER=$(openssl x509 -noout -issuer -nameopt RFC2253 -in "$CERT" 2> /dev/null | sed 's/^issuer=//')
+  if [ -z "$SUBJECT" ] || [ "$SUBJECT" != "$ISSUER" ]; then
+    exit 0
+  fi
+  case "$SUBJECT" in
+    "CN=localhost" | *"O=$MADE_BY"*) echo "The self-signed certificate has expired or is about to. Making a new one." ;;
+    *) exit 0 ;;
+  esac
+fi
+
+# the names the Pi is reached by: localhost, homebridge.local, and its own host name
+NAMES="DNS:localhost,DNS:homebridge.local,IP:127.0.0.1"
+HOST=$(hostname 2> /dev/null)
+if [[ "$HOST" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]] && [ "$HOST" != "localhost" ] && [ "$HOST" != "homebridge" ]; then
+  NAMES="$NAMES,DNS:$HOST,DNS:$HOST.local"
+fi
+
+# 825 days is the longest time Apple devices accept for a certificate the user chose to trust
+if openssl req -x509 -newkey rsa:2048 -nodes -sha256 -days 825 \
+  -keyout "$KEY.new" -out "$CERT.new" \
+  -subj "/O=$MADE_BY/CN=homebridge.local" \
+  -addext "subjectAltName=$NAMES" \
+  -addext "keyUsage=digitalSignature" \
+  -addext "extendedKeyUsage=serverAuth" 2> /dev/null; then
+  chmod 600 "$KEY.new"
+  mv "$KEY.new" "$KEY"
+  mv "$CERT.new" "$CERT"
+else
+  rm -f "$KEY.new" "$CERT.new"
+  echo "The self-signed certificate could not be made." >&2
+  exit 1
 fi

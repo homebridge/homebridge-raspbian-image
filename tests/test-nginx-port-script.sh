@@ -23,12 +23,12 @@ run_with() {
   code=$?
 }
 
-port_line() { grep -n 'proxy_pass' "$W/c/homebridge.local" | head -n 1 | tr -s ' '; }
+port_line() { grep 'proxy_pass' "$W/c/homebridge.local" | head -n 1 | tr -s ' ' | sed 's/^ //'; }
 changed_lines() { diff "${SITE_IN:-$SITE}" "$W/c/homebridge.local" | grep -c '^>'; }
 
 run_with '{"platforms":[{"platform":"config","name":"Config","port":8080}]}'
 same "uses the port from config.json" "$(cat "$W/c/hb-ui-port")" "8080"
-same "writes that port into the nginx config" "$(port_line)" "44: proxy_pass http://127.0.0.1:8080;"
+same "writes that port into the nginx config" "$(port_line)" "proxy_pass http://127.0.0.1:8080;"
 same "changes one line only" "$(changed_lines)" "1"
 same "exits with code 0" "$code" "0"
 has "reloads nginx after a change" "$W/calls.log" "nginx -s reload"
@@ -41,7 +41,7 @@ same "does not reload nginx when nothing changed" "$(calls | grep -c 'nginx -s r
 bad_port() {
   run_with "$2"
   same "$1: falls back to port 8581" "$(cat "$W/c/hb-ui-port")" "8581"
-  same "$1: the nginx config keeps a plain port line" "$(port_line)" "44: proxy_pass http://127.0.0.1:8581;"
+  same "$1: the nginx config keeps a plain port line" "$(port_line)" "proxy_pass http://127.0.0.1:8581;"
   same "$1: nothing else in the nginx config changed" "$(changed_lines)" "0"
 }
 

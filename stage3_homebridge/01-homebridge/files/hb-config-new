@@ -308,45 +308,71 @@ do_extra_packages() {
   fi
 }
 
+# nginx 1.25.1 and newer want the line "http2 on;". Older versions (Debian 12 and before) do not
+# know that line: they need "http2" on the "listen" lines. Returns 0 for the newer kind.
+nginx_has_http2_setting() {
+  NGINX_VERSION=$(nginx -v 2>&1 | sed -n 's#^nginx version: nginx/\([0-9][0-9.]*\).*#\1#p')
+  [ -n "$NGINX_VERSION" ] && [ "$(printf '%s\n' "1.25.1" "$NGINX_VERSION" | sort -V | head -n 1)" = "1.25.1" ]
+}
+
 do_configure_nginx() {
-  whiptail --title "Warning" --yesno "Using this tool will overwrite any manual changes you may have made to the Homebridge Nginx config file.\n\nAre you sure you wish to continue?" 20 60 1
-  RET=$?
-  if [ $RET -eq 0 ]; then
-    tempDir=$(mktemp -d) || return 1
-    whiptail --title "Homebridge Raspberry Pi Configuration Tool (hb-config)" --separate-output --checklist "\nNGINX Options:"  20 80 5 --cancel-button Cancel --ok-button Save \
-      "1" "Listen on port 80 - http://        " 1  \
-      "2" "Listen on port 443 - https://      " 1 \
-      "3" "Redirect http:// to https://       " 0 2> "$tempDir/results"
+  if ! whiptail --title "Warning" --yesno "Using this tool will overwrite any manual changes you may have made to the Homebridge Nginx config file.\n\nAre you sure you wish to continue?" 20 60 1; then
+    return
+  fi
 
-    if [ $? -eq 0 ]; then
-       LISTEN_ON_PORT_80=false
-       LISTEN_ON_PORT_443=false
-       REDIRECT_HTTP_TO_HTTPS=false
+  tempDir=$(mktemp -d) || return 1
 
-       while read choice
-       do
-         case "$choice" in
-           1) LISTEN_ON_PORT_80=true ;;
-           2) LISTEN_ON_PORT_443=true ;;
-           3) REDIRECT_HTTP_TO_HTTPS=true ;;
-           *) ;;
-         esac
-       done < "$tempDir/results"
+  if ! whiptail --title "Homebridge Raspberry Pi Configuration Tool (hb-config)" --separate-output --checklist "\nNGINX Options:" 20 80 5 --cancel-button Cancel --ok-button Save \
+    "1" "Listen on port 80 - http://        " 1 \
+    "2" "Listen on port 443 - https://      " 1 \
+    "3" "Redirect http:// to https://       " 0 2> "$tempDir/results"; then
+    rm -rf "$tempDir"
+    return
+  fi
 
-NGINX_PORT_80_CONFIG=""
-if [ "$LISTEN_ON_PORT_80" = "true" ]; then
-  NGINX_PORT_80_CONFIG="# http://\n  listen 80;                  # http IPv4\n  listen [::]:80;             # http IPv6\n"
-fi
+  LISTEN_ON_PORT_80=false
+  LISTEN_ON_PORT_443=false
+  REDIRECT_HTTP_TO_HTTPS=false
 
-NGINX_PORT_443_CONFIG=""
-if [ "$LISTEN_ON_PORT_443" = "true" ]; then
-  NGINX_PORT_443_CONFIG="# https://\n  listen 443 ssl http2;       # https IPv4\n  listen [::]:443 ssl http2;  # https IPv6\n"
-fi
+  while read -r choice; do
+    case "$choice" in
+      1) LISTEN_ON_PORT_80=true ;;
+      2) LISTEN_ON_PORT_443=true ;;
+      3) REDIRECT_HTTP_TO_HTTPS=true ;;
+      *) ;;
+    esac
+  done < "$tempDir/results"
 
-NGINX_REDIRECT_HTTP_TO_HTTPS=""
-if [ "$REDIRECT_HTTP_TO_HTTPS" = "true" ] && [ "$LISTEN_ON_PORT_80" = "true" ]; then
+  rm -rf "$tempDir"
+
   NGINX_PORT_80_CONFIG=""
-  NGINX_REDIRECT_HTTP_TO_HTTPS="
+  if [ "$LISTEN_ON_PORT_80" = "true" ]; then
+    NGINX_PORT_80_CONFIG="# http://
+  listen 80;                  # http IPv4
+  listen [::]:80;             # http IPv6
+"
+  fi
+
+  NGINX_PORT_443_CONFIG=""
+  if [ "$LISTEN_ON_PORT_443" = "true" ]; then
+    if nginx_has_http2_setting; then
+      NGINX_PORT_443_CONFIG="# https://
+  listen 443 ssl;             # https IPv4
+  listen [::]:443 ssl;        # https IPv6
+  http2 on;
+"
+    else
+      NGINX_PORT_443_CONFIG="# https://
+  listen 443 ssl http2;       # https IPv4
+  listen [::]:443 ssl http2;  # https IPv6
+"
+    fi
+  fi
+
+  NGINX_REDIRECT_HTTP_TO_HTTPS=""
+  if [ "$REDIRECT_HTTP_TO_HTTPS" = "true" ] && [ "$LISTEN_ON_PORT_80" = "true" ]; then
+    NGINX_PORT_80_CONFIG=""
+    NGINX_REDIRECT_HTTP_TO_HTTPS="
 server {
   listen 80;                  # http IPv4
   listen [::]:80;             # http IPv6
@@ -358,9 +384,15 @@ server {
 
   return 302 https://\$host\$request_uri;
 }"
-fi
+  fi
 
-NGINX_TEMPLATE="# this file was generated using the hb-config tool
+  # the port of the Homebridge UI: digits only, or the default
+  UI_PORT=$(cat /etc/hb-ui-port 2> /dev/null)
+  case "$UI_PORT" in
+    "" | *[!0-9]*) UI_PORT=8581 ;;
+  esac
+
+  NGINX_TEMPLATE="# this file was generated using the hb-config tool
 
 server {
   $NGINX_PORT_80_CONFIG
@@ -399,14 +431,14 @@ server {
   }
 
   location / {
-    proxy_pass                  http://127.0.0.1:$(cat /etc/hb-ui-port);
+    proxy_pass                  http://127.0.0.1:$UI_PORT;
     proxy_http_version          1.1;
     proxy_buffering             off;
     proxy_set_header            Host \$host;
     proxy_set_header            Upgrade \$http_upgrade;
     proxy_set_header            Connection \"Upgrade\";
     proxy_set_header            X-Real-IP \$remote_addr;
-    proxy_set_header            X-Forward-For \$proxy_add_x_forwarded_for;
+    proxy_set_header            X-Forwarded-For \$proxy_add_x_forwarded_for;
   }
 
   location = /custom_502.html {
@@ -417,27 +449,22 @@ server {
 $NGINX_REDIRECT_HTTP_TO_HTTPS
 "
 
-      echo "$NGINX_TEMPLATE" > /etc/nginx/sites-available/homebridge.local
-      /usr/local/sbin/nginx-homebridge-self-signed-cert
-      systemctl enable nginx
+  echo "$NGINX_TEMPLATE" > /etc/nginx/sites-available/homebridge.local
+  /usr/local/sbin/nginx-homebridge-self-signed-cert
+  systemctl enable nginx
 
-      if systemctl is-active --quiet nginx.service; then
-        echo "Restarting Nginx..."
-        systemctl restart nginx
-      else
-        echo "Starting Nginx..."
-        systemctl start nginx
-      fi
+  if systemctl is-active --quiet nginx.service; then
+    echo "Restarting Nginx..."
+    NGINX_ACTION=restart
+  else
+    echo "Starting Nginx..."
+    NGINX_ACTION=start
+  fi
 
-      if [ $? -eq 0 ]; then
-        whiptail --title "Success" --msgbox "NGINX has been configured successfully." 20 60 1
-       else
-        whiptail --title "Error" --msgbox "An error occured while attempting to reload the NGINX config." 20 60 1
-      fi
-
-    fi
-
-    rm -rf "$tempDir"
+  if systemctl "$NGINX_ACTION" nginx; then
+    whiptail --title "Success" --msgbox "NGINX has been configured successfully." 20 60 1
+  else
+    whiptail --title "Error" --msgbox "An error occured while attempting to reload the NGINX config." 20 60 1
   fi
 }
 
