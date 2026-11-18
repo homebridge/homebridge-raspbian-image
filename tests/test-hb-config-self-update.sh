@@ -29,7 +29,7 @@ FAKE
   chmod +x "$W/bin/curl"
 }
 
-GOOD=$'#!/bin/sh\necho new tool\n'
+GOOD=$'#!/bin/sh\nHB_CONFIG_VERSION="2099.01.01"\necho new tool\n'
 
 fresh v2.0.26 "$GOOD"
 hb_config do_update
@@ -48,10 +48,10 @@ keeps_old() {
 }
 
 # a line that bash accepts and /bin/sh (dash) does not
-fresh v2.0.26 $'#!/bin/sh\nfunction broken { echo x; }\nif [[ a == b ]]; then echo; fi\narr=(1 2)\n'
+fresh v2.0.26 $'#!/bin/sh\nHB_CONFIG_VERSION="2099.01.01"\nfunction broken { echo x; }\nif [[ a == b ]]; then echo; fi\narr=(1 2)\n'
 keeps_old "a script that only bash accepts"
 
-fresh v2.0.26 $'#!/bin/sh\nif true; then\n  echo cut off in the middle\n'
+fresh v2.0.26 $'#!/bin/sh\nHB_CONFIG_VERSION="2099.01.01"\nif true; then\n  echo cut off in the middle\n'
 keeps_old "a script that is cut off"
 
 fresh v2.0.26 ''
@@ -60,8 +60,22 @@ keeps_old "an empty download"
 fresh v2.0.26 $'<html><body>Not found</body></html>\n'
 keeps_old "a web page in place of the script"
 
-fresh v2.0.26 $'#!/bin/bash\necho a bash script\n'
+fresh v2.0.26 $'#!/bin/bash\nHB_CONFIG_VERSION="2099.01.01"\necho a bash script\n'
 keeps_old "a script for another shell"
+
+# never back to an older tool: the newest release can still hold the tool from before a change
+THIS_VERSION="$(sed -n 's/^HB_CONFIG_VERSION="\(.*\)"$/\1/p' "$FILES/hb-config-new")"
+is "the tool has a version of its own" grep -qE '^[0-9]{4}\.[0-9]{2}\.[0-9]{2}$' <<< "$THIS_VERSION"
+
+fresh v2.0.26 $'#!/bin/sh\nHB_CONFIG_VERSION="2020.01.01"\necho older tool\n'
+keeps_old "the release holds an older tool"
+has "the release holds an older tool: the user is told the tool is up to date" "$W/calls.log" "already up to date"
+
+fresh v2.0.26 $'#!/bin/sh\necho tool from before versions\n'
+keeps_old "the release holds a tool with no version (from before this change)"
+
+fresh v2.0.26 "$(printf '#!/bin/sh\nHB_CONFIG_VERSION="%s"\necho same version\n' "$THIS_VERSION")"
+keeps_old "the release holds the same version"
 
 fresh '' "$GOOD"
 keeps_old "no release found"

@@ -13,10 +13,22 @@
 #
 # This is a /bin/sh script. On a Pi /bin/sh is dash, so bash-only syntax does not work here.
 #
+# When this file changes, set HB_CONFIG_VERSION below to the date of the change. "Update" only
+# installs a tool with a newer version than the one that is running.
+#
 
 GREEN='\033[0;32m'
 BOLD='\033[1m'
 NC='\033[0m'
+
+# The version of this tool: the date of its last change. "Update" never replaces the tool with
+# an older one. Change this value whenever this file changes.
+HB_CONFIG_VERSION="2026.11.18"
+
+# The version of the WiFi setup tool (wifi-connect) that "Update" brings older images up to.
+# New images get their version from stable/package.json in the image repo.
+WIFI_CONNECT_WANTED="4.2.2"
+WIFI_CONNECT_DIR=/opt/wifi-connect/lib/node_modules/@homebridge/wifi-connect
 
 is_pi () {
   ARCH=$(dpkg --print-architecture)
@@ -435,6 +447,121 @@ do_configure_raspbian() {
   raspi-config
 }
 
+# version_older <a> <b>: true when version a is older than version b
+version_older() {
+  [ "$1" != "$2" ] && [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n 1)" = "$1" ]
+}
+
+# Writes the service file for the WiFi setup tool. It must be the same as
+# stage3_homebridge/02-wifi-connect/files/wifi-connect.service in the image repo (a test checks that).
+write_wifi_connect_service() {
+  cat > /etc/systemd/system/wifi-connect.service << 'UNIT'
+[Unit]
+Description=Homebridge WiFi setup hotspot
+After=NetworkManager.service
+Before=nginx.service
+
+[Service]
+Type=oneshot
+Environment="PATH=/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/opt/wifi-connect/bin/node /opt/wifi-connect/lib/node_modules/@homebridge/wifi-connect/main.js
+StandardOutput=journal+console
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+}
+
+# Brings the WiFi setup tool of an older image up to WIFI_CONNECT_WANTED. Nothing on a Pi
+# updates that tool by itself: the image build puts it in /opt/wifi-connect.
+#   - The package comes from npm. It is only used when its checksum is the one npm lists.
+#   - It is unpacked and tried out next to the old one, and swapped in only when it runs.
+#   - Any failure leaves the old tool in place.
+do_update_wifi_connect() {
+  # not an image with the WiFi setup tool
+  [ -f "$WIFI_CONNECT_DIR/package.json" ] || return 0
+
+  WIFI_CONNECT_HAVE=$(jq -r '.version // empty' "$WIFI_CONNECT_DIR/package.json" 2> /dev/null)
+  if [ -n "$WIFI_CONNECT_HAVE" ] && ! version_older "$WIFI_CONNECT_HAVE" "$WIFI_CONNECT_WANTED"; then
+    return 0
+  fi
+
+  printf 'Updating the WiFi setup tool from %s to %s...\n' "${WIFI_CONNECT_HAVE:-an unknown version}" "$WIFI_CONNECT_WANTED"
+
+  # the new tool needs Node.js 20 or newer
+  NODE_MAJOR=$(/opt/homebridge/bin/node -v 2> /dev/null | sed -n 's/^v\([0-9][0-9]*\)\..*/\1/p')
+  if [ -z "$NODE_MAJOR" ] || [ "$NODE_MAJOR" -lt 20 ]; then
+    whiptail --title "WiFi Setup Tool" --msgbox "The WiFi setup tool was not updated: it needs Node.js 20 or newer.\n\nUse 'Update Node.js' in the menu first, then run 'Update' again." 20 60 1
+    return 1
+  fi
+
+  WC_TMP=$(mktemp -d) || return 1
+  WC_URL="https://registry.npmjs.org/@homebridge/wifi-connect/-/wifi-connect-$WIFI_CONNECT_WANTED.tgz"
+  WC_NEW="$WIFI_CONNECT_DIR.new"
+  WC_OLD="$WIFI_CONNECT_DIR.old"
+
+  # 1. ask npm for the checksum of exactly this version, download the package, compare
+  WC_PROBLEM=""
+  if ! curl -sSfL "https://registry.npmjs.org/@homebridge/wifi-connect/$WIFI_CONNECT_WANTED" -o "$WC_TMP/meta.json"; then
+    WC_PROBLEM="npm could not be reached, or it does not have version $WIFI_CONNECT_WANTED."
+  elif [ "$(jq -r '.dist.tarball // empty' "$WC_TMP/meta.json" 2> /dev/null)" != "$WC_URL" ]; then
+    WC_PROBLEM="npm gave an unexpected download address."
+  elif ! curl -sSfL "$WC_URL" -o "$WC_TMP/wifi-connect.tgz"; then
+    WC_PROBLEM="The download failed."
+  else
+    WC_SUM=$(jq -r '.dist.integrity // empty' "$WC_TMP/meta.json" 2> /dev/null)
+    WC_GOT="sha512-$(openssl dgst -sha512 -binary "$WC_TMP/wifi-connect.tgz" | base64 | tr -d '\n')"
+    case "$WC_SUM" in
+      sha512-*) [ "$WC_GOT" = "$WC_SUM" ] || WC_PROBLEM="The download does not have the checksum npm lists." ;;
+      *) WC_PROBLEM="npm lists no SHA-512 checksum for the download." ;;
+    esac
+  fi
+
+  # 2. unpack it next to the old one
+  if [ -z "$WC_PROBLEM" ]; then
+    mkdir "$WC_TMP/unpacked"
+    if ! tar xzf "$WC_TMP/wifi-connect.tgz" -C "$WC_TMP/unpacked" --no-same-owner \
+      || [ ! -f "$WC_TMP/unpacked/package/main.js" ] || [ ! -d "$WC_TMP/unpacked/package/node_modules" ]; then
+      WC_PROBLEM="The download could not be unpacked."
+    fi
+  fi
+
+  # 3. a copy of Node.js that only root can change runs the tool (it runs as root at every boot)
+  if [ -z "$WC_PROBLEM" ]; then
+    rm -rf "$WC_NEW"
+    mv "$WC_TMP/unpacked/package" "$WC_NEW"
+    mkdir -p /opt/wifi-connect/bin
+    install -o root -g root -m 755 /opt/homebridge/bin/node /opt/wifi-connect/bin/node.new
+    chown -R root:root "$WC_NEW"
+    chmod -R go-w "$WC_NEW"
+    if [ "$(/opt/wifi-connect/bin/node.new "$WC_NEW/main.js" --version 2> /dev/null)" != "$WIFI_CONNECT_WANTED" ]; then
+      WC_PROBLEM="The new tool does not start."
+      rm -rf "$WC_NEW" /opt/wifi-connect/bin/node.new
+    fi
+  fi
+
+  rm -rf "$WC_TMP"
+
+  if [ -n "$WC_PROBLEM" ]; then
+    whiptail --title "WiFi Setup Tool" --msgbox "The WiFi setup tool was not updated.\n\n$WC_PROBLEM\n\nNothing was changed. Check the network connection and run 'Update' again." 20 60 1
+    return 1
+  fi
+
+  # 4. swap the new files in, with the service file that goes with them
+  rm -rf "$WC_OLD"
+  mv "$WIFI_CONNECT_DIR" "$WC_OLD"
+  mv "$WC_NEW" "$WIFI_CONNECT_DIR"
+  mv /opt/wifi-connect/bin/node.new /opt/wifi-connect/bin/node
+  rm -rf "$WC_OLD"
+  write_wifi_connect_service
+  systemctl daemon-reload
+
+  printf 'The WiFi setup tool is now version %s.\n' "$WIFI_CONNECT_WANTED"
+}
+
 HB_IMAGE_REPO_URL=https://github.com/homebridge/homebridge-raspbian-image
 HB_IMAGE_RAW_URL=https://raw.githubusercontent.com/homebridge/homebridge-raspbian-image
 
@@ -445,7 +572,13 @@ hb_latest_release_tag() {
     | sed -n 's#^.*/releases/tag/\(v[0-9][0-9.]*\)$#\1#p'
 }
 
+# Menu entry "Update": first the WiFi setup tool (older images only), then this tool itself.
 do_update() {
+  do_update_wifi_connect
+  do_update_tool
+}
+
+do_update_tool() {
   tempDir=$(mktemp -d) || return 1
 
   # The tool is taken from the newest release, not from the tip of the branch. So what is
@@ -467,15 +600,25 @@ do_update() {
   fi
 
   # The download must be a complete script for the shell that runs this tool (/bin/sh).
-  if [ -s "$tempDir/hb-config" ] && [ "$(head -n 1 "$tempDir/hb-config")" = "#!/bin/sh" ] && sh -n "$tempDir/hb-config"; then
-    install -m 755 "$tempDir/hb-config" /usr/local/sbin/hb-config
+  if [ ! -s "$tempDir/hb-config" ] || [ "$(head -n 1 "$tempDir/hb-config")" != "#!/bin/sh" ] || ! sh -n "$tempDir/hb-config"; then
     rm -rf "$tempDir"
-    whiptail --title "Success" --msgbox "The hb-config tool has been updated to the one from release $releaseTag and will now exit.\n\nIf you like the Homebridge Raspberry Pi image please show your support by starring the project on GitHub:\n\nhttps://github.com/homebridge/homebridge-raspbian-image" 20 60 1
-    exit 0
+    whiptail --title "Error" --msgbox "The downloaded script was corrupted and did not pass the syntax check. The tool was not changed." 20 60 1
+    return
   fi
 
+  # Never go back to an older tool. (Right after this tool changed, the newest release can
+  # still hold the tool from before the change.)
+  newVersion=$(sed -n 's/^HB_CONFIG_VERSION="\([0-9][0-9.]*\)"$/\1/p' "$tempDir/hb-config" | head -n 1)
+  if [ "${newVersion:-0}" = "$HB_CONFIG_VERSION" ] || version_older "${newVersion:-0}" "$HB_CONFIG_VERSION"; then
+    rm -rf "$tempDir"
+    whiptail --title "Up to date" --msgbox "The hb-config tool is already up to date (version $HB_CONFIG_VERSION).\n\nThe newest release ($releaseTag) has no newer one." 20 60 1
+    return
+  fi
+
+  install -m 755 "$tempDir/hb-config" /usr/local/sbin/hb-config
   rm -rf "$tempDir"
-  whiptail --title "Error" --msgbox "The downloaded script was corrupted and did not pass the syntax check. The tool was not changed." 20 60 1
+  whiptail --title "Success" --msgbox "The hb-config tool has been updated to the one from release $releaseTag and will now exit.\n\nIf you like the Homebridge Raspberry Pi image please show your support by starring the project on GitHub:\n\nhttps://github.com/homebridge/homebridge-raspbian-image" 20 60 1
+  exit 0
 }
 
 do_nmtui() {

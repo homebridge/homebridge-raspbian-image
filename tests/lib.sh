@@ -104,7 +104,7 @@ hb_config_functions() {
   mkdir -p "$W/root/usr/share/keyrings" "$W/root/etc/apt/sources.list.d" "$W/root/etc/nginx/sites-available" \
     "$W/root/usr/local/sbin" "$W/root/opt" "$W/root/etc/systemd/system" "$W/root/tmp"
   sed '/^# Everything else needs to be run as root/,$d' "$FILES/hb-config-new" \
-    | sed -E "s#(^|[[:space:]=\">\[])/(etc|usr|opt|boot|proc)/#\\1$W/root/\\2/#g" > "$1"
+    | sed -E "s#(^|[[:space:]=\">\[(])/(etc|usr|opt|boot|proc)/#\\1$W/root/\\2/#g" > "$1"
 }
 
 # hb_config <shell lines>: runs the lines in dash with the hb-config functions loaded.

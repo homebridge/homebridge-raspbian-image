@@ -36,4 +36,21 @@ for fn in $(grep -oE '\) do_[a-z_]+ ;;' "$TOOL" | awk '{print $2}' | sort -u); d
   is "menu function $fn exists" grep -q "^${fn}() {" "$TOOL"
 done
 
+# The tool has a version, so "Update" never goes back to an older tool. When the file changed
+# since the newest release, the version must have changed too. (Needs the release tags; a
+# checkout without them skips this.)
+NEWEST_TAG="$(git -C "$REPO" tag -l 'v*' 2> /dev/null | grep -v -E '(beta|alpha)' | sort -V | tail -n 1)"
+RELATIVE="stage3_homebridge/01-homebridge/files/hb-config-new"
+if [ -n "$NEWEST_TAG" ] && git -C "$REPO" cat-file -e "$NEWEST_TAG:$RELATIVE" 2> /dev/null; then
+  if git -C "$REPO" diff --quiet "$NEWEST_TAG" -- "$RELATIVE"; then
+    ok "the tool is the same as in $NEWEST_TAG"
+  else
+    released="$(git -C "$REPO" show "$NEWEST_TAG:$RELATIVE" | sed -n 's/^HB_CONFIG_VERSION="\(.*\)"$/\1/p')"
+    current="$(sed -n 's/^HB_CONFIG_VERSION="\(.*\)"$/\1/p' "$TOOL")"
+    isnt "the tool changed since $NEWEST_TAG, so its version changed too (was '${released:-none}', is '$current')" test "$released" = "$current"
+  fi
+else
+  echo "  skip  no release tags in this checkout: the version bump check did not run"
+fi
+
 finish
