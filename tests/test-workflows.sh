@@ -84,7 +84,7 @@ job_rights release-stage-3_package_release.yml download-and-prepare "actions:rea
 job_rights release-stage-3_package_release.yml create-release "contents:read"
 job_rights release-stage-3_package_release.yml publish-to-registry "contents:read"
 job_rights release-stage-3_package_release.yml notify-discord "none"
-job_rights labeler.yml stale "contents:read,pull-requests:write"
+job_rights labeler.yml labeler "contents:read,pull-requests:write"
 job_rights pr-labeler.yml label "contents:read,pull-requests:write"
 job_rights stale.yml stale "issues:write,pull-requests:write"
 job_rights wiki-change-notification.yml notify "none"

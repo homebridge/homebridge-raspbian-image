@@ -14,9 +14,6 @@
 # This is a /bin/sh script. On a Pi /bin/sh is dash, so bash-only syntax does not work here.
 #
 
-INTERACTIVE=True
-ASK_TO_REBOOT=0
-
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BOLD='\e[1m'
@@ -29,67 +26,6 @@ is_pi () {
   else
     return 1
   fi
-}
-
-is_pione() {
-   if grep -q "^Revision\s*:\s*00[0-9a-fA-F][0-9a-fA-F]$" /proc/cpuinfo; then
-      return 0
-   elif grep -q "^Revision\s*:\s*[ 123][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]0[0-36][0-9a-fA-F]$" /proc/cpuinfo ; then
-      return 0
-   else
-      return 1
-   fi
-}
-
-is_pitwo() {
-   grep -q "^Revision\s*:\s*[ 123][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]04[0-9a-fA-F]$" /proc/cpuinfo
-   return $?
-}
-
-is_pizero() {
-   grep -q "^Revision\s*:\s*[ 123][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]0[9cC][0-9a-fA-F]$" /proc/cpuinfo
-   return $?
-}
-
-is_pifour() {
-   grep -q "^Revision\s*:\s*[ 123][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]11[0-9a-fA-F]$" /proc/cpuinfo
-   return $?
-}
-
-get_pi_type() {
-   if is_pione; then
-      echo 1
-   elif is_pitwo; then
-      echo 2
-   else
-      echo 0
-   fi
-}
-
-is_live() {
-    grep -q "boot=live" $CMDLINE
-    return $?
-}
-
-is_ssh() {
-  if pstree -p | egrep --quiet --extended-regexp ".*sshd.*\($$\)"; then
-    return 0
-  else
-    return 1
-  fi
-}
-
-is_fkms() {
-  if grep -q okay /proc/device-tree/soc/v3d@7ec00000/status 2> /dev/null || grep -q okay /proc/device-tree/soc/firmwarekms@7e600000/status 2> /dev/null ; then
-    return 0
-  else
-    return 1
-  fi
-}
-
-deb_ver () {
-  ver=`cat /etc/debian_version | cut -d . -f 1`
-  echo $ver
 }
 
 calc_wt_size() {
@@ -120,17 +56,6 @@ get_web_addresses() {
       printf "  ${BOLD}*${NC} ${GREEN}$1://[$ip]:$2$3${NC}\n"
     fi
   done
-}
-
-do_finish() {
-  if [ $ASK_TO_REBOOT -eq 1 ]; then
-    whiptail --yesno "Would you like to reboot now?" 20 60 2
-    if [ $? -eq 0 ]; then # yes
-      sync
-      reboot
-    fi
-  fi
-  exit 0
 }
 
 HB_KEYRING=/usr/share/keyrings/homebridge.gpg
@@ -584,7 +509,7 @@ https://github.com/homebridge/homebridge-raspbian-image
 }
 
 # Everything else needs to be run as root
-if [ $(id -u) -ne 0 ]; then
+if [ "$(id -u)" -ne 0 ]; then
   printf "Script must be run as root. Try 'sudo hb-config'\n"
   exit 1
 fi
@@ -592,67 +517,43 @@ fi
 #
 # Interactive use loop
 #
-if [ "$INTERACTIVE" = True ]; then
-  calc_wt_size
-  while true; do
-    if is_pi ; then
-      FUN=$(whiptail --title "Homebridge Raspberry Pi Image Configuration Tool (hb-config)" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
-        "1 Update Node.js" "Update Node.js to the latest LTS version" \
-        "2 Update Homebridge" "Update Homebridge and Node.js to the latest version" \
-        "3 Restore Config" "Delete config, plugins and backups, then install Homebridge again" \
-        "4 Extra Packages" "Optional packages, eg. Pi-hole, AdGuard Home" \
-        "5 Nginx Options" "Configure Homebridge Nginx settings" \
-        "6 Configure OS" "Open the Raspberry Pi OS Configuration Tool" \
-        "7 Networking" "Open the NetworkManager UI" \
-        "8 Update" "Update this tool to the latest version" \
-        "9 About" "Information about this configuration tool" \
-        3>&1 1>&2 2>&3)
-    else
-      FUN=$(whiptail --title "Homebridge Raspberry Pi Image Configuration Tool (hb-config)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
-        "1 Update Node.js" "Update Node.js to the latest LTS version" \
-        "2 Update Homebridge" "Update Homebridge and Node.js to the latest version" \
-        "3 Restore Config" "Delete config, plugins and backups, then install Homebridge again" \
-        "4 Extra Packages" "Optional packages, eg. Pi-hole, AdGuard Home" \
-        "5 Nginx Options" "Configure Homebridge Nginx settings" \
-        "6 Configure OS" "Open the Raspberry Pi OS Configuration Tool" \
-        "7 Networking" "Open the NetworkManager UI" \
-        "8 Update" "Update this tool to the latest version" \
-        "9 About" "Information about this configuration tool" \
-        3>&1 1>&2 2>&3)
-    fi
-    RET=$?
-    if [ $RET -eq 1 ]; then
-      do_finish
-    elif [ $RET -eq 0 ]; then
-      if is_pi ; then
-        case "$FUN" in
-          1\ *) do_nodejs_update ;;
-          2\ *) do_homebridge_update ;;
-          3\ *) do_restore_config ;;
-          4\ *) do_extra_packages ;;
-          5\ *) do_configure_nginx ;;
-          6\ *) do_configure_raspbian ;;
-          7\ *) do_nmtui ;;
-          8\ *) do_update ;;
-          9\ *) do_about ;;
-          *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
-        esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
-      else
-        case "$FUN" in
-          1\ *) do_nodejs_update ;;
-          2\ *) do_homebridge_update ;;
-          3\ *) do_restore_config ;;
-          4\ *) do_extra_packages ;;
-          5\ *) do_configure_nginx ;;
-          6\ *) do_configure_raspbian ;;
-          7\ *) do_nmtui ;;
-          8\ *) do_update ;;
-          9\ *) do_about ;;
-          *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
-        esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
-      fi
-    else
-      exit 1
-    fi
-  done
+calc_wt_size
+
+# on a Raspberry Pi the model is shown above the menu
+BACKTITLE=""
+if is_pi && [ -r /proc/device-tree/model ]; then
+  BACKTITLE=$(tr -d '\0' < /proc/device-tree/model)
 fi
+
+while true; do
+  FUN=$(whiptail --title "Homebridge Raspberry Pi Image Configuration Tool (hb-config)" --backtitle "$BACKTITLE" --menu "Setup Options" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" --cancel-button Finish --ok-button Select \
+    "1 Update Node.js" "Update Node.js to the latest LTS version" \
+    "2 Update Homebridge" "Update Homebridge and Node.js to the latest version" \
+    "3 Restore Config" "Delete config, plugins and backups, then install Homebridge again" \
+    "4 Extra Packages" "Optional packages, eg. Pi-hole, AdGuard Home" \
+    "5 Nginx Options" "Configure Homebridge Nginx settings" \
+    "6 Configure OS" "Open the Raspberry Pi OS Configuration Tool" \
+    "7 Networking" "Open the NetworkManager UI" \
+    "8 Update" "Update this tool to the latest version" \
+    "9 About" "Information about this configuration tool" \
+    3>&1 1>&2 2>&3)
+  RET=$?
+  if [ $RET -eq 1 ]; then
+    exit 0
+  elif [ $RET -eq 0 ]; then
+    case "$FUN" in
+      1\ *) do_nodejs_update ;;
+      2\ *) do_homebridge_update ;;
+      3\ *) do_restore_config ;;
+      4\ *) do_extra_packages ;;
+      5\ *) do_configure_nginx ;;
+      6\ *) do_configure_raspbian ;;
+      7\ *) do_nmtui ;;
+      8\ *) do_update ;;
+      9\ *) do_about ;;
+      *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+    esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+  else
+    exit 1
+  fi
+done

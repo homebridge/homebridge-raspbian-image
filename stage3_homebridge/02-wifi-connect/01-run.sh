@@ -7,11 +7,6 @@
 # (see scripts/package-versions.sh). The build stops here when it is missing.
 : "${WIFI_CONNECT_VERSION:?WIFI_CONNECT_VERSION is not set}"
 
-apt-get update
-apt-get install -y jq
-
-export LTS="$(curl -s https://nodejs.org/dist/index.json | jq -r 'map(select(.lts))[0].version')"
-
 install -m 644 files/wifi-connect.service "${ROOTFS_DIR}/etc/systemd/system/"
 install -m 755 files/log-iface-events.sh "${ROOTFS_DIR}/etc/NetworkManager/dispatcher.d/"
 install -m 644 files/wifi-powersave-off.conf "${ROOTFS_DIR}/etc/NetworkManager/conf.d/"

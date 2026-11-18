@@ -47,11 +47,7 @@ mkdir -p "$OUTPUT_DIR"
 
 MANIFEST="${OUTPUT_DIR}/release-body.md"
 rm -f "$MANIFEST"
-if [ -f "${REPO_ROOT}/assets/release-body-header.md" ]; then
-  cp "${REPO_ROOT}/assets/release-body-header.md" "$MANIFEST"
-else
-  touch $MANIFEST
-fi
+touch "$MANIFEST"
 
 PKG_RELEASE_STREAM="${1:-stable}"
 
@@ -60,15 +56,11 @@ info "Creating release body at ${MANIFEST}"
 # Get the latest tag to compare against, filtered by release type.
 # This runs BEFORE the tag of the new release is made (Stage 3 makes it), so the newest
 # existing tag is the previous release.
-if [[ "${PKG_RELEASE_STREAM:-stable}" == "beta" ]]; then
-  # For beta releases, only look at beta tags
-  LATEST_TAG=$(git tag -l | grep -E "beta" | sort -V | tail -1 2>/dev/null || echo "")
-elif [[ "${PKG_RELEASE_STREAM:-stable}" == "alpha" ]]; then
-  # For alpha releases, only look at alpha tags
-  LATEST_TAG=$(git tag -l | grep -E "alpha" | sort -V | tail -1 2>/dev/null || echo "")
+if [[ "$PKG_RELEASE_STREAM" == "stable" ]]; then
+  # stable tags have no "beta" or "alpha" in the name
+  LATEST_TAG=$(git tag -l | grep -v -E "(beta|alpha)" | sort -V | tail -1 || echo "")
 else
-  # For stable releases, only look at stable tags (no beta or alpha in name)
-  LATEST_TAG=$(git tag -l | grep -v -E "(beta|alpha)" | sort -V | tail -1 2>/dev/null || echo "")
+  LATEST_TAG=$(git tag -l | grep -F -- "$PKG_RELEASE_STREAM" | sort -V | tail -1 || echo "")
 fi
 
 group_log "Latest Tag Lookup"
@@ -81,31 +73,8 @@ log "Latest tag for stream '${PKG_RELEASE_STREAM:-stable}': ${LATEST_TAG:-none}"
 HAS_PACKAGE_CHANGES=false
 if [ -n "$LATEST_TAG" ]; then
   # Get the previous package.json for comparison
-  PACKAGE_JSON_PATH=""
-  case "${PKG_RELEASE_STREAM:-stable}" in
-    beta)
-      if [[ "$BUILD_ARCH" == "aarch64" || "$BUILD_ARCH" == "x86_64" ]]; then
-        PACKAGE_JSON_PATH="beta/package.json"
-      else
-        PACKAGE_JSON_PATH="beta/package.json"
-      fi
-      ;;
-    alpha)
-      if [[ "$BUILD_ARCH" == "aarch64" || "$BUILD_ARCH" == "x86_64" ]]; then
-        PACKAGE_JSON_PATH="alpha/package.json"
-      else
-        PACKAGE_JSON_PATH="alpha/package.json"
-      fi
-      ;;
-    *)
-      if [[ "$BUILD_ARCH" == "aarch64" || "$BUILD_ARCH" == "x86_64" ]]; then
-        PACKAGE_JSON_PATH="stable/package.json"
-      else
-        PACKAGE_JSON_PATH="stable/package.json"
-      fi
-      ;;
-  esac
-  
+  PACKAGE_JSON_PATH="${PKG_RELEASE_STREAM}/package.json"
+
   log "Previous package.json path for comparison: ${PACKAGE_JSON_PATH:-none}"
 
   # Compare package versions with previous tag
@@ -186,9 +155,6 @@ if gh release download "$LATEST_TAG" --pattern "*.manifest" --clobber --dir "${P
     fi
   done
   
-  # Show Docker image specific changes
-
-  # echo "See [commit history](https://github.com/homebridge/homebridge-vm-image/compare/$LATEST_TAG...${{ needs.set-versions.outputs.DOCKER_HOMEBRIDGE_VERSION }}) for Docker-specific changes." >> "$MANIFEST"
 else
   warn "Previous release manifest not found for tag ${LATEST_TAG}. Skipping manifest comparison."
   echo -e "\n## Changes Since Previous Release\n" >> "$MANIFEST"

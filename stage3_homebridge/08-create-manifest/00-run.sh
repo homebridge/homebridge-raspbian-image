@@ -13,6 +13,12 @@ else
     ls -l ${ROOTFS_DIR}/opt/homebridge/
 fi
 
+# jq runs here in the build container (not inside the image), so it must be installed there
+if ! command -v jq > /dev/null; then
+  apt-get update
+  apt-get install -y jq
+fi
+
 # WiFi connect is installed in /opt/wifi-connect/lib/node_modules/@homebridge/wifi-connect/package.json
 WIFI_CONNECT_VERSION=$(jq -r .version ${ROOTFS_DIR}/opt/wifi-connect/lib/node_modules/@homebridge/wifi-connect/package.json)
 on_chroot << EOF

@@ -27,9 +27,6 @@ install -m 0440 files/010_homebridge-nopasswd "${ROOTFS_DIR}/etc/sudoers.d/"
 install -m 755 files/issue "${ROOTFS_DIR}/etc/issue"
 install -m 755 files/motd-linux "${ROOTFS_DIR}/etc/update-motd.d/15-linux"
 install -m 755 files/motd-homebridge "${ROOTFS_DIR}/etc/update-motd.d/20-homebridge"
-install -m 633 files/bashrc.partial "${ROOTFS_DIR}/tmp/bashrc.partial"
-
-export 
 
 #
 # Set Version
@@ -73,19 +70,11 @@ echo "[Service]" > /etc/systemd/system/homebridge.service.d/override.conf
 echo "Environment=\"UIX_CAN_SHUTDOWN_RESTART_HOST=1\"" >> /etc/systemd/system/homebridge.service.d/override.conf
 echo "Environment=\"UIX_STORAGE_PATH=/var/lib/homebridge\"" >> /etc/systemd/system/homebridge.service.d/override.conf
 
-# correct ownership
-# chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /var/lib/homebridge
-
 # empty motd
 > /etc/motd
 
 # make a symlink to the main config directory
-#[ -e /home/${FIRST_USER_NAME}/.homebridge ] || ln -fs /var/lib/homebridge /home/${FIRST_USER_NAME}/.homebridge
 [ -e /root/.homebridge ] || ln -fs /var/lib/homebridge /root/.homebridge
-
-# include homebridge bashrc in first user's bashrc
-cat /tmp/bashrc.partial >> /home/${FIRST_USER_NAME}/.bashrc
-rm -rf /tmp/bashrc.partial
 
 # set ui port for use in motd message
 echo "8581" > /etc/hb-ui-port

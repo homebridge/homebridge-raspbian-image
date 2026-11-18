@@ -14,11 +14,6 @@ on:
         options:
           - stable
         default: stable
-     # skip-build:
-     #   description: 'Skip build and only update dependencies'
-     #   required: false
-     #   type: boolean
-     #   default: false
       publish:
         description: 'Publish Release to RPI Imager Registry'
         type: boolean
@@ -45,11 +40,7 @@ jobs:
           RELEASE_STREAM: ${{ github.event.inputs.release-stream }}
         run: |
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            if [[ "$RELEASE_STREAM" == "all" ]]; then
-              echo 'matrix={"stream":["stable"]}' >> "$GITHUB_OUTPUT"
-            else
-              echo "matrix=$(jq -cn --arg stream "$RELEASE_STREAM" '{stream: [$stream]}')" >> "$GITHUB_OUTPUT"
-            fi
+            echo "matrix=$(jq -cn --arg stream "$RELEASE_STREAM" '{stream: [$stream]}')" >> "$GITHUB_OUTPUT"
           else
             # Scheduled run - this repo has one stream: stable
             echo 'matrix={"stream":["stable"]}' >> "$GITHUB_OUTPUT"
