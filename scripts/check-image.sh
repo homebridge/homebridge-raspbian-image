@@ -142,6 +142,7 @@ check "no certificate or key is part of the image" bash -c "! ls '$ROOT'/etc/ngi
 echo "WiFi setup"
 check "the wifi-connect service starts at boot" enabled wifi-connect.service
 check "wifi-connect is installed" test -f "$WIFI_DIR/main.js"
+check "the wifi-connect service does not hold up Homebridge" bash -c "! grep -E '^Before=' '$ROOT/etc/systemd/system/wifi-connect.service' | grep -q 'homebridge.service'"
 if [ -n "$WIFI_CONNECT" ]; then
   check "wifi-connect is version ${WIFI_CONNECT}" bash -c "jq -r .version '$WIFI_DIR/package.json' | grep -qxF '$WIFI_CONNECT'"
 fi

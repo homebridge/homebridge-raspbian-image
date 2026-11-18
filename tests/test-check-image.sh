@@ -92,6 +92,7 @@ breaks "the sudo rule file can be read by everyone" 'chmod 644 etc/sudoers.d/010
 breaks "/etc/hb-release is empty" ': > etc/hb-release'
 breaks "the apt package is another version" 'sed -i "s/^Version: 2.0.26/Version: 2.0.25/" var/lib/dpkg/status'
 breaks "wifi-connect is another version" 'echo "{\"version\":\"4.2.1\"}" > opt/wifi-connect/lib/node_modules/@homebridge/wifi-connect/package.json'
+breaks "the wifi-connect service holds up Homebridge" 'sed -i "s#^Before=.*#Before=nginx.service homebridge.service#" etc/systemd/system/wifi-connect.service'
 breaks "the manifest has no Node.js row" 'sed -i "/NodeJS/d" opt/homebridge/homebridge_raspbian_image_arm64.manifest'
 breaks "the manifest is missing" 'rm opt/homebridge/homebridge_raspbian_image_arm64.manifest'
 breaks "ffmpeg is missing" 'rm usr/local/bin/ffmpeg'

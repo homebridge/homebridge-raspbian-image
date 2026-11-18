@@ -1,8 +1,15 @@
 [Unit]
-Description=WiFi Captive Portal
+Description=Homebridge WiFi setup hotspot
 After=NetworkManager.service
-Before=nginx.service homebridge.service
+# The setup page and nginx both use port 80, so nginx starts when this unit has ended.
+# Homebridge is NOT ordered after this unit: it starts right away, with or without a network.
+Before=nginx.service
 
+# What wifi-connect (4.2.2 or newer) does:
+#   - it waits up to 20 seconds for a network connection, and ends if there is one;
+#   - it ends if a WiFi network is already saved (NetworkManager keeps trying that network);
+#   - only with no connection and no saved WiFi network it starts the setup hotspot;
+#   - a hotspot nobody uses is stopped after 5 minutes, and the check starts again.
 [Service]
 Type=oneshot
 Environment="PATH=/opt/homebridge/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
