@@ -33,7 +33,7 @@ export npm_config_prefix=/opt/wifi-connect
 node -v
 npm -v
 
-npm install -g --ignore-scripts --no-audit --no-fund "@homebridge/wifi-connect@${WIFI_CONNECT_VERSION}"
+npm install -g --ignore-scripts --no-audit --no-fund "@homebridge/wifi-connect@${WIFI_CONNECT_VERSION}" < /dev/null
 
 # nothing in /opt/wifi-connect may be changed by another user, and no npm cache stays in the image
 chown -R root:root /opt/wifi-connect

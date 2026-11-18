@@ -46,9 +46,11 @@ on_chroot << EOF
 curl -sSfL https://repo.homebridge.io/KEY.gpg | gpg --dearmor | sudo tee /usr/share/keyrings/homebridge.gpg  > /dev/null
 echo "deb [signed-by=/usr/share/keyrings/homebridge.gpg] https://repo.homebridge.io ${RELEASE_STREAM} main" | tee /etc/apt/sources.list.d/homebridge.list > /dev/null
 
-apt-get update
-echo apt-get install homebridge=${HOMEBRIDGE_APT_PKG_VERSION}
-apt-get install homebridge=${HOMEBRIDGE_APT_PKG_VERSION} 
+# on_chroot feeds these lines to a shell on its standard input. A command that reads its input
+# (apt-get does, when it asks "Do you want to continue?") would swallow the lines after it, and
+# the build would end "successfully" with half an image. So: -y, and no input for apt-get.
+apt-get update < /dev/null
+apt-get install -y homebridge=${HOMEBRIDGE_APT_PKG_VERSION} < /dev/null
 
 mkdir -p /etc/systemd/system/homebridge.service.d
 echo "[Service]" > /etc/systemd/system/homebridge.service.d/override.conf

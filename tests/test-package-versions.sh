@@ -19,7 +19,7 @@ isnt "stops when a package is missing" "$SCRIPT" "$W/package.json"
 isnt "stops on a name that is not a stream or a file" "$SCRIPT" "../etc"
 
 RUN="$REPO/stage3_homebridge/02-wifi-connect/01-run.sh"
-has "the build installs the wifi-connect version it was given" "$RUN" 'npm install -g --ignore-scripts --no-audit --no-fund "@homebridge/wifi-connect@${WIFI_CONNECT_VERSION}"'
+has "the build installs the wifi-connect version it was given" "$RUN" 'npm install -g --ignore-scripts --no-audit --no-fund "@homebridge/wifi-connect@${WIFI_CONNECT_VERSION}" < /dev/null'
 has "the build stops when no wifi-connect version was given" "$RUN" ': "${WIFI_CONNECT_VERSION:?'
 has "the build workflow hands the wifi-connect version to the build" "$REPO/.github/workflows/create_raspbian_pi-gen.yml" '--env WIFI_CONNECT_VERSION='
 
