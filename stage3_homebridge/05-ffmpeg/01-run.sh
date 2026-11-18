@@ -30,7 +30,8 @@ set -x
 FFMPEG_TMP=\$(mktemp -d)
 FFMPEG_FILE="\$FFMPEG_TMP/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz"
 
-wget -q -O "\$FFMPEG_FILE" "https://github.com/homebridge/ffmpeg-for-homebridge/releases/download/${FFMPEG_FOR_HOMEBRIDGE_VERSION}/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz" < /dev/null
+# curl is installed by the Homebridge stage (01-homebridge/00-packages)
+curl -sSfL -o "\$FFMPEG_FILE" "https://github.com/homebridge/ffmpeg-for-homebridge/releases/download/${FFMPEG_FOR_HOMEBRIDGE_VERSION}/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz" < /dev/null
 
 # the file is unpacked into / as root, so it is only used when its checksum is the expected one
 echo "${FFMPEG_SHA256}  \$FFMPEG_FILE" | sha256sum -c -

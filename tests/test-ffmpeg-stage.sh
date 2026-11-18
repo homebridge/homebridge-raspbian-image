@@ -20,13 +20,13 @@ run_stage() {
   ) > "$W/stage.log" 2>&1
 }
 
-# inside: runs the saved lines with stand-ins for wget, tar and (unless $1 is "no-ffmpeg") ffmpeg
+# inside: runs the saved lines with stand-ins for curl, tar and (unless $1 is "no-ffmpeg") ffmpeg
 inside() {
   rm -rf "${W:?}/calls.log" "${W:?}/bin"
   mkdir -p "$W/bin"
   fake uname 'exit 0'
-  # wget writes the "download" to the file after -O
-  fake wget "while [ \$# -gt 1 ]; do [ \"\$1\" = \"-O\" ] && cat \"$W/archive\" > \"\$2\"; shift; done"
+  # curl writes the "download" to the file after -o
+  fake curl "while [ \$# -gt 1 ]; do [ \"\$1\" = \"-o\" ] && cat \"$W/archive\" > \"\$2\"; shift; done"
   fake tar 'exit 0'
   [ "${1:-}" = "no-ffmpeg" ] || fake ffmpeg 'echo "ffmpeg version 8.0"'
   # only the stand-ins and the basic tools are on the PATH, so a real ffmpeg on this machine is not found
