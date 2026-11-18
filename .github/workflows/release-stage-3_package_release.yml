@@ -174,6 +174,7 @@ jobs:
     if: ${{ inputs.publish }}
     runs-on: ubuntu-latest
     steps:
+      # This token can change files in homebridge.io and nothing else.
       - name: Generate GitHub App Token
         id: app-token
         uses: actions/create-github-app-token@v3
@@ -182,6 +183,7 @@ jobs:
           private-key: ${{ secrets.PRIVATE_KEY }}
           repositories: 'homebridge.io'
           owner: 'homebridge'
+          permission-contents: write
 
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -211,18 +213,20 @@ jobs:
           gh release view "$RELEASE_TAG" --json assets > release-files.json
           ./scripts/check-imager-json.py ./release-assets/rpi-image-repo.json --tag "$RELEASE_TAG" --entries 2 --assets release-files.json
 
-      - name: Push Image Info to Homebridge Registry
-        uses: dmnemec/copy_file_to_another_repo_action@main
-        env:
-          API_TOKEN_GITHUB: ${{ steps.app-token.outputs.token }}
+      # A push to the "source" branch of homebridge.io is a live deploy of the website.
+      # Only GitHub's own checkout action and plain git commands touch the token.
+      - name: Checkout homebridge.io
+        uses: actions/checkout@v7
         with:
-          source_file: './release-assets/rpi-image-repo.json'
-          destination_repo: 'homebridge/homebridge.io'
-          destination_branch: 'source'
-          destination_folder: 'src/public/'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
-          user_name: 'github-actions[bot]'
-          commit_message: 'New Homebridge Raspbian Image Release ${{ inputs.release_tag }}'
+          repository: homebridge/homebridge.io
+          ref: source
+          path: homebridge.io
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Push Image Info to Homebridge Registry
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: ./scripts/publish-imager-json.sh ./homebridge.io ./release-assets/rpi-image-repo.json "$RELEASE_TAG"
 
       - name: Registry Updated
         run: |
