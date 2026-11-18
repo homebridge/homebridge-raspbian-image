@@ -244,47 +244,51 @@ do_install_pihole() {
 
 do_install_adguard_home() {
   if [ -e /etc/systemd/system/AdGuardHome.service ]; then
-      whiptail --title "Remove AdGuard Home" --yesno "AdGuard Home is already installed.\n\nWould you like to UNINSTALL AdGuard Home?" 20 60 1
-      RET=$?
-      if [ $RET -eq 0 ]; then
-        systemctl stop AdGuardHome
-      	systemctl disable AdGuardHome
-	      rm -rf /etc/systemd/system/AdGuardHome.service
-        rm -rf /opt/AdGuardHome
-	      systemctl daemon-reload
-        whiptail --title "Success" --msgbox "AdGuard Home has been uninstalled." 20 60 1
-      	printf "\n"
-      fi
-  else
-    whiptail --title "Warning" --yesno "This will install the AdGuard Home software which uses the following ports:\n\n* 3000\n\nAre you sure you want to continue?" 20 60 1
-    RET=$?
-    if [ $RET -eq 0 ]; then
-      rm -rf /tmp/adguardhome
-      mkdir -p /tmp/adguardhome
-      cd /tmp/adguardhome
-      # AdGuard Home publishes a build for each architecture - use the one for this system
-      case "$(dpkg --print-architecture)" in
-        arm64) ADGUARD_ARCH="arm64" ;;
-        *) ADGUARD_ARCH="armv7" ;;
-      esac
-      wget "https://static.adguard.com/adguardhome/release/AdGuardHome_linux_${ADGUARD_ARCH}.tar.gz"
-      tar xvf "AdGuardHome_linux_${ADGUARD_ARCH}.tar.gz" -C /opt
-      rm -rf /tmp/adguardhome
-      cd /opt/AdGuardHome
-      ./AdGuardHome -s install
-      if [ $? -eq 0 ]; then
-        # Complete
-        ADGUARD_WEB=$(get_web_addresses http 3000 | sed 's/\x1b\[[0-9;]*m//g')
-        whiptail --title "Success" --msgbox "AdGuard Home has been installed.\n\nFinish setting up AdGuard Home via:\n\n$ADGUARD_WEB" 20 60 1
-        printf "\n"
-        exit 0
-      else
-        whiptail --title "Error" --msgbox "AdGuard Home failed to install correctly. Review log above." 20 60 1
-        printf "\n"
-        exit 0
-      fi
+    if whiptail --title "Remove AdGuard Home" --yesno "AdGuard Home is already installed.\n\nWould you like to UNINSTALL AdGuard Home?" 20 60 1; then
+      systemctl stop AdGuardHome
+      systemctl disable AdGuardHome
+      rm -rf /etc/systemd/system/AdGuardHome.service
+      rm -rf /opt/AdGuardHome
+      systemctl daemon-reload
+      whiptail --title "Success" --msgbox "AdGuard Home has been uninstalled." 20 60 1
+      printf "\n"
     fi
+    return
   fi
+
+  if ! whiptail --title "Warning" --yesno "This will install the AdGuard Home software which uses the following ports:\n\n* 3000\n\nAre you sure you want to continue?" 20 60 1; then
+    return
+  fi
+
+  # AdGuard Home publishes a build for each architecture - use the one for this system
+  case "$(dpkg --print-architecture)" in
+    arm64) ADGUARD_ARCH="arm64" ;;
+    *) ADGUARD_ARCH="armv7" ;;
+  esac
+
+  # The download goes into a new folder that only root can use. A fixed name in /tmp could be
+  # prepared by another user before this runs.
+  ADGUARD_TMP=$(mktemp -d) || return 1
+
+  if ! wget -O "$ADGUARD_TMP/AdGuardHome.tar.gz" "https://static.adguard.com/adguardhome/release/AdGuardHome_linux_${ADGUARD_ARCH}.tar.gz" \
+    || ! tar xf "$ADGUARD_TMP/AdGuardHome.tar.gz" -C /opt/; then
+    rm -rf "$ADGUARD_TMP"
+    whiptail --title "Error" --msgbox "AdGuard Home could not be downloaded or unpacked.\n\nCheck the network connection and try again. Nothing was installed." 20 60 1
+    printf "\n"
+    return
+  fi
+
+  rm -rf "$ADGUARD_TMP"
+
+  if /opt/AdGuardHome/AdGuardHome -s install; then
+    # Complete
+    ADGUARD_WEB=$(get_web_addresses http 3000 | sed 's/\x1b\[[0-9;]*m//g')
+    whiptail --title "Success" --msgbox "AdGuard Home has been installed.\n\nFinish setting up AdGuard Home via:\n\n$ADGUARD_WEB" 20 60 1
+  else
+    whiptail --title "Error" --msgbox "AdGuard Home failed to install correctly. Review log above." 20 60 1
+  fi
+  printf "\n"
+  exit 0
 }
 
 do_extra_packages() {
