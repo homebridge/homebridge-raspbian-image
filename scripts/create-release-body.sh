@@ -134,11 +134,13 @@ if gh release download "$LATEST_TAG" --pattern "*.manifest" --clobber --dir "${P
       if ! diff -u "$PREVIOUS_MANIFEST" "$OUTPUT_MANIFEST" > "${TMP_DIFF}"; then
         # Check if there are any meaningful changes in the diff
         if grep -qE "^[+-]\|" "${TMP_DIFF}"; then
-          echo "### Changes in ${MANIFEST_NAME}" >> "$MANIFEST"
-          echo "\`\`\`diff" >> "$MANIFEST"
-          # Include the diff output, sorted for readability
-          grep -E "^[+-]\|" "${TMP_DIFF}" | sort -k2 | head -20 >> "$MANIFEST"
-          echo "\`\`\`" >> "$MANIFEST"
+          {
+            echo "### Changes in ${MANIFEST_NAME}"
+            echo "\`\`\`diff"
+            # Include the diff output, sorted for readability
+            grep -E "^[+-]\|" "${TMP_DIFF}" | sort -k2 | head -20
+            echo "\`\`\`"
+          } >> "$MANIFEST"
         else
           warn "No meaningful changes found in differences for ${MANIFEST_NAME}."
           echo "No meaningful changes detected in ${MANIFEST_NAME}." >> "$MANIFEST"

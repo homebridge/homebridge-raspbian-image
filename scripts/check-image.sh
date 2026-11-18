@@ -70,7 +70,6 @@ not_enabled() { ! enabled "$1"; }
 
 MANIFEST="$ROOT/opt/homebridge/homebridge_raspbian_image_${ARCH}.manifest"
 WIFI_DIR="$ROOT/opt/wifi-connect/lib/node_modules/@homebridge/wifi-connect"
-WANTS="multi-user.target.wants"
 
 # The version in one row of the manifest table, for example: manifest_version "NodeJS" -> v24.1.0
 manifest_version() {

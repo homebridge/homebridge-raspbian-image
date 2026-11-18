@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # The build step that installs ffmpeg unpacks a download into / as root.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 GOOD_SHA="$(printf 'the real archive\n' | sha256sum | cut -d' ' -f1)"
@@ -7,9 +9,10 @@ GOOD_SHA="$(printf 'the real archive\n' | sha256sum | cut -d' ' -f1)"
 # run_stage [NAME=value ...]: runs 01-run.sh with a stand-in for on_chroot that saves the lines
 # for inside the image to $W/chroot-script
 run_stage() {
-  rm -f "$W/chroot-script"
+  rm -f "${W:?}/chroot-script"
   (
     cd "$REPO/stage3_homebridge/05-ffmpeg" || exit 1
+    # shellcheck disable=SC2317  # called by the script under test
     on_chroot() { cat >> "$W/chroot-script"; }
     export -f on_chroot
     export W
@@ -19,7 +22,7 @@ run_stage() {
 
 # inside: runs the saved lines with stand-ins for wget, tar and (unless $1 is "no-ffmpeg") ffmpeg
 inside() {
-  rm -rf "$W/calls.log" "$W/bin"
+  rm -rf "${W:?}/calls.log" "${W:?}/bin"
   mkdir -p "$W/bin"
   fake uname 'exit 0'
   # wget writes the "download" to the file after -O
@@ -60,7 +63,7 @@ isnt "the build step stops on an architecture it does not know" test "$?" -eq 0
 
 # scripts/ffmpeg-checksum.sh with a stand-in for the GitHub API
 CHECKSUM="$REPO/scripts/ffmpeg-checksum.sh"
-rm -rf "$W/bin" && mkdir -p "$W/bin"
+rm -rf "${W:?}/bin" && mkdir -p "${W:?}/bin"
 cat > "$W/api.json" <<JSON
 {"assets": [
   {"name": "ffmpeg-alpine-aarch64.tar.gz", "digest": "sha256:$GOOD_SHA"},

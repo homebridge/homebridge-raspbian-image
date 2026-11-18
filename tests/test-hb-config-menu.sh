@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # What the hb-config tool of current images offers, and that it is a valid script for the shell
 # that runs it.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 TOOL="$FILES/hb-config-new"
@@ -29,6 +31,7 @@ is "Extra Packages offers Pi-hole" grep -q '"A1 Pi-hole"' <<< "$extra"
 same "Extra Packages offers two entries" "$(grep -c '^    "A[0-9] ' <<< "$extra")" "2"
 
 # every menu entry leads to a function that exists
+# shellcheck disable=SC2013  # one function name per word
 for fn in $(grep -oE '\) do_[a-z_]+ ;;' "$TOOL" | awk '{print $2}' | sort -u); do
   is "menu function $fn exists" grep -q "^${fn}() {" "$TOOL"
 done

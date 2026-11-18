@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # Stage 3 (the workflow that makes the release) and the script that joins the Imager entries.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 COMBINE="$REPO/combine-rpi-imager-snipplet.py"
 
 combine() {
-  rm -rf "$W/c" && mkdir -p "$W/c"
+  rm -rf "${W:?}/c" && mkdir -p "${W:?}/c"
   for name in "$@"; do echo "{\"os_list\":[{\"name\":\"$name\"}]}" > "$W/c/rpi-image-repo-$name.json"; done
   ( cd "$W/c" && python3 "$COMBINE" ) > "$W/combine.log" 2>&1
 }

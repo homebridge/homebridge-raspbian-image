@@ -1,4 +1,8 @@
-#! /bin/bash
+#!/bin/bash
+# The pi-gen config for a build on your own machine (setup_local_test_environment.sh copies it
+# into ./pi-gen and adds the versions). The build workflow does not use this file: there the
+# pi-gen action writes the config from its inputs. Keep the two in step.
+# shellcheck disable=SC2034  # pi-gen reads these values
 
 IMG_NAME="Homebridge"
 TARGET_HOSTNAME="homebridge"

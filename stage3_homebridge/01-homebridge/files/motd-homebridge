@@ -1,42 +1,60 @@
 #!/bin/bash
 
+# The message a user sees after logging in (it is one of the /etc/update-motd.d scripts).
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-BOLD='\e[1m'
+BOLD='\033[1m'
 NC='\033[0m'
 
-MODEL=$(tr -d '\0' </proc/device-tree/model)
+MODEL=""
+if [ -r /proc/device-tree/model ]; then
+  MODEL=$(tr -d '\0' < /proc/device-tree/model)
+fi
 
 IP=$(hostname -I)
-UI_PORT=$(cat /etc/hb-ui-port)
-IMAGE_VERSION=$(cat /etc/hb-release)
+UI_PORT=$(cat /etc/hb-ui-port 2> /dev/null)
+IMAGE_VERSION=$(cat /etc/hb-release 2> /dev/null)
 
-printf "\n${RED}*** Homebridge Raspbian $IMAGE_VERSION - $MODEL ***${NC}\n\n"
+# line <label> <value>: one "label: value" line, the label in bold and the value in green
+line() {
+  printf '%b%s%b %b%s%b\n' "$BOLD" "$1" "$NC" "$GREEN" "$2" "$NC"
+}
+
+# address <url>: one line of the address list
+address() {
+  printf '%b*%b %b%s%b\n' "$BOLD" "$NC" "$GREEN" "$1" "$NC"
+}
+
+printf '\n%b*** Homebridge Raspbian %s - %s ***%b\n\n' "$RED" "$IMAGE_VERSION" "$MODEL" "$NC"
 
 printf "homebridge was created by nfarina and licensed under the Apache License 2.0.\n" | fold -s
 printf "homebridge-config-ui-x was created by oznu and licensed under the MIT License.\n\n" | fold -s
 
-printf "To configure Homebridge browse to the one of the following addresses from another device on your network:" | fold -s
+printf "To configure Homebridge browse to one of the following addresses from another device on your network:" | fold -s
 printf "\n\n"
-printf "${BOLD}*${NC} ${GREEN}http://$(hostname).local:${UI_PORT}${NC}\n"
+address "http://$(hostname).local:${UI_PORT}"
 
 for ip in $IP; do
   if [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-    printf "${BOLD}*${NC} ${GREEN}http://$ip:${UI_PORT}${NC}\n"
+    address "http://$ip:${UI_PORT}"
   else
-    printf "${BOLD}*${NC} ${GREEN}http://[$ip]:${UI_PORT}${NC}\n"
+    address "http://[$ip]:${UI_PORT}"
   fi
 done
 
 printf "\nAll Homebridge configuration can be completed via the Homebridge Web UI.\n" | fold -s
 
-printf "\n${BOLD}Homebridge storage path:${NC} ${GREEN}/var/lib/homebridge${NC}\n"
-printf "${BOLD}Homebridge config.json path:${NC} ${GREEN}/var/lib/homebridge/config.json${NC}\n"
+printf '\n'
+line "Homebridge storage path:" "/var/lib/homebridge"
+line "Homebridge config.json path:" "/var/lib/homebridge/config.json"
 
-printf "\n${BOLD}Restart Homebridge CMD:${NC} ${GREEN}sudo hb-service restart${NC}\n"
-printf "${BOLD}View Logs CMD:${NC} ${GREEN}sudo hb-service logs${NC}\n"
+printf '\n'
+line "Restart Homebridge CMD:" "sudo hb-service restart"
+line "View Logs CMD:" "sudo hb-service logs"
 
-printf "\n${BOLD}Manage Server:${NC} ${GREEN}sudo hb-config${NC}\n"
-printf "${BOLD}Enter Homebridge Runtime Environment:${NC} ${GREEN}sudo hb-shell${NC}\n"
+printf '\n'
+line "Manage Server:" "sudo hb-config"
+line "Enter Homebridge Runtime Environment:" "sudo hb-shell"
 
 printf "\n"

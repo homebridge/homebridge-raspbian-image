@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # 20-hb-nginx-check runs as root before every Homebridge start and reads a file that the
 # Homebridge service user owns. Whatever is in that file, the nginx config must stay valid and
 # only the one port line may change.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 SITE="$REPO/stage3_homebridge/03-nginx/files/homebridge.local"
@@ -11,7 +13,7 @@ fake nginx 'exit 0'
 
 # run_with <content of config.json | "-" for no file>: runs the script on a fresh copy of the site config
 run_with() {
-  rm -rf "$W/c" "$W/calls.log"
+  rm -rf "${W:?}/c" "${W:?}/calls.log"
   mkdir -p "$W/c"
   sed -e "s#/var/lib/homebridge/config.json#$W/c/config.json#g" \
       -e "s#/etc/hb-ui-port#$W/c/hb-ui-port#g" \

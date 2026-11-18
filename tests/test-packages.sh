@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # The package lists of the Homebridge stage.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 # the names in a package list, with comments taken out the way pi-gen does it

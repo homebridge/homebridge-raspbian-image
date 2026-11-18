@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # hb-config -> "Update" replaces the tool itself, as root. It must only install a complete
 # script from a release, and it must keep the old tool when anything is wrong.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 INSTALLED="$W/root/usr/local/sbin/hb-config"
 
 # fresh <tag GitHub reports> <content the download gives>
 fresh() {
-  rm -rf "$W/root" "$W/calls.log" "$W/bin"
+  rm -rf "${W:?}/root" "${W:?}/calls.log" "${W:?}/bin"
   mkdir -p "$W/bin" "$W/root/usr/local/sbin" "$W/root/tmp"
   printf '#!/bin/sh\necho old tool\n' > "$INSTALLED"
   printf '%s' "$2" > "$W/download"

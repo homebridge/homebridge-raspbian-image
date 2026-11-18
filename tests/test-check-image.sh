@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # scripts/check-image.sh must pass on a good image and fail on each kind of broken image.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 CHECK="$REPO/scripts/check-image.sh"

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # hb-config -> "Update Homebridge" and "Restore Config" must not leave the Pi worse off when a
 # step fails, for example with no network.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 KEYRING="$W/root/usr/share/keyrings/homebridge.gpg"
@@ -8,7 +10,7 @@ LIST="$W/root/etc/apt/sources.list.d/homebridge.list"
 
 # fresh: an installed key, and the given channel in the apt source file
 fresh() {
-  rm -rf "$W/root" "$W/calls.log" "$W/bin"
+  rm -rf "${W:?}/root" "${W:?}/calls.log" "${W:?}/bin"
   mkdir -p "$W/bin" "$W/root/usr/share/keyrings" "$W/root/etc/apt/sources.list.d"
   echo "OLD KEY" > "$KEYRING"
   echo "deb [signed-by=/usr/share/keyrings/homebridge.gpg] https://repo.homebridge.io ${1:-stable} main" > "$LIST"

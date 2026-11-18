@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # The build step that writes the manifest of the image, and the values the build passes in.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 R="$W/rootfs"
@@ -72,8 +74,11 @@ isnt "the step stops when no release tag is passed in" test "$?" -eq 0
 WORKFLOW="$REPO/.github/workflows/create_raspbian_pi-gen.yml"
 opts="$(sed -n '/^ *docker-opts: >-$/,/^$/p' "$WORKFLOW" | grep -- '--env')"
 same "the workflow passes 7 values" "$(grep -c -- '--env' <<< "$opts")" "7"
+# shellcheck disable=SC2001  # sed is clearer here than a shell pattern
 isnt "no value has a quote mark, a backslash or a bracket around it" grep -E "[\"'\\\\]|\\\\\(|=\(" <(sed -e "s/\${{[^}]*}}/X/g" <<< "$opts")
+# shellcheck disable=SC2001
 isnt "no value holds a space" grep -E -- '--env [A-Z0-9_]+=[^ ]+ +[^ -]' <(sed -e "s/\${{[^}]*}}/X/g" <<< "$opts")
+# shellcheck disable=SC2013  # one variable name per word
 for name in $(grep -rhoE '^: "\$\{[A-Z0-9_]+:\?' "$REPO/stage3_homebridge" | sed -E 's/^: "\$\{([A-Z0-9_]+).*/\1/' | sort -u); do
   is "the workflow passes $name, which a stage script needs" grep -q -- "--env $name=" <<< "$opts"
 done

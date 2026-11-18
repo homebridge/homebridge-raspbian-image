@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # The release notes must compare the new image with the release before it.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 # a small repo with three releases; the newest tag is v1.0.10 (not v1.0.9: tags sort by number)
@@ -12,7 +14,8 @@ git config user.email test@example.invalid
 git config user.name Test
 release() {
   jq -n --arg v "$1" '{dependencies: {"@homebridge/homebridge-apt-pkg": $v, "@homebridge/wifi-connect": "4.2.2", "ffmpeg-for-homebridge": "2.2.2"}}' > stable/package.json
-  git add -A && git commit -q -m "STABLE: apt package $1" && [ -z "${2:-}" ] || git tag "$2"
+  git add -A && git commit -q -m "STABLE: apt package $1"
+  if [ -n "${2:-}" ]; then git tag "$2"; fi
 }
 release 2.0.1 v1.0.8
 release 2.0.2 v1.0.9

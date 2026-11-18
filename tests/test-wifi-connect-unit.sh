@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # The WiFi setup service: what it may hold up at boot, and what it runs.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 UNIT="$REPO/stage3_homebridge/02-wifi-connect/files/wifi-connect.service"

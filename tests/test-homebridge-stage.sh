@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # Rules for the build step that installs Homebridge (stage3_homebridge/01-homebridge/00-run.sh).
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 RUN="$REPO/stage3_homebridge/01-homebridge/00-run.sh"
@@ -8,10 +10,11 @@ RUN="$REPO/stage3_homebridge/01-homebridge/00-run.sh"
 # the image. pi-gen's on_chroot (it runs lines inside the image) is replaced by a stand-in that
 # only saves those lines to $W/chroot-script.
 run_stage() {
-  rm -rf "$W/rootfs" "$W/chroot-script"
+  rm -rf "${W:?}/rootfs" "${W:?}/chroot-script"
   mkdir -p "$W/rootfs/etc/update-motd.d" "$W/rootfs/usr/local/sbin" "$W/rootfs/etc/systemd/system" "$W/rootfs/tmp" "$W/rootfs/home/pi"
   (
     cd "$REPO/stage3_homebridge/01-homebridge" || exit 1
+    # shellcheck disable=SC2317  # called by the script under test
     on_chroot() { cat >> "$W/chroot-script"; }
     export -f on_chroot
     export W
@@ -49,9 +52,10 @@ same "the sudo rule file is readable by root only" "$(mode etc/sudoers.d/010_hom
 isnt "nothing is left in /tmp of the image" test -n "$(ls -A "$W/rootfs/tmp")"
 
 # the nginx build step
-rm -rf "$W/nginx-root" && mkdir -p "$W/nginx-root/etc/nginx/sites-available" "$W/nginx-root/usr/share/nginx/html" "$W/nginx-root/etc/systemd/system" "$W/nginx-root/usr/local/sbin"
+rm -rf "${W:?}/nginx-root" && mkdir -p "${W:?}/nginx-root/etc/nginx/sites-available" "${W:?}/nginx-root/usr/share/nginx/html" "${W:?}/nginx-root/etc/systemd/system" "${W:?}/nginx-root/usr/local/sbin"
 (
   cd "$REPO/stage3_homebridge/03-nginx" || exit 1
+  # shellcheck disable=SC2317  # called by the script under test
   on_chroot() { cat > /dev/null; }
   export -f on_chroot
   ROOTFS_DIR="$W/nginx-root" bash -e ./01-run.sh
@@ -76,7 +80,7 @@ sed -E "s#(^|[[:space:]=\">\[])/(etc|root|home|usr|tmp|var|opt)/#\\1$W/rootfs/\\
 mkdir -p "$W/rootfs/etc/apt/sources.list.d" "$W/rootfs/usr/share/keyrings" "$W/rootfs/root" "$W/rootfs/var/lib/homebridge"
 touch "$W/rootfs/home/pi/.bashrc" "$W/rootfs/etc/nsswitch.conf"
 isnt "the test moved every path into the scratch folder" grep -E '(^|[[:space:]=">\[])/(etc|root|home|usr|tmp|var|opt)/' <(sed "s#$W/rootfs/##g" "$W/chroot-script.moved")
-rm -f "$W/calls.log"
+rm -f "${W:?}/calls.log"
 ( cd "$W" && PATH="$W/bin:$PATH" bash -e < "$W/chroot-script.moved" ) > "$W/chroot.log" 2>&1
 same "the lines for inside the image run to the end" "$?" "0"
 has "apt-get install does not ask (-y)" "$W/calls.log" "apt-get install -y homebridge=2.0.26"
@@ -86,7 +90,7 @@ is "the service settings file is written after apt-get" grep -q 'UIX_CAN_SHUTDOW
 # the key of the Homebridge package repo is only trusted when it is the known key
 has "the build asks for the key over https" "$W/calls.log" "curl -sSfL https://repo.homebridge.io/KEY.gpg"
 echo "0000000000000000000000000000000000000000" > "$W/fingerprint"
-rm -f "$W/calls.log" "$W/rootfs/usr/share/keyrings/homebridge.gpg"
+rm -f "${W:?}/calls.log" "${W:?}/rootfs/usr/share/keyrings/homebridge.gpg"
 ( cd "$W" && PATH="$W/bin:$PATH" bash -e < "$W/chroot-script.moved" ) > "$W/chroot.log" 2>&1
 isnt "the build stops when the downloaded key is not the known Homebridge key" test "$?" -eq 0
 isnt "an unknown key is not installed" test -e "$W/rootfs/usr/share/keyrings/homebridge.gpg"

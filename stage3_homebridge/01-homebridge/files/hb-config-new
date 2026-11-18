@@ -14,9 +14,8 @@
 # This is a /bin/sh script. On a Pi /bin/sh is dash, so bash-only syntax does not work here.
 #
 
-RED='\033[0;31m'
 GREEN='\033[0;32m'
-BOLD='\e[1m'
+BOLD='\033[1m'
 NC='\033[0m'
 
 is_pi () {
@@ -41,19 +40,20 @@ calc_wt_size() {
   if [ "$WT_WIDTH" -gt 178 ]; then
     WT_WIDTH=120
   fi
-  WT_MENU_HEIGHT=$(($WT_HEIGHT-7))
+  WT_MENU_HEIGHT=$((WT_HEIGHT - 7))
 }
 
+# get_web_addresses <http|https> <port> [path]: prints the addresses this system is reached by
 get_web_addresses() {
   IP=$(hostname -I)
 
-  printf "  ${BOLD}*${NC} ${GREEN}$1://$(hostname).local:$2$3${NC}\n"
+  printf '  %b*%b %b%s://%s.local:%s%s%b\n' "$BOLD" "$NC" "$GREEN" "$1" "$(hostname)" "$2" "${3:-}" "$NC"
 
   for ip in $IP; do
     if expr "$ip" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null; then
-      printf "  ${BOLD}*${NC} ${GREEN}$1://$ip:$2$3${NC}\n"
+      printf '  %b*%b %b%s://%s:%s%s%b\n' "$BOLD" "$NC" "$GREEN" "$1" "$ip" "$2" "${3:-}" "$NC"
     else
-      printf "  ${BOLD}*${NC} ${GREEN}$1://[$ip]:$2$3${NC}\n"
+      printf '  %b*%b %b%s://[%s]:%s%s%b\n' "$BOLD" "$NC" "$GREEN" "$1" "$ip" "$2" "${3:-}" "$NC"
     fi
   done
 }
@@ -178,7 +178,7 @@ do_install_pihole() {
   if curl -sSfL https://install.pi-hole.net -o "$PIHOLE_INSTALLER" && bash "$PIHOLE_INSTALLER"; then
     rm -f "$PIHOLE_INSTALLER" "$NGINX_SITE_COPY"
 
-    printf "\n${BOLD}Pi-hole has been installed${NC}\n"
+    printf '\n%bPi-hole has been installed%b\n' "$BOLD" "$NC"
     printf "Access Pi-hole in your browser by going to:\n"
     get_web_addresses http 80 /admin
 
@@ -255,7 +255,7 @@ do_install_adguard_home() {
 }
 
 do_extra_packages() {
-  FUN=$(whiptail --title "Homebridge Raspberry Pi Configuration Tool (hb-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+  FUN=$(whiptail --title "Homebridge Raspberry Pi Configuration Tool (hb-config)" --menu "Advanced Options" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" --cancel-button Back --ok-button Select \
     "A0 AdGuard Home" "Install / Uninstall AdGuard Home" \
     "A1 Pi-hole" "Install / Reconfigure Pi-hole" \
     3>&1 1>&2 2>&3)

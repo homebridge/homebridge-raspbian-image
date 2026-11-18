@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # Rules for the workflow files.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 WORKFLOWS="$REPO/.github/workflows"
@@ -73,6 +75,8 @@ same "every workflow gives no rights by default" "$(grep -c '^top ' "$W/workflow
 job_rights() {
   same "$1 / $2 has these rights: $3" "$(sed -n "s/^job $1 $2 //p" "$W/workflow-facts")" "$3"
 }
+job_rights ci.yml lint "contents:read"
+job_rights ci.yml actionlint "contents:read"
 job_rights ci.yml tests "contents:read"
 job_rights release-stage-1_update_dependencies.yml define-matrix "none"
 job_rights release-stage-1_update_dependencies.yml update-dependencies "actions:write,contents:read"
@@ -88,7 +92,7 @@ job_rights labeler.yml labeler "contents:read,pull-requests:write"
 job_rights pr-labeler.yml label "contents:read,pull-requests:write"
 job_rights stale.yml stale "issues:write,pull-requests:write"
 job_rights wiki-change-notification.yml notify "none"
-same "every job is in the list above" "$(grep -c '^job ' "$W/workflow-facts")" "15"
+same "every job is in the list above" "$(grep -c '^job ' "$W/workflow-facts")" "17"
 
 # A value pasted into a shell line becomes shell code. Values must come in through "env:".
 same "no shell line has a \${{ }} value pasted into it" "$(grep '^expr ' "$W/workflow-facts")" ""

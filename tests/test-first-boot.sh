@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # The script that runs once at the first boot of a new image.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 fake systemctl 'exit 0'
 
 # first_boot: runs the script with its paths moved into $W/root
 first_boot() {
-  rm -f "$W/calls.log"
+  rm -f "${W:?}/calls.log"
   sed -E "s#(^|[[:space:]=\"<>])/(etc|proc)/#\1$W/root/\2/#g" "$FILES/first-boot-homebridge" > "$W/first-boot"
   ( PATH="$W/bin:$PATH" dash "$W/first-boot" ) > "$W/first-boot.log" 2>&1
 }

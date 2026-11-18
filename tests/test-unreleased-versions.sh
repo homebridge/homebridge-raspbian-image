@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # After a failed image build, the next daily run must notice that the versions on the branch
 # were never released.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 G="$W/repo"

@@ -1,0 +1,4 @@
+# shellcheck settings for this repo (scripts/lint.sh runs it)
+# tests load tests/lib.sh from their own folder
+external-sources=true
+source-path=SCRIPTDIR

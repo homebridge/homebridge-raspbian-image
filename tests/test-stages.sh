@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # The list of build stages. stage0, stage1 and stage2 come from pi-gen. The others are folders
 # in this repo.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 WORKFLOW="$REPO/.github/workflows/create_raspbian_pi-gen.yml"

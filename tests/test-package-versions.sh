@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # The build must use exact, written-down versions of everything it installs.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 SCRIPT="$REPO/scripts/package-versions.sh"

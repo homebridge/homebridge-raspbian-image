@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # hb-config -> Extra Packages: downloads that root installs must not go through a file name that
 # another user could prepare, and a failed download must not be installed.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 TOOL="$FILES/hb-config-new"
 
 fresh() {
-  rm -rf "$W/root" "$W/calls.log" "$W/bin"
+  rm -rf "${W:?}/root" "${W:?}/calls.log" "${W:?}/bin"
   mkdir -p "$W/bin" "$W/root/tmp" "$W/root/opt"
   fake dpkg 'echo arm64'
   fake systemctl 'exit 0'

@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # setup_local_test_environment.sh prepares a local build on a developer's machine.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 # the script works in its own folder, so it runs in a copy of the files it needs
 setup() {
-  rm -rf "$W/copy" "$W/calls.log"
+  rm -rf "${W:?}/copy" "${W:?}/calls.log"
   mkdir -p "$W/copy"
   cp -r "$REPO/config" "$REPO/stable" "$REPO/stage3_homebridge" "$REPO/scripts" "$REPO/setup_local_test_environment.sh" "$W/copy/"
   fake docker 'exit 0'
@@ -27,6 +29,7 @@ done
 has "the 64-bit ffmpeg checksum is used" "$W/copy/pi-gen/config" 'FFMPEG_SHA256="aaaaaaaa'
 
 # every value a stage script insists on is one this script provides
+# shellcheck disable=SC2013  # one variable name per word
 for name in $(grep -rhoE '^: "\$\{[A-Z0-9_]+:\?' "$REPO/stage3_homebridge" | sed -E 's/^: "\$\{([A-Z0-9_]+).*/\1/' | sort -u); do
   is "the build config provides $name, which a stage script needs" grep -q "^export $name=" "$W/copy/pi-gen/config"
 done

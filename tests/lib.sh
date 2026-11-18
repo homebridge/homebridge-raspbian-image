@@ -14,7 +14,7 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FILES="$REPO/stage3_homebridge/01-homebridge/files"
 
 W="$(mktemp -d)"
-trap 'rm -rf "$W"' EXIT
+trap 'rm -rf "${W:?}"' EXIT
 mkdir -p "$W/bin"
 
 CHECKS=0
@@ -111,6 +111,7 @@ hb_config_functions() {
 # whiptail is a stand-in that answers "yes" to every question, or "no" when WHIPTAIL_ANSWER=1.
 hb_config() {
   hb_config_functions "$W/hb-config-functions"
+  # shellcheck disable=SC2016  # the stand-in reads WHIPTAIL_ANSWER when it runs
   [ -x "$W/bin/whiptail" ] || fake whiptail 'exit "${WHIPTAIL_ANSWER:-0}"'
   [ -x "$W/bin/pstree" ] || fake pstree 'echo "systemd---sshd---bash"'
   ( cd "$W" && PATH="$W/bin:$PATH" TMPDIR="$W/root/tmp" dash -c ". '$W/hb-config-functions'; $1" ) > "$W/hb-config.log" 2>&1

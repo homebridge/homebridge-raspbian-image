@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # The step that waits for the image build must only pass when the build passed.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 SCRIPT="$REPO/.github/actions/trigger-and-wait-workflow/wait-for-run.sh"
@@ -21,7 +23,7 @@ chmod +x "$W/bin/gh"
 # wait_with <answers...>: runs the script with those answers; sets $code and $W/output
 wait_with() {
   printf '%s\n' "$@" > "$W/answers"
-  rm -f "$W/count" "$W/output" "$W/calls.log"
+  rm -f "${W:?}/count" "${W:?}/output" "${W:?}/calls.log"
   PATH="$W/bin:$PATH" GITHUB_OUTPUT="$W/output" "$SCRIPT" 123 "${TIMEOUT:-5}" 0 > "$W/log" 2>&1
   code=$?
 }
@@ -66,7 +68,7 @@ chmod +x "$W/bin/date"
 wait_with "$RUNNING"
 same "fails when the run takes longer than the limit" "$code" "1"
 has "reports the result timed_out" "$W/output" "conclusion=timed_out"
-rm -f "$W/bin/date"
+rm -f "${W:?}/bin/date"
 
 isnt "stops on a run id that is not a number" env PATH="$W/bin:$PATH" "$SCRIPT" "12; echo x" 5 0
 

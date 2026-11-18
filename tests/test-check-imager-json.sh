@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # rpi-image-repo.json is read by Raspberry Pi Imager. scripts/check-imager-json.py is the gate in
 # front of homebridge.io: it must pass a good file and stop every kind of wrong file.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 CHECK="$REPO/scripts/check-imager-json.py"

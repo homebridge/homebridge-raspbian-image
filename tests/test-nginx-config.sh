@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016  # single quotes are meant: that text must reach the script under test as it is
 # The nginx config of the image, the one hb-config writes, and the self-signed certificate.
+# shellcheck source=lib.sh
 . "$(dirname "$0")/lib.sh"
 
 SITE="$REPO/stage3_homebridge/03-nginx/files/homebridge.local"
@@ -25,7 +27,7 @@ isnt "no file has the misspelled header name" grep -rq 'X-Forward-For' "$SITE" "
 # hb-config -> Nginx Options. whiptail: "yes" to the question, and the given boxes ticked.
 # make_config <nginx version> <ticked boxes, one per line>
 make_config() {
-  rm -rf "$W/root" "$W/calls.log" "$W/bin"
+  rm -rf "${W:?}/root" "${W:?}/calls.log" "${W:?}/bin"
   mkdir -p "$W/bin" "$W/root/etc/nginx/sites-available" "$W/root/usr/local/sbin" "$W/root/tmp"
   echo "${UI_PORT_FILE-8581}" > "$W/root/etc/hb-ui-port"
   printf '#!/bin/sh\nexit 0\n' > "$W/root/usr/local/sbin/nginx-homebridge-self-signed-cert"
@@ -97,7 +99,7 @@ old_cert() {
     -keyout "$SSL/homebridge.local.key" -out "$SSL/homebridge.local.crt" 2> /dev/null
 }
 
-rm -rf "$W/bin" && mkdir -p "$W/bin"
+rm -rf "${W:?}/bin" && mkdir -p "${W:?}/bin"
 fake hostname 'echo my-pi'
 
 fresh_cert
