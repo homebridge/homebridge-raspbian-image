@@ -142,9 +142,15 @@ check "no certificate or key is part of the image" bash -c "! ls '$ROOT'/etc/ngi
 echo "WiFi setup"
 check "the wifi-connect service starts at boot" enabled wifi-connect.service
 check "wifi-connect is installed" test -f "$WIFI_DIR/main.js"
+check "wifi-connect has its own copy of Node.js" is_program "$ROOT/opt/wifi-connect/bin/node"
+check "the wifi-connect service does not use files from /opt/homebridge" bash -c "! grep -v '^[[:space:]]*#' '$ROOT/etc/systemd/system/wifi-connect.service' | grep -q '/opt/homebridge'"
 check "the wifi-connect service does not hold up Homebridge" bash -c "! grep -E '^Before=' '$ROOT/etc/systemd/system/wifi-connect.service' | grep -q 'homebridge.service'"
 if [ -n "$WIFI_CONNECT" ]; then
   check "wifi-connect is version ${WIFI_CONNECT}" bash -c "jq -r .version '$WIFI_DIR/package.json' | grep -qxF '$WIFI_CONNECT'"
+fi
+if [ "$OWNER_CHECK" -eq 1 ]; then
+  check "everything in /opt/wifi-connect belongs to root" bash -c "[ -z \"\$(find '$ROOT/opt/wifi-connect' \\( ! -uid 0 -o ! -gid 0 \\) -print -quit)\" ]"
+  check "nothing in /opt/wifi-connect can be changed by other users" bash -c "[ -z \"\$(find '$ROOT/opt/wifi-connect' ! -type l -perm /022 -print -quit)\" ]"
 fi
 check "NetworkManager starts at boot" enabled NetworkManager.service
 check "dnsmasq does not start at boot (wifi-connect starts its own copy when needed)" not_enabled dnsmasq.service
@@ -152,12 +158,14 @@ check "hostapd does not start at boot (wifi-connect starts its own copy when nee
 
 echo "Nothing left behind by the build"
 check "no SSH host keys are part of the image" bash -c "! ls '$ROOT'/etc/ssh/ssh_host_*_key 2>/dev/null | grep -q ."
+check "no npm cache of root is part of the image" test ! -e "$ROOT/root/.npm"
 
 if [ "$RUN" -eq 1 ]; then
   echo "Programs from the image run"
   NODE_VERSION="$(chroot "$ROOT" /opt/homebridge/bin/node -v 2>/dev/null)"
   check "Node.js runs (${NODE_VERSION:-no answer})" test -n "$NODE_VERSION"
   check "Node.js is the version in the manifest" test "$NODE_VERSION" = "$(manifest_version "NodeJS")"
+  check "the wifi-connect copy of Node.js runs wifi-connect" chroot "$ROOT" /opt/wifi-connect/bin/node /opt/wifi-connect/lib/node_modules/@homebridge/wifi-connect/main.js --version
   check "ffmpeg runs" chroot "$ROOT" /usr/local/bin/ffmpeg -version
   check "the Homebridge site config passes nginx's own check" nginx_config_ok
 fi

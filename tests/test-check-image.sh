@@ -92,6 +92,8 @@ breaks "the sudo rule file can be read by everyone" 'chmod 644 etc/sudoers.d/010
 breaks "/etc/hb-release is empty" ': > etc/hb-release'
 breaks "the apt package is another version" 'sed -i "s/^Version: 2.0.26/Version: 2.0.25/" var/lib/dpkg/status'
 breaks "wifi-connect is another version" 'echo "{\"version\":\"4.2.1\"}" > opt/wifi-connect/lib/node_modules/@homebridge/wifi-connect/package.json'
+breaks "wifi-connect has no Node.js of its own" 'rm opt/wifi-connect/bin/node'
+breaks "the wifi-connect service uses /opt/homebridge" 'sed -i "s#^ExecStart=.*#ExecStart=/opt/homebridge/bin/node main.js#" etc/systemd/system/wifi-connect.service'
 breaks "the wifi-connect service holds up Homebridge" 'sed -i "s#^Before=.*#Before=nginx.service homebridge.service#" etc/systemd/system/wifi-connect.service'
 breaks "the manifest has no Node.js row" 'sed -i "/NodeJS/d" opt/homebridge/homebridge_raspbian_image_arm64.manifest'
 breaks "the manifest is missing" 'rm opt/homebridge/homebridge_raspbian_image_arm64.manifest'
@@ -99,6 +101,12 @@ breaks "ffmpeg is missing" 'rm usr/local/bin/ffmpeg'
 breaks "dnsmasq starts at boot" 'ln -s /usr/lib/systemd/system/dnsmasq.service etc/systemd/system/multi-user.target.wants/dnsmasq.service'
 breaks "an SSH host key is in the image" 'touch etc/ssh/ssh_host_ed25519_key'
 breaks "a certificate is in the image" 'mkdir -p etc/nginx/ssl && touch etc/nginx/ssl/homebridge.local.key'
+breaks "root has an npm cache" 'mkdir root/.npm'
+if [ "$(id -u)" -eq 0 ]; then
+  breaks "a file in /opt/wifi-connect belongs to another user" 'chown 1000 opt/wifi-connect/bin/node'
+  breaks "a file in /opt/wifi-connect can be changed by everyone" 'chmod 777 opt/wifi-connect/bin/node'
+fi
+
 isnt "stops when no folder is given" "$CHECK" --arch arm64 --tag v1.0.0
 isnt "stops on an unknown architecture" "$CHECK" "$R" --arch x86 --tag v1.0.0
 

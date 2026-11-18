@@ -12,10 +12,16 @@ Before=nginx.service
 #   - a hotspot nobody uses is stopped after 5 minutes, and the check starts again.
 [Service]
 Type=oneshot
-Environment="PATH=/opt/homebridge/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-Environment="npm_config_prefix=/opt/wifi-connect"
-ExecStart=/opt/wifi-connect/bin/wifi-connect
+# This service runs as root. So it must not run anything that another user can change:
+#   - it has its own copy of Node.js in /opt/wifi-connect, which belongs to root
+#     (/opt/homebridge/bin/node belongs to the user Homebridge and its plugins run as);
+#   - its PATH holds the system folders only.
+Environment="PATH=/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/opt/wifi-connect/bin/node /opt/wifi-connect/lib/node_modules/@homebridge/wifi-connect/main.js
 StandardOutput=journal+console
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
 
 [Install]
 WantedBy=multi-user.target
