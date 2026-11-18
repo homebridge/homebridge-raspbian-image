@@ -287,7 +287,7 @@ jobs:
           # images in stage2 (lite), stage4 and stage5. You probably want to hook in custom 
           # stages before one of the exported stages. Otherwise, the action will make sure 
           # any custom stage will include an image export directive.
-          stage-list: stage0_prep stage0 stage1 stage2 stage3_homebridge
+          stage-list: stage0 stage1 stage2 stage3_homebridge
 
           # An additional temporary apt repo to be used during the build process. This could 
           # be useful if you require pre-release software to be included in the image. The 
