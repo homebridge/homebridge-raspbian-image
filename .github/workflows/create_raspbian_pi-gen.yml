@@ -210,12 +210,12 @@ jobs:
           github-token: ${{ github.token }}
           verbose-output: true
 
-          # Values for the scripts in stage3_homebridge. They are split on spaces, so no value
-          # may hold a space or a quote mark.
+          # Values for the scripts in stage3_homebridge. pi-gen splits this text on spaces and
+          # keeps quote marks and backslashes as part of the value. So every value here is plain:
+          # no spaces, no quote marks, no brackets.
           docker-opts: >-
-            --env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)"
-            --env HOMEBRIDGE_APT_PKG_VERSION="${{ needs.determine_package_versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}"
-            --env FFMPEG_FOR_HOMEBRIDGE_VERSION="${{ needs.determine_package_versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}"
+            --env HOMEBRIDGE_APT_PKG_VERSION=${{ needs.determine_package_versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+            --env FFMPEG_FOR_HOMEBRIDGE_VERSION=${{ needs.determine_package_versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
             --env FFMPEG_SHA256=${{ matrix.arch == 'arm64' && needs.determine_package_versions.outputs.FFMPEG_SHA256_AARCH64 || needs.determine_package_versions.outputs.FFMPEG_SHA256_ARM32V7 }}
             --env WIFI_CONNECT_VERSION=${{ needs.determine_package_versions.outputs.WIFI_CONNECT_VERSION }}
             --env HB_IMAGE_VERSION=${{ needs.tag.outputs.version }}
