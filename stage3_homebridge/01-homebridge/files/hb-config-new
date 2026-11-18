@@ -167,33 +167,87 @@ get_first_user() {
   printf "$(getent passwd 1000 | cut -d: -f1)"
 }
 
+HB_KEYRING=/usr/share/keyrings/homebridge.gpg
+HB_APT_LIST=/etc/apt/sources.list.d/homebridge.list
+
+# Prints the Homebridge package channel this system uses (stable, beta, alpha or legacy).
+# It is read from the apt source file, so a user who chose beta stays on beta.
+hb_apt_channel() {
+  HB_CHANNEL=""
+  if [ -f "$HB_APT_LIST" ]; then
+    HB_CHANNEL=$(sed -n 's#^deb .*https://repo\.homebridge\.io/* \([a-z]*\) main.*#\1#p' "$HB_APT_LIST" | head -n 1)
+  fi
+  case "$HB_CHANNEL" in
+    stable | beta | alpha | legacy) ;;
+    *) HB_CHANNEL=stable ;;
+  esac
+  printf '%s\n' "$HB_CHANNEL"
+}
+
+# Downloads the key of the Homebridge package repo and writes the apt source file.
+# The key in use is only replaced when the new one was downloaded and converted in full.
+# Returns 1, and changes nothing, when that fails (for example with no network).
+hb_refresh_apt_source() {
+  HB_TMP=$(mktemp -d) || return 1
+  if curl -sSfL https://repo.homebridge.io/KEY.gpg -o "$HB_TMP/KEY.gpg" \
+    && gpg --dearmor < "$HB_TMP/KEY.gpg" > "$HB_TMP/homebridge.gpg" \
+    && [ -s "$HB_TMP/homebridge.gpg" ]; then
+    HB_CHANNEL=$(hb_apt_channel)
+    install -m 644 "$HB_TMP/homebridge.gpg" "$HB_KEYRING"
+    echo "deb [signed-by=$HB_KEYRING] https://repo.homebridge.io $HB_CHANNEL main" > "$HB_APT_LIST"
+    rm -rf "$HB_TMP"
+    return 0
+  fi
+  rm -rf "$HB_TMP"
+  return 1
+}
+
 do_homebridge_update() {
-  pstree -s $$ | grep "hb-service" > /dev/null
-  if [ "$?" -eq 0 ]; then
+  if pstree -s $$ | grep -q "hb-service"; then
     whiptail --title "Error" --msgbox "You cannot run this command from the Homebridge UI Terminal.\n\nPlease connect using SSH (see wiki for instructions) and try again." 20 60 1
     printf "\n"
     return
   fi
 
-  curl -sfL https://repo.homebridge.io/KEY.gpg | sudo gpg --dearmor | sudo tee /usr/share/keyrings/homebridge.gpg  > /dev/null
-  echo "deb [signed-by=/usr/share/keyrings/homebridge.gpg] https://repo.homebridge.io stable main" | sudo tee /etc/apt/sources.list.d/homebridge.list > /dev/null
-  apt-get update --allow-releaseinfo-change
-  apt-get install -y homebridge
+  if ! hb_refresh_apt_source; then
+    whiptail --title "Error" --msgbox "The key of the Homebridge package repo could not be downloaded.\n\nCheck the network connection and try again. Nothing was changed." 20 60 1
+    return
+  fi
+
+  if ! apt-get update --allow-releaseinfo-change; then
+    whiptail --title "Error" --msgbox "The package lists could not be updated.\n\nCheck the network connection and try again. Homebridge was not changed." 20 60 1
+    return
+  fi
+
+  if ! apt-get install -y homebridge; then
+    whiptail --title "Error" --msgbox "The Homebridge package could not be updated. Review the log above." 20 60 1
+  fi
 }
 
 do_restore_config() {
-  pstree -s $$ | grep "hb-service" > /dev/null
-  if [ "$?" -eq 0 ]; then
+  if pstree -s $$ | grep -q "hb-service"; then
     whiptail --title "Error" --msgbox "You cannot run this command from the Homebridge UI Terminal.\n\nPlease connect using SSH (see wiki for instructions) and try again." 20 60 1
     printf "\n"
     return
   fi
 
-  whiptail --yesno "This will remove all custom Homebridge config, plugins and restore to the factory default. You will need to manually remove any existing connections to this instance in the iOS Home app.\n\nAre you sure you want to proceed?" 20 60 2
-  RET=$?
-  if [ $RET -eq 0 ]; then
-    apt-get purge -y homebridge
-    do_homebridge_update
+  if ! whiptail --defaultno --yesno "This will DELETE ALL Homebridge data on this device:\n\n* the Homebridge config\n* all plugins and their settings\n* the accessory cache\n* the backups stored on this device\n\nHomebridge is then installed again with its default settings. You will need to manually remove any existing connections to this instance in the iOS Home app.\n\nAre you sure you want to proceed?" 20 60 2; then
+    return
+  fi
+
+  # Nothing is deleted before the package is on this device again: the key, the package lists
+  # and the package file are downloaded first. With no network, this stops here.
+  if ! hb_refresh_apt_source \
+    || ! apt-get update --allow-releaseinfo-change \
+    || ! apt-get install -y --download-only --reinstall homebridge; then
+    whiptail --title "Error" --msgbox "The Homebridge package could not be downloaded.\n\nCheck the network connection and try again. Nothing was deleted." 20 60 1
+    return
+  fi
+
+  apt-get purge -y homebridge
+
+  if ! apt-get install -y homebridge; then
+    whiptail --title "Error" --msgbox "Homebridge was removed, but it could not be installed again. Review the log above, then run:\n\nsudo apt-get install homebridge" 20 60 1
   fi
 }
 
@@ -753,7 +807,7 @@ if [ "$INTERACTIVE" = True ]; then
       FUN=$(whiptail --title "Homebridge Raspberry Pi Image Configuration Tool (hb-config)" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
         "1 Update Node.js" "Update Node.js to the latest LTS version" \
         "2 Update Homebridge" "Update Homebridge and Node.js to the latest version" \
-        "3 Restore Config" "Restores the Homebridge config to the factory default" \
+        "3 Restore Config" "Delete config, plugins and backups, then install Homebridge again" \
         "4 Extra Packages" "Optional packages, eg. Pi-hole, AdGuard Home" \
         "5 Nginx Options" "Configure Homebridge Nginx settings" \
         "6 Configure OS" "Open the Raspberry Pi OS Configuration Tool" \
@@ -765,7 +819,7 @@ if [ "$INTERACTIVE" = True ]; then
       FUN=$(whiptail --title "Homebridge Raspberry Pi Image Configuration Tool (hb-config)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
         "1 Update Node.js" "Update Node.js to the latest LTS version" \
         "2 Update Homebridge" "Update Homebridge and Node.js to the latest version" \
-        "3 Restore Config" "Restores the Homebridge config to the factory default" \
+        "3 Restore Config" "Delete config, plugins and backups, then install Homebridge again" \
         "4 Extra Packages" "Optional packages, eg. Pi-hole, AdGuard Home" \
         "5 Nginx Options" "Configure Homebridge Nginx settings" \
         "6 Configure OS" "Open the Raspberry Pi OS Configuration Tool" \

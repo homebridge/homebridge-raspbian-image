@@ -93,6 +93,25 @@ nginx_accepts() {
   nginx -t -c "$dir/nginx.conf" 2>&1
 }
 
+# hb_config_functions <file>: writes the functions of hb-config (everything above its menu loop)
+# to <file>, with the system paths moved into $W/root. Tests load that file in dash, the shell
+# that runs hb-config on a Pi, and call one function at a time with fake commands on the PATH.
+hb_config_functions() {
+  mkdir -p "$W/root/usr/share/keyrings" "$W/root/etc/apt/sources.list.d" "$W/root/etc/nginx/sites-available" \
+    "$W/root/usr/local/sbin" "$W/root/opt" "$W/root/etc/systemd/system" "$W/root/tmp"
+  sed '/^# Everything else needs to be run as root/,$d' "$FILES/hb-config-new" \
+    | sed -E "s#(^|[[:space:]=\">\[])/(etc|usr|opt|boot|proc)/#\\1$W/root/\\2/#g" > "$1"
+}
+
+# hb_config <shell lines>: runs the lines in dash with the hb-config functions loaded.
+# whiptail is a stand-in that answers "yes" to every question, or "no" when WHIPTAIL_ANSWER=1.
+hb_config() {
+  hb_config_functions "$W/hb-config-functions"
+  [ -x "$W/bin/whiptail" ] || fake whiptail 'exit "${WHIPTAIL_ANSWER:-0}"'
+  [ -x "$W/bin/pstree" ] || fake pstree 'echo "systemd---sshd---bash"'
+  ( cd "$W" && PATH="$W/bin:$PATH" TMPDIR="$W/root/tmp" dash -c ". '$W/hb-config-functions'; $1" ) > "$W/hb-config.log" 2>&1
+}
+
 finish() {
   if [ "$FAILED" -gt 0 ]; then
     printf '  %s of %s checks failed\n' "$FAILED" "$CHECKS"
