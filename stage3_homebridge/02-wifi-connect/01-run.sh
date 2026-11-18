@@ -3,6 +3,9 @@
 #
 # Install @homebridge/wifi-connect
 #
+# The version is one exact version from stable/package.json, passed in by the build
+# (see scripts/package-versions.sh). The build stops here when it is missing.
+: "${WIFI_CONNECT_VERSION:?WIFI_CONNECT_VERSION is not set}"
 
 apt-get update
 apt-get install -y jq
@@ -33,7 +36,7 @@ export npm_config_prefix=/opt/wifi-connect
 node -v
 npm -v
 
-npm install -g @homebridge/wifi-connect
+npm install -g --ignore-scripts --no-audit --no-fund "@homebridge/wifi-connect@${WIFI_CONNECT_VERSION}"
 
 systemctl daemon-reload
 systemctl enable wifi-connect

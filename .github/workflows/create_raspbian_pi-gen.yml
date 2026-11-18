@@ -75,31 +75,36 @@ jobs:
     outputs:
       HOMEBRIDGE_APT_PKG_VERSION: ${{ steps.get_versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
       FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.get_versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
+      WIFI_CONNECT_VERSION: ${{ steps.get_versions.outputs.WIFI_CONNECT_VERSION }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Get Homebridge version
+      - name: Get package versions
         id: get_versions
+        env:
+          RELEASE_STREAM: ${{ inputs.release-stream }}
         run: |
-          HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' ./stable/package.json | sed 's/\^//')
-          FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' ./stable/package.json | sed 's/\^//')
-          
-          echo "HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION}" >> $GITHUB_OUTPUT
-          echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=v${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
-          
-          echo "::notice::Homebridge APT Package Version: ${HOMEBRIDGE_APT_PKG_VERSION}"
-          echo "::notice::FFmpeg for Homebridge Version: v${FFMPEG_FOR_HOMEBRIDGE_VERSION}"
+          # every version is one exact version from <stream>/package.json (the script stops on anything else)
+          ./scripts/package-versions.sh "${RELEASE_STREAM:-stable}" | tee -a "$GITHUB_OUTPUT"
 
       - name: Show version summary
+        env:
+          RELEASE_VERSION: ${{ needs.tag.outputs.version }}
+          APT_PKG: ${{ steps.get_versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+          FFMPEG: ${{ steps.get_versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
+          WIFI_CONNECT: ${{ steps.get_versions.outputs.WIFI_CONNECT_VERSION }}
         run: |
-          echo "## Version Information" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Component | Version |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|---------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Release | ${{ needs.tag.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Homebridge APT Package | ${{ steps.get_versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| FFmpeg for Homebridge | ${{ steps.get_versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }} |" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Version Information"
+            echo ""
+            echo "| Component | Version |"
+            echo "|-----------|---------|"
+            echo "| Release | ${RELEASE_VERSION} |"
+            echo "| Homebridge APT Package | ${APT_PKG} |"
+            echo "| FFmpeg for Homebridge | ${FFMPEG} |"
+            echo "| WiFi Connect | ${WIFI_CONNECT} |"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   build_images:
     name: Build RPI Homebridge (${{ matrix.name }}) Image ${{ needs.tag.outputs.version }}
@@ -173,7 +178,7 @@ jobs:
 
           # Additional options to include in PIGEN_DOCKER_OPTS
           # docker-opts: ''
-          docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)" --env HOMEBRIDGE_APT_PKG_VERSION="${{ needs.determine_package_versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}" --env FFMPEG_FOR_HOMEBRIDGE_VERSION="${{ needs.determine_package_versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}" --env RELEASE_STREAM=${{ inputs.release-stream }} --env IMG_SIZE=5G'
+          docker-opts: '--env BUILD_VERSION="${{ github.repository }}-${{ needs.tag.outputs.version }}-\(${{ matrix.name }}\)" --env HOMEBRIDGE_APT_PKG_VERSION="${{ needs.determine_package_versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}" --env FFMPEG_FOR_HOMEBRIDGE_VERSION="${{ needs.determine_package_versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}" --env WIFI_CONNECT_VERSION=${{ needs.determine_package_versions.outputs.WIFI_CONNECT_VERSION }} --env RELEASE_STREAM=${{ inputs.release-stream }} --env IMG_SIZE=5G'
 
           # If set to `1`, cloud-init and netplan will be installed and configured. This 
           # will allow you to configure your Raspberry Pi using cloud-init configuration 

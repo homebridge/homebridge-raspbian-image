@@ -111,6 +111,7 @@ if [ -n "$LATEST_TAG" ]; then
     # Define the list of dependencies to check
     DEPENDENCIES=(
       "@homebridge/homebridge-apt-pkg"
+      "@homebridge/wifi-connect"
       "ffmpeg-for-homebridge"
     )
 

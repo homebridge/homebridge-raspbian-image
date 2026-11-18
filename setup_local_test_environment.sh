@@ -25,13 +25,14 @@ cp -r config stable ./pi-gen
 cp -r stage* ./pi-gen
 
 export BUILD_VERSION="$(date +%Y%m%d)-HB Test"
-export HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' ./stable/package.json | sed 's/\^//')
-export FFMPEG_FOR_HOMEBRIDGE_VERSION=v$(jq -r '.dependencies["ffmpeg-for-homebridge"]' ./stable/package.json | sed 's/\^//')
+# shellcheck disable=SC2046 # one NAME=value per line, no spaces in the values
+export $(./scripts/package-versions.sh stable)
 export RELEASE_STREAM="stable"
 
 echo -e "\nexport BUILD_VERSION=\"$BUILD_VERSION\"" | tee -a ./pi-gen/config
 echo "export HOMEBRIDGE_APT_PKG_VERSION=\"$HOMEBRIDGE_APT_PKG_VERSION\"" | tee -a ./pi-gen/config
 echo "export FFMPEG_FOR_HOMEBRIDGE_VERSION=\"$FFMPEG_FOR_HOMEBRIDGE_VERSION\"" | tee -a ./pi-gen/config
+echo "export WIFI_CONNECT_VERSION=\"$WIFI_CONNECT_VERSION\"" | tee -a ./pi-gen/config
 echo "export RELEASE_STREAM=\"$RELEASE_STREAM\"" | tee -a ./pi-gen/config
 
 echo
