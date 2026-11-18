@@ -466,26 +466,32 @@ jobs:
           name: build-${{ matrix.name }}
           path: output/
 
+  # Stage 3 makes the release and its tag. This job waits for it, so this run only ends when the
+  # tag exists. The next Stage 2 run (they run one at a time) then works out the next version
+  # from that tag, and two builds can not get the same version.
   trigger-stage-3:
     name: Trigger Release Stage 3
     needs: [tag, build_images]
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Trigger Release Stage 3 Workflow
-        run: |
-          gh workflow run release-stage-3_package_release.yml \
-            --ref latest \
-            --field run_id="${{ github.run_id }}" \
-            --field release_tag="${{ needs.tag.outputs.version }}" \
-            --field publish="${{ inputs.publish && 'true' || 'false' }}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Workflow triggered
-        run: |
-          echo "::notice::Release Stage 3 workflow triggered for version ${{ needs.tag.outputs.version }}"
-          echo "::notice::Run ID: ${{ github.run_id }}"
-          echo "::notice::Publish to Registry: ${{ inputs.publish }}"
+      # Stage 3 runs on the same branch as this run, and tags the commit this run was built from.
+      # This step fails when Stage 3 fails, so a failed release shows red here and in Stage 1.
+      - name: Trigger and Wait for Release Stage 3 Workflow
+        uses: ./.github/actions/trigger-and-wait-workflow
+        with:
+          workflow-file: 'release-stage-3_package_release.yml'
+          ref: ${{ github.ref_name }}
+          github-token: ${{ github.token }}
+          timeout-minutes: '60'
+          run-name: "stage3:${{ github.run_id }}"
+          workflow-fields: |
+            run_id=${{ github.run_id }}
+            release_tag=${{ needs.tag.outputs.version }}
+            publish=${{ inputs.publish && 'true' || 'false' }}
+            target_sha=${{ github.sha }}

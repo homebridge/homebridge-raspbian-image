@@ -1,5 +1,5 @@
 name: Release Stage 3 - Package and Publish Raspbian Homebridge Image
-run-name: Release Stage 3 - Package and Publish Raspbian Homebridge Image - ${{ inputs.release_tag }} - Run ${{ inputs.run_id }}
+run-name: Release Stage 3 - Package and Publish Raspbian Homebridge Image - ${{ inputs.release_tag }} - Run ${{ inputs.run_id }} ${{ inputs.run_name }}
 
 on:
   workflow_dispatch:
@@ -16,6 +16,16 @@ on:
         description: 'Publish Release to RPI Imager Registry'
         type: boolean
         default: false
+      target_sha:
+        description: 'The commit the images were built from. The release tag is put on this commit (empty: the tip of the default branch)'
+        required: false
+        type: string
+        default: ''
+      run_name:
+        description: 'Unique name of the run (set by Stage 2, so it can find this run and wait for it)'
+        required: false
+        type: string
+        default: ''
 
 concurrency:
   group: release-stage-3-package-raspbian-image
@@ -98,16 +108,16 @@ jobs:
 
       - name: Combine RPI Imager JSON files
         if: steps.check-artifacts.outputs.has-32bit == 'true' || steps.check-artifacts.outputs.has-64bit == 'true'
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          # Copy individual JSON files for combination
-          [ -f "./release-assets/rpi-image-repo-32bit.json" ] && cp "./release-assets/rpi-image-repo-32bit.json" ./ || true
-          [ -f "./release-assets/rpi-image-repo-64bit.json" ] && cp "./release-assets/rpi-image-repo-64bit.json" ./ || true
-          
-          # Combine JSON files
-          ./combine-rpi-imager-snipplet.py
-          
-          # Move combined file to release assets
-          mv rpi-image-repo.json ./release-assets/
+          # the combine script uses the files that exist (32-bit first), and stops when there is none
+          cd ./release-assets
+          ../combine-rpi-imager-snipplet.py
+
+          # The download links were written in Stage 2 with the tag it expected. A release with
+          # another tag would get a list whose links do not exist, so this stops here.
+          ../scripts/check-imager-json.py rpi-image-repo.json --tag "$RELEASE_TAG"
 
       - name: Create Combined Release Body
         run: |
@@ -148,17 +158,30 @@ jobs:
           path: ./release-assets
 
       - name: Create GitHub Release
-        run: |
-          gh release create "${{ inputs.release_tag }}" \
-          --title "${{ inputs.release_tag }}" \
-          --notes-file ./release-assets/combined-release-body.md \
-          --draft=false \
-          --prerelease=${{ inputs.publish == false }} \
-          ./release-assets/*.zip \
-          ./release-assets/*.json \
-          ./release-assets/*manifest
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+          PRERELEASE: ${{ inputs.publish == false }}
+        run: |
+          # the tag is put on the commit the images were built from, not on whatever is newest now
+          TARGET=()
+          if [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            TARGET=(--target "$TARGET_SHA")
+          elif [[ -n "$TARGET_SHA" ]]; then
+            echo "::error::target_sha is not a full commit id: ${TARGET_SHA}"
+            exit 1
+          fi
+
+          gh release create "$RELEASE_TAG" \
+            --title "$RELEASE_TAG" \
+            --notes-file ./release-assets/combined-release-body.md \
+            --draft=false \
+            --prerelease="$PRERELEASE" \
+            "${TARGET[@]}" \
+            ./release-assets/*.zip \
+            ./release-assets/*.json \
+            ./release-assets/*manifest
 
       - name: Release Created
         run: |
@@ -235,7 +258,8 @@ jobs:
   notify-discord:
     name: Send Discord Notification
     needs: [create-release, publish-to-registry]
-    if: ${{ always() && inputs.publish && needs.create-release.result == 'success' }}
+    # only announce a release that is also in the Raspberry Pi Imager list
+    if: ${{ always() && inputs.publish && needs.create-release.result == 'success' && needs.publish-to-registry.result == 'success' }}
     uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
     with:
       title: "Homebridge Raspbian Image Release"
