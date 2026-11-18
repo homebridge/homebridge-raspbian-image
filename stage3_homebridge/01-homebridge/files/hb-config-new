@@ -1,4 +1,18 @@
 #!/bin/sh
+#
+# The hb-config tool of every image built since May 2022. The image build installs this file as
+# /usr/local/sbin/hb-config ("sudo hb-config").
+#
+# Which images use which file:
+#   - hb-config-new (this file): every image built since May 2022.
+#       - Images up to v2.0.25 update the tool from this file on the "latest" branch.
+#       - Newer images update it from this file in the newest release (see do_update below).
+#     So the file must stay at this path.
+#   - hb-config: the old tool of images from before May 2022. It is not installed any more, and
+#     it is left as it is (decided by BP, 2026-11-18).
+#
+# This is a /bin/sh script. On a Pi /bin/sh is dash, so bash-only syntax does not work here.
+#
 
 INTERACTIVE=True
 ASK_TO_REBOOT=0

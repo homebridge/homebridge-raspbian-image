@@ -6,6 +6,11 @@
 TOOL="$FILES/hb-config-new"
 
 same "the tool is a /bin/sh script" "$(head -n 1 "$TOOL")" "#!/bin/sh"
+same "the old tool is still a /bin/sh script (old images download it)" "$(head -n 1 "$FILES/hb-config")" "#!/bin/sh"
+is "dash accepts the old tool" dash -n "$FILES/hb-config"
+is "the old tool says at its top which images use it" grep -q 'THIS IS THE OLD hb-config TOOL' <(head -n 5 "$FILES/hb-config")
+is "the tool says at its top which images use it" grep -q 'every image built since May 2022' <(head -n 5 "$TOOL")
+same "the build installs the current tool, not the old one" "$(grep -c 'install -m 755 files/hb-config-new "${ROOTFS_DIR}/usr/local/sbin/hb-config"' "$REPO/stage3_homebridge/01-homebridge/00-run.sh")" "1"
 is "dash (the /bin/sh of a Pi) accepts the tool" dash -n "$TOOL"
 hb_config ':'
 same "the functions of the tool load in dash" "$?" "0"

@@ -91,7 +91,7 @@ Things other projects depend on, which must not change by accident:
 
 * the fields of `rpi-image-repo.json` (`scripts/check-imager-json.py` lists them), and `init_format: systemd` together with `enable-cloud-init: 0` in the build;
 * the names of the release files (`image_<date>-Homebridge-trixie-<32bit|64bit>.zip`, `homebridge_raspbian_image_<arm64|armhf>.manifest`, `rpi-image-repo.json`);
-* three files that Raspberry Pis in the field download from the `latest` branch: `stage3_homebridge/01-homebridge/files/hb-config` (old images), `.../hb-config-new` (images before v2.0.26) and `.../010_homebridge-nopasswd`.
+* three files that Raspberry Pis in the field download from the `latest` branch: `stage3_homebridge/01-homebridge/files/hb-config` (images from before May 2022), `.../hb-config-new` (images up to v2.0.25; newer images take it from the newest release tag) and `.../010_homebridge-nopasswd`.
 
 ### Build an image on your own machine
 
