@@ -3,8 +3,9 @@ run-name: Release Stage 1 - Dependency Management - ${{ github.event_name == 'wo
 
 on:
   schedule:
-    # Daily, at 10:00 UTC. This repo has one stream: stable.
-    - cron: '0 10 * * *'
+    # Daily, at 10:23 UTC. This repo has one stream: stable.
+    # Not on the full hour: that is when GitHub is busiest, and scheduled runs then start hours late.
+    - cron: '23 10 * * *'
   workflow_dispatch:
     inputs:
       release-stream:

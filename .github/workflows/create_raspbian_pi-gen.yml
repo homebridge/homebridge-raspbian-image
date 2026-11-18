@@ -245,15 +245,6 @@ jobs:
           echo "RPI_IMAGER_IMAGE_URL: https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${IMGFILENAME}"
           echo "RPI_IMAGER_DEVICES: '${DEVICES}'"
 
-      - name: Calculate Image Checksum
-        id: get_sha256_checksum
-        env:
-          IMAGE_PATH: ${{ steps.build.outputs.image-path }}
-        run: |
-          IMAGE_SHA256_CHECKSUM=$(shasum -a 256 "$IMAGE_PATH" | awk '{print $1}')
-          echo "$IMAGE_SHA256_CHECKSUM $IMAGE_PATH"
-          echo "::notice::IMAGE_SHA256_CHECKSUM ${IMGFILENAME} ==> ${IMAGE_SHA256_CHECKSUM}"
-
       - name: Prepare output directory
         env:
           IMAGE_PATH: ${{ steps.build.outputs.image-path }}
@@ -278,6 +269,8 @@ jobs:
           NAME: ${{ matrix.name }}
         run: |
           cp pi-gen/deploy/rpi-image-repo.json "output/rpi-image-repo-${NAME}.json"
+          # the checksums were worked out once, by the step above; show them without hashing again
+          echo "::notice::${IMGFILENAME} SHA-256: $(jq -r '.os_list[0].image_download_sha256' "output/rpi-image-repo-${NAME}.json")"
 
       - name: Mount the image
         id: mount
@@ -362,6 +355,8 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           retention-days: 7
+          # the image is a .zip already, so compressing it again only costs time
+          compression-level: 0
           name: build-${{ matrix.name }}
           path: output/
 

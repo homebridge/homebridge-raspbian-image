@@ -135,6 +135,8 @@ jobs:
           name: release-assets
           path: ./release-assets/
           retention-days: 7
+          # the images are .zip files already, so compressing them again only costs time
+          compression-level: 0
 
   create-release:
     name: Create GitHub Release
