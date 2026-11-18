@@ -1,26 +1,57 @@
 #!/bin/bash
+#
+# Runs as root before every start of Homebridge (/etc/hb-service/homebridge/prestart.d).
+# It reads the port of the Homebridge UI from config.json and points nginx at that port.
+#
+# config.json belongs to the user Homebridge and its plugins run as, so nothing in it is
+# trusted here. The port is only used when it is a whole number from 1 to 65535.
+# Anything else (no port, text, a list ...) gives the default port.
 
-# default port
-UI_PORT=8581
+CONFIG=/var/lib/homebridge/config.json
+PORT_FILE=/etc/hb-ui-port
+NGINX_SITE=/etc/nginx/sites-available/homebridge.local
+DEFAULT_PORT=8581
 
-if [ -f /var/lib/homebridge/config.json ]; then
-  PORT_FROM_CONFIG=$(cat /var/lib/homebridge/config.json | jq '.platforms[] | select(.platform == "config") | .port' 2> /dev/null)
-  if [ ${#PORT_FROM_CONFIG} -gt 0 ]; then
+UI_PORT=$DEFAULT_PORT
+
+if [ -f "$CONFIG" ]; then
+  # the port of the first "config" platform, or nothing
+  PORT_FROM_CONFIG=$(jq -r 'first(.platforms[]? | select(.platform? == "config") | .port) // empty' "$CONFIG" 2> /dev/null)
+  if [[ "$PORT_FROM_CONFIG" =~ ^[1-9][0-9]{0,4}$ ]] && [ "$PORT_FROM_CONFIG" -le 65535 ]; then
     UI_PORT=$PORT_FROM_CONFIG
   fi
 fi
 
-# save the result in /etc/hb-ui-port
-echo "$UI_PORT" > /etc/hb-ui-port
+# save the result in /etc/hb-ui-port (the UI and the login message read it)
+echo "$UI_PORT" > "$PORT_FILE"
 
-# update the nginx config
-if [ -f /etc/nginx/sites-available/homebridge.local ]; then
-  printf "Setting port $UI_PORT in /etc/nginx/sites-available/homebridge.local\n"
-  sed -i "/proxy_pass/c\    proxy_pass                  http://127.0.0.1:${UI_PORT};" /etc/nginx/sites-available/homebridge.local
-  if systemctl is-active --quiet nginx.service; then
-    printf "Reloading nginx...\n"
-    nginx -s reload
+# Update the nginx config: only the first proxy_pass line inside the first "location / {" block.
+# Other proxy_pass lines (for example in a block the user added for another service) stay as they are.
+if [ -f "$NGINX_SITE" ]; then
+  NEW_SITE=$(mktemp) || exit 0
+
+  awk -v port="$UI_PORT" '
+    !done && !inside && /^[[:space:]]*location[[:space:]]+\/[[:space:]]*\{[[:space:]]*$/ { inside = 1; print; next }
+    inside && !done && /^[[:space:]]*proxy_pass[[:space:]]/ {
+      print "    proxy_pass                  http://127.0.0.1:" port ";"
+      done = 1
+      next
+    }
+    inside && /^[[:space:]]*\}/ { inside = 0 }
+    { print }
+  ' "$NGINX_SITE" > "$NEW_SITE"
+
+  # write and reload only when something changed
+  if [ -s "$NEW_SITE" ] && ! cmp -s "$NEW_SITE" "$NGINX_SITE"; then
+    printf 'Setting port %s in %s\n' "$UI_PORT" "$NGINX_SITE"
+    cat "$NEW_SITE" > "$NGINX_SITE"
+    if systemctl is-active --quiet nginx.service; then
+      printf 'Reloading nginx...\n'
+      nginx -s reload
+    fi
   fi
+
+  rm -f "$NEW_SITE"
 fi
 
 exit 0

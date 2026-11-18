@@ -81,6 +81,18 @@ calls() {
   return 0
 }
 
+# nginx_accepts <site config file>: runs nginx's own config check on a site file, with a
+# throw-away certificate. Prints nginx's answer. Returns 2 when nginx is not installed.
+nginx_accepts() {
+  command -v nginx > /dev/null || return 2
+  local dir
+  dir="$(mktemp -d "$W/nginx.XXXXXX")"
+  openssl req -x509 -nodes -newkey rsa:2048 -days 1 -subj /CN=test -keyout "$dir/key" -out "$dir/crt" 2> /dev/null
+  sed -e "s#/etc/nginx/ssl/homebridge.local.crt#$dir/crt#" -e "s#/etc/nginx/ssl/homebridge.local.key#$dir/key#" "$1" > "$dir/site"
+  printf 'pid %s/pid;\nerror_log %s/error.log;\nevents {}\nhttp { access_log off; include %s/site; }\n' "$dir" "$dir" "$dir" > "$dir/nginx.conf"
+  nginx -t -c "$dir/nginx.conf" 2>&1
+}
+
 finish() {
   if [ "$FAILED" -gt 0 ]; then
     printf '  %s of %s checks failed\n' "$FAILED" "$CHECKS"
