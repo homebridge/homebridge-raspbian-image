@@ -83,12 +83,14 @@ jobs:
             cp ./artifacts/32bit/*.zip ./release-assets/ 2>/dev/null || true
             cp ./artifacts/32bit/*manifest ./release-assets/ 2>/dev/null || true
             cp ./artifacts/32bit/rpi-image-repo-32bit.json ./release-assets/ 2>/dev/null || true
+            cp ./artifacts/32bit/image-check-32bit.log ./release-assets/ 2>/dev/null || true
           fi
           
           if [ -d "./artifacts/64bit" ]; then
             cp ./artifacts/64bit/*.zip ./release-assets/ 2>/dev/null || true
             cp ./artifacts/64bit/*manifest ./release-assets/ 2>/dev/null || true
             cp ./artifacts/64bit/rpi-image-repo-64bit.json ./release-assets/ 2>/dev/null || true
+            cp ./artifacts/64bit/image-check-64bit.log ./release-assets/ 2>/dev/null || true
           fi
           
           echo "Release assets prepared:"
@@ -189,6 +191,25 @@ jobs:
         with:
           name: release-assets
           path: ./release-assets
+
+      # The Raspberry Pi Imager list is only updated when all of these are true:
+      #   - both images passed the image check in Stage 2,
+      #   - the list has the shape Imager expects, with both images in it,
+      #   - every download link in the list is a file of this release, with the same size.
+      - name: Check before updating the Raspberry Pi Imager list
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          for name in 32bit 64bit; do
+            if ! grep -qx 'Image check passed.' "./release-assets/image-check-${name}.log"; then
+              echo "::error::No passed image check for the ${name} image. The Imager list is not updated."
+              exit 1
+            fi
+          done
+
+          gh release view "$RELEASE_TAG" --json assets > release-files.json
+          ./scripts/check-imager-json.py ./release-assets/rpi-image-repo.json --tag "$RELEASE_TAG" --entries 2 --assets release-files.json
 
       - name: Push Image Info to Homebridge Registry
         uses: dmnemec/copy_file_to_another_repo_action@main

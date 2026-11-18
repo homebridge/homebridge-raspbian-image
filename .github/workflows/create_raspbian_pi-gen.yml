@@ -121,6 +121,7 @@ jobs:
           - pi-gen-version: arm64
             release: trixie
             name: 64bit
+            arch: arm64
             devices: '["pi5-64bit", "pi4-64bit", "pi3-64bit"]'
             recommended: "Recommended"
             runs-on: ubuntu-24.04-arm
@@ -128,6 +129,7 @@ jobs:
           - pi-gen-version: master
             release: trixie
             name: 32bit
+            arch: armhf
             devices: '["pi5-32bit", "pi4-32bit", "pi3-32bit", "pi2-32bit"]'
             recommended: "Not Recommended, support will be ending Spring 2027"
             runs-on: ubuntu-22.04
@@ -357,37 +359,75 @@ jobs:
         run: |
           cp pi-gen/deploy/rpi-image-repo.json output/rpi-image-repo-${{ matrix.name }}.json
 
-      # Extract /opt/homebridge/*manifest from the image and upload to the release
-      - name: Extract /opt/homebridge/*manifest from the image
+      - name: Mount the image
+        id: mount
+        env:
+          IMAGE_ZIP: ${{ steps.build.outputs.image-path }}
         run: |
-          # Unzip the image first
-          unzip ${{ steps.build.outputs.image-path }}
-          IMAGE_FILE=$(ls *.img | head -n1)
+          unzip -q "$IMAGE_ZIP"
+          IMAGE_FILE=$(find . -maxdepth 1 -name '*.img' | head -n1)
           echo "Found image: $IMAGE_FILE"
 
           mkdir mnt
 
-          # Use losetup to automatically handle partition detection
+          # losetup finds the partitions; p2 is the root partition
           LOOP_DEVICE=$(sudo losetup -fP --show "$IMAGE_FILE")
-          sudo mount ${LOOP_DEVICE}p2 mnt  # p2 is usually the root partition
+          echo "loop_device=${LOOP_DEVICE}" >> "$GITHUB_OUTPUT"
+          sudo mount "${LOOP_DEVICE}p2" mnt
 
+      # The gate for the whole release: if this step fails, the job fails, no artifact is uploaded,
+      # Stage 3 is not started, no release is made and the Raspberry Pi Imager list stays as it is.
+      - name: Check the image
+        env:
+          IMAGE_ARCH: ${{ matrix.arch }}
+          IMAGE_NAME: ${{ matrix.name }}
+          RELEASE_TAG: ${{ needs.tag.outputs.version }}
+          APT_PKG: ${{ needs.determine_package_versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
+          WIFI_CONNECT: ${{ needs.determine_package_versions.outputs.WIFI_CONNECT_VERSION }}
+        run: |
+          set -o pipefail
+          sudo ./scripts/check-image.sh mnt --arch "$IMAGE_ARCH" --tag "$RELEASE_TAG" \
+            --apt-pkg "$APT_PKG" --wifi-connect "$WIFI_CONNECT" --run | tee "output/image-check-${IMAGE_NAME}.log"
+
+      - name: Add the image check to the summary
+        if: always() && steps.mount.outcome == 'success'
+        env:
+          IMAGE_NAME: ${{ matrix.name }}
+        run: |
+          {
+            echo "## Image check (${IMAGE_NAME})"
+            echo ''
+            echo '```'
+            cat "output/image-check-${IMAGE_NAME}.log" 2>/dev/null || echo "the check did not run"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Copy the manifest out of the image
+        run: |
           ls -l mnt/opt/homebridge/
           cp mnt/opt/homebridge/homebridge_raspbian_image*manifest output/
 
-          # Add extracted manifest(s) to the GitHub step summary (Markdown)
+          # Add the manifest(s) to the GitHub step summary (Markdown)
           for f in output/homebridge_raspbian_image*manifest; do
-          if [ -f "$f" ]; then
-            echo "## Extracted manifest: $(basename "$f")" >> $GITHUB_STEP_SUMMARY
-            echo '' >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            sed -n '1,10000p' "$f" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-          fi
+            if [ -f "$f" ]; then
+              {
+                echo "## Extracted manifest: $(basename "$f")"
+                echo ''
+                echo '```'
+                cat "$f"
+                echo '```'
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
           done
 
-          sudo umount mnt
-          sudo losetup -d $LOOP_DEVICE
-          rm -rf mnt
+      - name: Unmount the image
+        if: always() && steps.mount.outputs.loop_device != ''
+        env:
+          LOOP_DEVICE: ${{ steps.mount.outputs.loop_device }}
+        run: |
+          sudo umount mnt || true
+          sudo losetup -d "$LOOP_DEVICE" || true
+          rm -rf mnt ./*.img
 
       - name: Build Release Body
         id: release_body
