@@ -42,7 +42,12 @@ same "the sudo rule only names shutdown, reboot and poweroff" \
 # Here the saved lines run with every path moved into the scratch folder, and with stand-ins for
 # the commands. The stand-in for apt-get reads all of its input, like apt-get does when it asks
 # a question. The last line of the script must still run.
-for name in curl gpg sudo usermod systemctl; do fake "$name" 'exit 0'; done
+for name in sudo usermod systemctl; do fake "$name" 'exit 0'; done
+# curl writes the "downloaded" key to the file after -o
+fake curl 'while [ $# -gt 1 ]; do [ "$1" = "-o" ] && echo "KEY" > "$2"; shift; done'
+# gpg: "--show-keys" prints the fingerprint in $W/fingerprint, "--dearmor" passes its input on
+echo "ACAA60814A7524504F07DE07DF5B0FE88C8F5D92" > "$W/fingerprint"
+fake gpg "case \"\$*\" in *--show-keys*) echo \"pub:-:4096:1:DF5B0FE88C8F5D92:\"; echo \"fpr:::::::::\$(cat $W/fingerprint):\" ;; *) cat ;; esac"
 fake apt-get 'cat > /dev/null'
 sed -E "s#(^|[[:space:]=\">\[])/(etc|root|home|usr|tmp|var|opt)/#\\1$W/rootfs/\\2/#g" "$W/chroot-script" > "$W/chroot-script.moved"
 mkdir -p "$W/rootfs/etc/apt/sources.list.d" "$W/rootfs/usr/share/keyrings" "$W/rootfs/root" "$W/rootfs/var/lib/homebridge"
@@ -54,6 +59,15 @@ same "the lines for inside the image run to the end" "$?" "0"
 has "apt-get install does not ask (-y)" "$W/calls.log" "apt-get install -y homebridge=2.0.26"
 has "the lines after apt-get still run (the last line turns on the first boot service)" "$W/calls.log" "systemctl enable first-boot-homebridge"
 is "the service settings file is written after apt-get" grep -q 'UIX_CAN_SHUTDOWN_RESTART_HOST=1' "$W/rootfs/etc/systemd/system/homebridge.service.d/override.conf"
+
+# the key of the Homebridge package repo is only trusted when it is the known key
+has "the build asks for the key over https" "$W/calls.log" "curl -sSfL https://repo.homebridge.io/KEY.gpg"
+echo "0000000000000000000000000000000000000000" > "$W/fingerprint"
+rm -f "$W/calls.log" "$W/rootfs/usr/share/keyrings/homebridge.gpg"
+( cd "$W" && PATH="$W/bin:$PATH" bash -e < "$W/chroot-script.moved" ) > "$W/chroot.log" 2>&1
+isnt "the build stops when the downloaded key is not the known Homebridge key" test "$?" -eq 0
+isnt "an unknown key is not installed" test -e "$W/rootfs/usr/share/keyrings/homebridge.gpg"
+isnt "nothing is installed with an unknown key" grep -q '^apt-get' "$W/calls.log"
 
 for stage in "$REPO"/stage3_homebridge/*/*run.sh; do
   name="${stage#"$REPO/stage3_homebridge/"}"

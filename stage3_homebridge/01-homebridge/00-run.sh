@@ -41,10 +41,26 @@ export
 : "${HB_IMAGE_BITS:?HB_IMAGE_BITS is not set}"
 echo "${HB_IMAGE_VERSION} (${HB_IMAGE_BITS})" > "${ROOTFS_DIR}/etc/hb-release"
 
+# The fingerprint of the key that signs the Homebridge package repo (repo.homebridge.io/KEY.gpg).
+# Every Homebridge apt user has this key. If it is ever replaced, this value must change with it.
+HB_KEY_FINGERPRINT="ACAA60814A7524504F07DE07DF5B0FE88C8F5D92"
+
 on_chroot << EOF
 
-curl -sSfL https://repo.homebridge.io/KEY.gpg | gpg --dearmor | sudo tee /usr/share/keyrings/homebridge.gpg  > /dev/null
-echo "deb [signed-by=/usr/share/keyrings/homebridge.gpg] https://repo.homebridge.io ${RELEASE_STREAM} main" | tee /etc/apt/sources.list.d/homebridge.list > /dev/null
+# The key of the Homebridge package repo is downloaded, and only used when it is the known key.
+HB_KEY_TMP=\$(mktemp -d)
+export GNUPGHOME="\$HB_KEY_TMP/gnupg"
+mkdir -m 700 "\$GNUPGHOME"
+curl -sSfL https://repo.homebridge.io/KEY.gpg -o "\$HB_KEY_TMP/KEY.gpg" < /dev/null
+HB_KEY_FOUND=\$(gpg --show-keys --with-colons "\$HB_KEY_TMP/KEY.gpg" < /dev/null | awk -F: '\$1 == "fpr" { print \$10; exit }')
+if [ "\$HB_KEY_FOUND" != "${HB_KEY_FINGERPRINT}" ]; then
+  echo "The key from repo.homebridge.io is not the known Homebridge key (found: \$HB_KEY_FOUND)" >&2
+  exit 1
+fi
+gpg --dearmor < "\$HB_KEY_TMP/KEY.gpg" > /usr/share/keyrings/homebridge.gpg
+rm -rf "\$HB_KEY_TMP"
+unset GNUPGHOME
+echo "deb [signed-by=/usr/share/keyrings/homebridge.gpg] https://repo.homebridge.io ${RELEASE_STREAM} main" > /etc/apt/sources.list.d/homebridge.list
 
 # on_chroot feeds these lines to a shell on its standard input. A command that reads its input
 # (apt-get does, when it asks "Do you want to continue?") would swallow the lines after it, and
