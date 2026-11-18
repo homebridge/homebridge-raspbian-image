@@ -492,7 +492,7 @@ do_nmtui() {
   if systemctl is-active --quiet NetworkManager; then
     nmtui
   else
-    whiptail --title "Error" --msgbox "These network options not available when WiFi was configured via the Raspberry Pi Imager tool.\n\nSee https://www.raspberrypi.com/documentation/computers/configuration.html#wireless-networking-command-line" 20 60 1
+    whiptail --title "Error" --msgbox "NetworkManager is not running on this system, so these network options are not available.\n\nOn images from before 2024 this is the case when WiFi was set up with the Raspberry Pi Imager tool.\n\nSee https://www.raspberrypi.com/documentation/computers/configuration.html#wireless-networking-command-line" 20 60 1
   fi
 }
 

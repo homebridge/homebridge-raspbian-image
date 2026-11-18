@@ -1,24 +1,18 @@
 #!/bin/sh
+#
+# Runs once, at the first boot of a new image.
+#
+# WiFi that was set in Raspberry Pi Imager needs nothing here: Imager saves it in NetworkManager,
+# and wifi-connect does not start its setup hotspot when a WiFi network is saved.
 
-# Support configuring WiFi via Raspberry Pi Imager Tool
-# if ssid is set in wpa_supplicant.conf, don't start wifi-connect, disable network manager, and enable dhcpcd
-if grep -q "ssid" "/etc/wpa_supplicant/wpa_supplicant.conf"; then
-  systemctl disable wifi-connect
-  systemctl stop wifi-connect
-  systemctl disable NetworkManager
-  systemctl stop NetworkManager
-  systemctl enable dhcpcd
-  systemctl start dhcpcd
-fi
-
-
-# Update /etc/issue to show RPI Model
+# Show the Raspberry Pi model on the login screen (/etc/issue)
 if [ -f /proc/device-tree/model ]; then
-  RPI_MODEL=$(cat /proc/device-tree/model)
+  RPI_MODEL=$(tr -d '\0' < /proc/device-tree/model)
   if [ -n "$RPI_MODEL" ]; then
     sed -i "2iRPI Model: \\\e{yellow}${RPI_MODEL}\\\e{reset}" /etc/issue
   fi
 fi
+
 # disable this service so it does not run again
 systemctl disable first-boot-homebridge
 systemctl daemon-reload
