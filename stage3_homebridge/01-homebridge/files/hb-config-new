@@ -209,37 +209,61 @@ do_nodejs_update() {
 }
 
 do_install_pihole() {
-  pstree -s $$ | grep "hb-service" > /dev/null
-  if [ "$?" -eq 0 ]; then
+  if pstree -s $$ | grep -q "hb-service"; then
     whiptail --title "Error" --msgbox "You must not install Pi Hole via the Homebridge UI Terminal.\n\nFor a successful installation of Pi-Hole you must be logged in using SSH (see wiki for instructions)." 20 60 1
     printf "\n"
     return
   fi
 
-  whiptail --title "Warning" --yesno "Installing Pi-Hole will prevent you from accessing the Homebridge UI on port 80.\n\nYou will still be able to access the Homebridge UI on port $(cat /etc/hb-ui-port) and via:\n\n* http://homebridge.local:$(cat /etc/hb-ui-port)\n* https://homebridge.local\n\nWARNING: Failing to configure Pi-Hole correctly or attempting to uninstall Pi-Hole may result in Homebridge not working correctly. You should take a backup of your Homebridge instance via the UI before proceeding.\n\nAre you sure you want to continue?" 20 60 1
-  RET=$?
-  if [ $RET -eq 0 ]; then
-    if [ -f /etc/nginx/sites-available/homebridge.local ]; then
-      sed -i "/listen 80;/c\  # listen 80;                  # http IPv4 - disabled by Pi-Hole installer" /etc/nginx/sites-available/homebridge.local
-      sed -i "/listen \[::\]:80;/c\  # listen \[::\]:80;             # http IPv6 - disabled by Pi-Hole installer" /etc/nginx/sites-available/homebridge.local
-      if systemctl is-active --quiet nginx.service; then
-        echo "Restarting Nginx..."
-        systemctl restart nginx
-      fi
+  if ! whiptail --title "Warning" --yesno "Installing Pi-Hole will prevent you from accessing the Homebridge UI on port 80.\n\nYou will still be able to access the Homebridge UI on port $(cat /etc/hb-ui-port) and via:\n\n* http://homebridge.local:$(cat /etc/hb-ui-port)\n* https://homebridge.local\n\nWARNING: Failing to configure Pi-Hole correctly or attempting to uninstall Pi-Hole may result in Homebridge not working correctly. You should take a backup of your Homebridge instance via the UI before proceeding.\n\nAre you sure you want to continue?" 20 60 1; then
+    return
+  fi
+
+  # Pi-hole needs port 80. The Homebridge nginx config gives it up while the installer runs.
+  # A copy is kept, so port 80 can be given back if Pi-hole is not installed after all.
+  NGINX_SITE=/etc/nginx/sites-available/homebridge.local
+  NGINX_SITE_COPY=""
+  if [ -f "$NGINX_SITE" ]; then
+    NGINX_SITE_COPY=$(mktemp) || return 1
+    cat "$NGINX_SITE" > "$NGINX_SITE_COPY"
+    sed -i "/listen 80;/c\  # listen 80;                  # http IPv4 - disabled by Pi-Hole installer" "$NGINX_SITE"
+    sed -i "/listen \[::\]:80;/c\  # listen \[::\]:80;             # http IPv6 - disabled by Pi-Hole installer" "$NGINX_SITE"
+    if systemctl is-active --quiet nginx.service; then
+      echo "Restarting Nginx..."
+      systemctl restart nginx
     fi
-    printf "Starting Pi-hole installer...\n"
-    curl -sSL https://install.pi-hole.net | bash
+  fi
+
+  printf "Starting Pi-hole installer...\n"
+  PIHOLE_INSTALLER=$(mktemp) || return 1
+  if curl -sSfL https://install.pi-hole.net -o "$PIHOLE_INSTALLER" && bash "$PIHOLE_INSTALLER"; then
+    rm -f "$PIHOLE_INSTALLER" "$NGINX_SITE_COPY"
 
     printf "\n${BOLD}Pi-hole has been installed${NC}\n"
     printf "Access Pi-hole in your browser by going to:\n"
     get_web_addresses http 80 /admin
 
     printf "\nYou can still access the Homebridge UI by going to:\n"
-    get_web_addresses http $(cat /etc/hb-ui-port)
+    get_web_addresses http "$(cat /etc/hb-ui-port)"
     get_web_addresses https 443
     printf "\n"
     exit 0
   fi
+
+  rm -f "$PIHOLE_INSTALLER"
+
+  # The installer was cancelled or failed: give port 80 back to the Homebridge UI.
+  if [ -n "$NGINX_SITE_COPY" ]; then
+    cat "$NGINX_SITE_COPY" > "$NGINX_SITE"
+    rm -f "$NGINX_SITE_COPY"
+    if systemctl is-active --quiet nginx.service; then
+      echo "Restarting Nginx..."
+      systemctl restart nginx
+    fi
+  fi
+
+  whiptail --title "Error" --msgbox "Pi-hole was NOT installed: the installer was cancelled or it failed. Review the log above.\n\nThe Homebridge UI is on port 80 again." 20 60 1
+  printf "\n"
 }
 
 do_install_adguard_home() {

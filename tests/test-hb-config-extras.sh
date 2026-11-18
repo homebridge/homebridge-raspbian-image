@@ -53,4 +53,41 @@ hb_config do_install_adguard_home
 isnt "AdGuard Home, already installed: the uninstall removes the program" test -e "$W/root/opt/AdGuardHome"
 isnt "AdGuard Home, already installed: nothing is downloaded" grep -q '^wget ' "$W/calls.log"
 
+# ---- Pi-hole
+SITE="$W/root/etc/nginx/sites-available/homebridge.local"
+fresh_pihole() {
+  fresh
+  mkdir -p "$W/root/etc/nginx/sites-available"
+  cp "$REPO/stage3_homebridge/03-nginx/files/homebridge.local" "$SITE"
+  echo 8581 > "$W/root/etc/hb-ui-port"
+  # curl writes the "installer" to the file after -o; the installer itself is the stand-in "bash"
+  fake curl 'while [ $# -gt 1 ]; do [ "$1" = "-o" ] && echo "echo installer" > "$2"; shift; done'
+  fake bash "exit ${1:-0}"
+}
+
+fresh_pihole 0
+hb_config do_install_pihole
+isnt "Pi-hole installed: the Homebridge config no longer listens on port 80" grep -qE '^[[:space:]]*listen 80;' "$SITE"
+is "Pi-hole installed: the IPv6 port 80 line is off too" grep -q '# listen \[::\]:80;' "$SITE"
+has "Pi-hole installed: the user is told so" "$W/hb-config.log" "Pi-hole has been installed"
+has "Pi-hole installed: nginx is started again once" "$W/calls.log" "systemctl restart nginx"
+
+fresh_pihole 1
+hb_config do_install_pihole
+is "Pi-hole installer failed or cancelled: the Homebridge config is put back as it was" cmp -s "$SITE" "$REPO/stage3_homebridge/03-nginx/files/homebridge.local"
+isnt "Pi-hole installer failed or cancelled: no success message" grep -q "Pi-hole has been installed" "$W/hb-config.log"
+has "Pi-hole installer failed or cancelled: the user is told it was not installed" "$W/calls.log" "Pi-hole was NOT installed"
+same "Pi-hole installer failed or cancelled: nginx is started again twice (port 80 off, then on)" "$(calls | grep -c 'systemctl restart nginx')" "2"
+
+fresh_pihole 0
+fake curl 'exit 6'
+hb_config do_install_pihole
+is "Pi-hole download fails: the Homebridge config is put back as it was" cmp -s "$SITE" "$REPO/stage3_homebridge/03-nginx/files/homebridge.local"
+isnt "Pi-hole download fails: nothing is run" grep -q '^bash ' "$W/calls.log"
+
+fresh_pihole 0
+WHIPTAIL_ANSWER=1 hb_config do_install_pihole
+is "Pi-hole, answer no: the Homebridge config is not touched" cmp -s "$SITE" "$REPO/stage3_homebridge/03-nginx/files/homebridge.local"
+isnt "Pi-hole, answer no: nothing is downloaded" grep -q '^curl ' "$W/calls.log"
+
 finish
