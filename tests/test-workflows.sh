@@ -40,6 +40,61 @@ STAGE3="$WORKFLOWS/release-stage-3_package_release.yml"
 same "every token made for another repo names the rights it needs" \
   "$(grep -c 'uses: actions/create-github-app-token' "$STAGE3")" "$(grep -c 'permission-contents: write' "$STAGE3")"
 
+# The rights of each job, and how values reach shell lines. Read from the YAML itself.
+python3 - "$WORKFLOWS" "$ACTIONS" > "$W/workflow-facts" <<'PYTHON'
+import glob, os, sys, yaml
+
+workflows, actions = sys.argv[1], sys.argv[2]
+
+for path in sorted(glob.glob(os.path.join(workflows, "*.yml"))):
+    name = os.path.basename(path)
+    data = yaml.safe_load(open(path))
+    print(f"top {name} {data.get('permissions', 'MISSING')!r}")
+    for job_id, job in data["jobs"].items():
+        rights = job.get("permissions", {})
+        text = ",".join(f"{key}:{value}" for key, value in sorted(rights.items())) or "none"
+        print(f"job {name} {job_id} {text}")
+        for index, step in enumerate(job.get("steps", [])):
+            if "${{" in str(step.get("run", "")):
+                print(f"expr {name} {job_id} step {index + 1} ({step.get('name', '')})")
+
+for path in sorted(glob.glob(os.path.join(actions, "*", "action.yml"))):
+    data = yaml.safe_load(open(path))
+    for index, step in enumerate(data["runs"]["steps"]):
+        if "${{" in str(step.get("run", "")):
+            print(f"expr {os.path.basename(os.path.dirname(path))} step {index + 1} ({step.get('name', '')})")
+PYTHON
+same "the workflow files could be read" "$?" "0"
+
+# every workflow starts with no rights at all; jobs then ask for what they need
+same "every workflow gives no rights by default" "$(grep -c '^top ' "$W/workflow-facts")" "$(grep -c "^top .* {}$" "$W/workflow-facts")"
+
+# job_rights <workflow file> <job> <expected rights>
+job_rights() {
+  same "$1 / $2 has these rights: $3" "$(sed -n "s/^job $1 $2 //p" "$W/workflow-facts")" "$3"
+}
+job_rights ci.yml tests "contents:read"
+job_rights release-stage-1_update_dependencies.yml define-matrix "none"
+job_rights release-stage-1_update_dependencies.yml update-dependencies "actions:write,contents:read"
+job_rights create_raspbian_pi-gen.yml tag "contents:read"
+job_rights create_raspbian_pi-gen.yml determine_package_versions "contents:read"
+job_rights create_raspbian_pi-gen.yml build_images "contents:read"
+job_rights create_raspbian_pi-gen.yml trigger-stage-3 "actions:write,contents:read"
+job_rights release-stage-3_package_release.yml download-and-prepare "actions:read,contents:read"
+job_rights release-stage-3_package_release.yml create-release "contents:read"
+job_rights release-stage-3_package_release.yml publish-to-registry "contents:read"
+job_rights release-stage-3_package_release.yml notify-discord "none"
+job_rights labeler.yml stale "contents:read,pull-requests:write"
+job_rights pr-labeler.yml label "contents:read,pull-requests:write"
+job_rights stale.yml stale "issues:write,pull-requests:write"
+job_rights wiki-change-notification.yml notify "none"
+same "every job is in the list above" "$(grep -c '^job ' "$W/workflow-facts")" "15"
+
+# A value pasted into a shell line becomes shell code. Values must come in through "env:".
+same "no shell line has a \${{ }} value pasted into it" "$(grep '^expr ' "$W/workflow-facts")" ""
+
+isnt "no workflow uses the personal access token GH_TOKEN" grep -rq 'secrets\.GH_TOKEN' "$WORKFLOWS" "$ACTIONS"
+
 # scripts/publish-imager-json.sh against a stand-in for homebridge.io
 PUBLISH="$REPO/scripts/publish-imager-json.sh"
 git init -q --bare -b source "$W/site.git"

@@ -3,6 +3,9 @@ name: Wiki Changed Discord Notifications
 on:
   gollum
 
+# This workflow only sends a message to Discord. It needs no rights in this repo.
+permissions: {}
+
 jobs:
   notify:
     runs-on: ubuntu-latest

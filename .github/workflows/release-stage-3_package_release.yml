@@ -31,10 +31,16 @@ concurrency:
   group: release-stage-3-package-raspbian-image
   cancel-in-progress: false
 
+# No rights by default. Each job below asks for what it needs.
+permissions: {}
+
 jobs:
   download-and-prepare:
     name: Download Artifacts and Prepare Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read  # download the images that the Stage 2 run built
     outputs:
       has-32bit: ${{ steps.check-artifacts.outputs.has-32bit }}
       has-64bit: ${{ steps.check-artifacts.outputs.has-64bit }}
@@ -50,7 +56,7 @@ jobs:
           name: build-32bit
           path: ./artifacts/32bit
           run-id: ${{ inputs.run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
 
       - name: Download Build Artifacts (64-bit)
         id: download-64bit
@@ -60,29 +66,23 @@ jobs:
           name: build-64bit
           path: ./artifacts/64bit
           run-id: ${{ inputs.run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
 
       - name: Check Downloaded Artifacts
         id: check-artifacts
         run: |
           echo "Checking downloaded artifacts..."
-          ls -lR ./artifacts/
-          
-          if [ -d "./artifacts/32bit" ] && [ "$(ls -A ./artifacts/32bit)" ]; then
-            echo "has-32bit=true" >> $GITHUB_OUTPUT
-            echo "✅ 32-bit artifacts found"
-          else
-            echo "has-32bit=false" >> $GITHUB_OUTPUT
-            echo "⚠️ 32-bit artifacts not found"
-          fi
-          
-          if [ -d "./artifacts/64bit" ] && [ "$(ls -A ./artifacts/64bit)" ]; then
-            echo "has-64bit=true" >> $GITHUB_OUTPUT
-            echo "✅ 64-bit artifacts found"
-          else
-            echo "has-64bit=false" >> $GITHUB_OUTPUT
-            echo "⚠️ 64-bit artifacts not found"
-          fi
+          ls -lR ./artifacts/ || true
+
+          for name in 32bit 64bit; do
+            if [ -d "./artifacts/${name}" ] && [ -n "$(ls -A "./artifacts/${name}")" ]; then
+              echo "has-${name}=true" >> "$GITHUB_OUTPUT"
+              echo "✅ ${name} artifacts found"
+            else
+              echo "has-${name}=false" >> "$GITHUB_OUTPUT"
+              echo "⚠️ ${name} artifacts not found"
+            fi
+          done
 
       - name: Prepare Release Assets
         run: |
@@ -120,11 +120,13 @@ jobs:
           ../scripts/check-imager-json.py rpi-image-repo.json --tag "$RELEASE_TAG"
 
       - name: Create Combined Release Body
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           # Combine all manifest files and release body
           cat ./artifacts/*/final-release-body.md > ./release-assets/combined-release-body.md 2>/dev/null || \
-            echo "# Homebridge Raspbian Image ${{ inputs.release_tag }}" > ./release-assets/combined-release-body.md
-          
+            echo "# Homebridge Raspbian Image ${RELEASE_TAG}" > ./release-assets/combined-release-body.md
+
           echo "Release body created"
 
       - name: Upload Prepared Assets
@@ -138,6 +140,8 @@ jobs:
     name: Create GitHub Release
     needs: download-and-prepare
     runs-on: ubuntu-latest
+    permissions:
+      contents: read  # the release itself is made with the App token from the first step
     steps:
       - name: Create GitHub App Token
         id: app-token
@@ -184,18 +188,21 @@ jobs:
             ./release-assets/*manifest
 
       - name: Release Created
-        run: |
-          echo "::notice::Release ${{ inputs.release_tag }} created successfully"
-          RELEASE_URL=$(gh release view "${{ inputs.release_tag }}" --json url --jq '.url')
-          echo "::notice::Release URL: $RELEASE_URL"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          echo "::notice::Release ${RELEASE_TAG} created successfully"
+          RELEASE_URL=$(gh release view "$RELEASE_TAG" --json url --jq '.url')
+          echo "::notice::Release URL: $RELEASE_URL"
 
   publish-to-registry:
     name: Publish to Homebridge Registry
     needs: [create-release]
     if: ${{ inputs.publish }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read  # homebridge.io is changed with its own App token, made in the first step
     steps:
       # This token can change files in homebridge.io and nothing else.
       - name: Generate GitHub App Token
@@ -252,14 +259,17 @@ jobs:
         run: ./scripts/publish-imager-json.sh ./homebridge.io ./release-assets/rpi-image-repo.json "$RELEASE_TAG"
 
       - name: Registry Updated
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          echo "::notice::Homebridge registry updated with ${{ inputs.release_tag }}"
+          echo "::notice::Homebridge registry updated with ${RELEASE_TAG}"
 
   notify-discord:
     name: Send Discord Notification
     needs: [create-release, publish-to-registry]
     # only announce a release that is also in the Raspberry Pi Imager list
     if: ${{ always() && inputs.publish && needs.create-release.result == 'success' && needs.publish-to-registry.result == 'success' }}
+    permissions: {}
     uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
     with:
       title: "Homebridge Raspbian Image Release"

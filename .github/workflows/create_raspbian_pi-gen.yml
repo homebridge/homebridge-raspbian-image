@@ -43,10 +43,15 @@ concurrency:
   group: release-stage-2-build-raspbian-image
   cancel-in-progress: false
 
+# No rights by default. Each job below asks for what it needs.
+permissions: {}
+
 jobs:
   tag:
     name: Create Release Tag
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.version.outputs.v-version }}
     steps:
@@ -63,15 +68,21 @@ jobs:
           increment: ${{ inputs.release-increment }}
 
       - name: Display version information
+        env:
+          NEXT_VERSION: ${{ steps.version.outputs.v-version }}
+          CURRENT_VERSION: ${{ steps.version.outputs.current-v-version }}
+          INCREMENT: ${{ inputs.release-increment }}
         run: |
-          echo "::notice::Next version will be: ${{ steps.version.outputs.v-version }}"
-          echo "::notice::Current version: ${{ steps.version.outputs.current-v-version }}"
-          echo "::notice::Release increment: ${{ inputs.release-increment }}"
-       
+          echo "::notice::Next version will be: ${NEXT_VERSION}"
+          echo "::notice::Current version: ${CURRENT_VERSION}"
+          echo "::notice::Release increment: ${INCREMENT}"
+
   determine_package_versions:
     name: Determine package versions
     needs: tag
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       HOMEBRIDGE_APT_PKG_VERSION: ${{ steps.get_versions.outputs.HOMEBRIDGE_APT_PKG_VERSION }}
       FFMPEG_FOR_HOMEBRIDGE_VERSION: ${{ steps.get_versions.outputs.FFMPEG_FOR_HOMEBRIDGE_VERSION }}
@@ -123,6 +134,8 @@ jobs:
     name: Build RPI Homebridge (${{ matrix.name }}) Image ${{ needs.tag.outputs.version }}
     needs: [tag, determine_package_versions]
     runs-on: ${{ matrix.runs-on }}
+    permissions:
+      contents: read  # checkout, and reading the previous release for the release notes
     strategy:
       fail-fast: false
       matrix:
@@ -337,49 +350,63 @@ jobs:
           wpa-password: ''
 
       - name: Build complete
+        env:
+          IMAGE_PATH: ${{ steps.build.outputs.image-path }}
+          RELEASE: ${{ matrix.release }}
+          NAME: ${{ matrix.name }}
+          RECOMMENDED: ${{ matrix.recommended }}
+          DEVICES: ${{ matrix.devices }}
+          RELEASE_TAG: ${{ needs.tag.outputs.version }}
         run: |
-          echo "::notice::Homebridge VM image version: Homebridge-${{ matrix.release }}-${{ matrix.name }}"
-          echo "::notice::Run ID: ${{ github.run_id }}"
-          echo "::notice::Architecture: ${{ matrix.name }}"
-          echo "::notice::Release: ${{ needs.tag.outputs.version }}"
-          echo "::notice::image-path: ${{ steps.build.outputs.image-path }}"
-          IMGFILENAME=`basename ${{ steps.build.outputs.image-path }}`
-          echo "IMGFILENAME=${IMGFILENAME}" >> $GITHUB_ENV
-          echo "RPI_IMAGER_NAME: Homebridge ${{ matrix.release }} (${{ matrix.name }})"
-          echo "RPI_IMAGER_DESCRIPTION: Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }}) - ${{ matrix.recommended }}"
+          IMGFILENAME=$(basename "$IMAGE_PATH")
+          echo "IMGFILENAME=${IMGFILENAME}" >> "$GITHUB_ENV"
+          echo "::notice::Homebridge VM image version: Homebridge-${RELEASE}-${NAME}"
+          echo "::notice::Run ID: ${GITHUB_RUN_ID}"
+          echo "::notice::Architecture: ${NAME}"
+          echo "::notice::Release: ${RELEASE_TAG}"
+          echo "::notice::image-path: ${IMAGE_PATH}"
+          echo "RPI_IMAGER_NAME: Homebridge ${RELEASE} (${NAME})"
+          echo "RPI_IMAGER_DESCRIPTION: Official Homebridge Raspberry Pi Image ${RELEASE} (${NAME}) - ${RECOMMENDED}"
           echo "RPI_IMAGER_ICON: https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png"
           echo "RPI_IMAGER_WEBSITE: https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started"
-          echo "RPI_IMAGER_IMAGE_URL: https://github.com/${{ github.repository }}/releases/download/${{ needs.tag.outputs.version }}/${IMGFILENAME}"
-          echo "RPI_IMAGER_DEVICES: '${{ matrix.devices }}'"
+          echo "RPI_IMAGER_IMAGE_URL: https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${IMGFILENAME}"
+          echo "RPI_IMAGER_DEVICES: '${DEVICES}'"
 
 # This is not currently used
 
       - name: Calculate Image Checksum
         id: get_sha256_checksum
+        env:
+          IMAGE_PATH: ${{ steps.build.outputs.image-path }}
         run: |
-          export IMAGE_SHA256_CHECKSUM=$(shasum -a 256 ${{ steps.build.outputs.image-path }} | awk '{print $1}')
-          echo "$IMAGE_SHA256_CHECKSUM ${{ steps.build.outputs.image-path }}"
+          IMAGE_SHA256_CHECKSUM=$(shasum -a 256 "$IMAGE_PATH" | awk '{print $1}')
+          echo "$IMAGE_SHA256_CHECKSUM $IMAGE_PATH"
           echo "::notice::IMAGE_SHA256_CHECKSUM ${IMGFILENAME} ==> ${IMAGE_SHA256_CHECKSUM}"
 
       - name: Prepare output directory
+        env:
+          IMAGE_PATH: ${{ steps.build.outputs.image-path }}
         run: |
           mkdir -p output
-          cp ${{ steps.build.outputs.image-path }} output/
+          cp "$IMAGE_PATH" output/
 
-      - name: Generate rpi-image-repo.json 
+      - name: Generate rpi-image-repo.json
         id: generate_rpi-image-repo
+        env:
+          RPI_IMAGER_NAME: Homebridge ${{ matrix.release }} (${{ matrix.name }})
+          RPI_IMAGER_DESCRIPTION: Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }}) - ${{ matrix.recommended }}
+          RPI_IMAGER_ICON: https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png
+          RPI_IMAGER_WEBSITE: https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started
+          RPI_IMAGER_DEVICES: ${{ matrix.devices }}
+          RELEASE_TAG: ${{ needs.tag.outputs.version }}
         run: |
-          export RPI_IMAGER_NAME="Homebridge ${{ matrix.release }} (${{ matrix.name }})"
-          export RPI_IMAGER_DESCRIPTION="Official Homebridge Raspberry Pi Image ${{ matrix.release }} (${{ matrix.name }}) - ${{ matrix.recommended }}"
-          export RPI_IMAGER_ICON="https://user-images.githubusercontent.com/3979615/116509191-3c35f880-a906-11eb-9a7f-7cad7c2aa641.png"
-          export RPI_IMAGER_WEBSITE="https://github.com/homebridge/homebridge-raspbian-image/wiki/Getting-Started"
-          export RPI_IMAGER_IMAGE_URL="https://github.com/${{ github.repository }}/releases/download/${{ needs.tag.outputs.version }}/${{ env.IMGFILENAME }}"
-          export RPI_IMAGER_DEVICES='${{ matrix.devices }}'
-          ./make_rpi-imager-snipplet.py --rpi_imager_url ${RPI_IMAGER_IMAGE_URL}
+          ./make_rpi-imager-snipplet.py --rpi_imager_url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/${IMGFILENAME}"
 
       - name: Copy rpi-image-repo to output directory
+        env:
+          NAME: ${{ matrix.name }}
         run: |
-          cp pi-gen/deploy/rpi-image-repo.json output/rpi-image-repo-${{ matrix.name }}.json
+          cp pi-gen/deploy/rpi-image-repo.json "output/rpi-image-repo-${NAME}.json"
 
       - name: Mount the image
         id: mount
@@ -453,11 +480,12 @@ jobs:
 
       - name: Build Release Body
         id: release_body
-        run: |
-          ./scripts/create-release-body.sh ${{ inputs.release-stream }}
-          cat output/*manifest output/release-body.md > output/final-release-body.md
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_STREAM: ${{ inputs.release-stream }}
+        run: |
+          ./scripts/create-release-body.sh "${RELEASE_STREAM:-stable}"
+          cat output/*manifest output/release-body.md > output/final-release-body.md
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v7

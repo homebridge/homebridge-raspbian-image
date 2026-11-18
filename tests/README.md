@@ -4,11 +4,11 @@ These tests check the scripts in this repo without building an image.
 
 - Run them all: `tests/run.sh`
 - Run one: `tests/run.sh nginx` (any part of the file name)
-- They need Linux with `bash`, `dash`, `jq`, `python3` and `git`. On a Mac, run them in a container:
+- They need Linux with `bash`, `dash`, `jq`, `git`, `python3` and `python3-yaml` (and `nginx` and `openssl` for the nginx checks). On a Mac, run them in a container:
 
 ```sh
 docker run --rm -v "$PWD":/repo -w /repo debian:trixie sh -c \
-  'apt-get update -qq && apt-get install -y -qq bash dash jq python3 git >/dev/null && tests/run.sh'
+  'apt-get update -qq && apt-get install -y -qq bash dash git jq nginx openssl python3 python3-yaml >/dev/null && tests/run.sh'
 ```
 
 How they work:
