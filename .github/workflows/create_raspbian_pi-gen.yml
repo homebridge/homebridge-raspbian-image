@@ -15,7 +15,7 @@ on:
           - major
         default: 'patch'
       publish:
-        description: 'Publish Release to RPI Imager Registry'
+        description: 'Publish Release to RPI Imager Registry (stable only: beta and alpha are never published)'
         type: boolean
         default: false
       release-stream:
@@ -23,6 +23,8 @@ on:
         type: choice
         options:
           - stable
+          - beta
+          - alpha
         default: 'stable'
         required: false
       Scheduled:
@@ -50,23 +52,55 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.v-version }}
     steps:
+      # Only beta and alpha may build from a pre-release branch (e.g. beta-2026.11.18).
+      # Stable must come from latest, so a branch can never publish a stable image.
+      - name: Check Release Branch
+        env:
+          RELEASE_STREAM: ${{ inputs.release-stream }}
+        run: |
+          if [[ "$RELEASE_STREAM" != "beta" && "$RELEASE_STREAM" != "alpha" && "$GITHUB_REF_NAME" != "latest" ]]; then
+            echo "::error::${RELEASE_STREAM} releases must be built from the latest branch, not ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_NAME" != "latest" && ! "$GITHUB_REF_NAME" =~ ^${RELEASE_STREAM}-[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,2}$ ]]; then
+            echo "::error::${RELEASE_STREAM} releases must be built from latest or a ${RELEASE_STREAM}-YYYY.M.D branch, not ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
+      # Stable releases are numbered (v2.0.26). Beta and alpha tags hold no "v" and no
+      # number, so they never move the stable version on.
       - name: Get next version
+        if: ${{ inputs.release-stream == 'stable' }}
         uses: reecetech/version-increment@2026.8.4
-        id: version
+        id: stable_version
         with:
           scheme: semver
           increment: ${{ inputs.release-increment }}
 
+      # Beta and alpha releases are dated: beta-2026-11-21
+      - name: Set release tag
+        id: version
+        env:
+          RELEASE_STREAM: ${{ inputs.release-stream }}
+          STABLE_VERSION: ${{ steps.stable_version.outputs.v-version }}
+        run: |
+          if [[ "$RELEASE_STREAM" == "stable" ]]; then
+            echo "v-version=${STABLE_VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "v-version=${RELEASE_STREAM}-$(date +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Display version information
         run: |
           echo "::notice::Next version will be: ${{ steps.version.outputs.v-version }}"
-          echo "::notice::Current version: ${{ steps.version.outputs.current-v-version }}"
+          echo "::notice::Current version: ${{ steps.stable_version.outputs.current-v-version }}"
           echo "::notice::Release increment: ${{ inputs.release-increment }}"
+          echo "::notice::Release stream: ${{ inputs.release-stream }}"
        
   determine_package_versions:
     name: Determine package versions
@@ -81,9 +115,13 @@ jobs:
 
       - name: Get Homebridge version
         id: get_versions
+        env:
+          RELEASE_STREAM: ${{ inputs.release-stream }}
         run: |
-          HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' ./stable/package.json | sed 's/\^//')
-          FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' ./stable/package.json | sed 's/\^//')
+          # npm names a beta 2.0.27-beta.20261121; the apt repository names the same package
+          # 2.0.27~beta.20261121. A stable version has no "-", so it is left as it is.
+          HOMEBRIDGE_APT_PKG_VERSION=$(jq -r '.dependencies["@homebridge/homebridge-apt-pkg"]' "./${RELEASE_STREAM}/package.json" | sed 's/\^//' | sed 's/-/~/')
+          FFMPEG_FOR_HOMEBRIDGE_VERSION=$(jq -r '.dependencies["ffmpeg-for-homebridge"]' "./${RELEASE_STREAM}/package.json" | sed 's/\^//')
           
           echo "HOMEBRIDGE_APT_PKG_VERSION=${HOMEBRIDGE_APT_PKG_VERSION}" >> $GITHUB_OUTPUT
           echo "FFMPEG_FOR_HOMEBRIDGE_VERSION=v${FFMPEG_FOR_HOMEBRIDGE_VERSION}" >> $GITHUB_OUTPUT
@@ -387,7 +425,7 @@ jobs:
       - name: Build Release Body
         id: release_body
         run: |
-          ./scripts/create-release-body.sh ${{ inputs.release-stream }}
+          ./scripts/create-release-body.sh ${{ inputs.release-stream }} "${GITHUB_REF_NAME}"
           cat output/*manifest output/release-body.md > output/final-release-body.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -410,10 +448,11 @@ jobs:
       - name: Trigger Release Stage 3 Workflow
         run: |
           gh workflow run release-stage-3_package_release.yml \
-            --ref latest \
+            --ref "${GITHUB_REF_NAME}" \
             --field run_id="${{ github.run_id }}" \
             --field release_tag="${{ needs.tag.outputs.version }}" \
-            --field publish="${{ inputs.publish && 'true' || 'false' }}"
+            --field release_stream="${{ inputs.release-stream }}" \
+            --field publish="${{ inputs.release-stream == 'stable' && inputs.publish && 'true' || 'false' }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -421,4 +460,5 @@ jobs:
         run: |
           echo "::notice::Release Stage 3 workflow triggered for version ${{ needs.tag.outputs.version }}"
           echo "::notice::Run ID: ${{ github.run_id }}"
-          echo "::notice::Publish to Registry: ${{ inputs.publish }}"
+          echo "::notice::Release Stream: ${{ inputs.release-stream }}"
+          echo "::notice::Publish to Registry: ${{ inputs.release-stream == 'stable' && inputs.publish }}"

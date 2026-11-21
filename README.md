@@ -9,7 +9,7 @@
 # Homebridge Raspberry Pi Image
 
 [![Build](https://github.com/homebridge/homebridge-raspbian-image/actions/workflows/create_raspbian_pi-gen.yml/badge.svg)](https://github.com/homebridge/homebridge-raspbian-image/actions/workflows/create_raspbian_pi-gen.yml)
-[![GitHub release (latest by date)](https://badgen.net/github/release/homebridge/homebridge-raspbian-image?label=Version)](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
+[![GitHub release (latest by date)](https://badgen.net/github/release/homebridge/homebridge-raspbian-image/stable?label=Version)](https://github.com/homebridge/homebridge-raspbian-image/releases/latest)
 [![GitHub All Releases](https://img.shields.io/github/downloads/homebridge/homebridge-raspbian-image/total)](https://somsubhra.github.io/github-release-stats/?username=homebridge&repository=homebridge-raspbian-image&page=1&per_page=30)
 
 </span>
@@ -26,6 +26,18 @@ This project provides a free [Raspberry Pi OS](https://www.raspberrypi.com/softw
 This image also provides a command called `hb-config` which helps you keep Node.js up-to-date, perform maintenance on your Homebridge server, and install additional optional software such as *[Pi-hole](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Install-Pi-Hole)* and *[deCONZ](https://github.com/homebridge/homebridge-raspbian-image/wiki/How-To-Install-deCONZ-for-ConBee-or-RaspBee)*.
 
 The Homebridge service is installed using the method described in the official [Raspberry Pi Installation Guide](https://github.com/homebridge/homebridge/wiki/Install-Homebridge-on-Raspbian) on the [Homebridge](https://github.com/homebridge/homebridge) project wiki.
+
+## Release Streams
+
+| Stream | Homebridge package | Where to get it | Best for |
+| :--- | :--- | :--- | :--- |
+| **Stable** | Stable (`stable` apt channel) | Raspberry Pi Imager, or the [latest release](https://github.com/homebridge/homebridge-raspbian-image/releases/latest) | Everyone |
+| **Beta** | Beta (`beta` apt channel) | [Releases](https://github.com/homebridge/homebridge-raspbian-image/releases) named `beta-YYYY-MM-DD` | Testing upcoming features |
+| **Alpha** | Alpha (`alpha` apt channel) | [Releases](https://github.com/homebridge/homebridge-raspbian-image/releases) named `alpha-YYYY-MM-DD` | Early testing and development |
+
+Beta and alpha images are pre-releases. They are not offered in Raspberry Pi Imager, and an image stays on the apt channel it was built with.
+
+**Beta and alpha may include features not yet in `latest`.** When they do, the release notes for that build have a **Pre-release Changes** section listing them and the branch the image was built from.
 
 ## Installation Instructions
 

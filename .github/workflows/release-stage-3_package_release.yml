@@ -12,8 +12,17 @@ on:
         description: 'Release TAG to use for this release (e.g. v1.0.1)'
         required: true
         type: string
+      release_stream:
+        description: 'Release stream the images were built for'
+        required: false
+        type: choice
+        options:
+          - stable
+          - beta
+          - alpha
+        default: stable
       publish:
-        description: 'Publish Release to RPI Imager Registry'
+        description: 'Publish Release to RPI Imager Registry (stable only: beta and alpha are never published)'
         type: boolean
         default: false
 
@@ -29,6 +38,21 @@ jobs:
       has-32bit: ${{ steps.check-artifacts.outputs.has-32bit }}
       has-64bit: ${{ steps.check-artifacts.outputs.has-64bit }}
     steps:
+      # Only beta and alpha may be released from a pre-release branch (e.g. beta-2026.11.18).
+      # Stable must come from latest, so a branch can never publish a stable image.
+      - name: Check Release Branch
+        env:
+          RELEASE_STREAM: ${{ inputs.release_stream }}
+        run: |
+          if [[ "$RELEASE_STREAM" != "beta" && "$RELEASE_STREAM" != "alpha" && "$GITHUB_REF_NAME" != "latest" ]]; then
+            echo "::error::${RELEASE_STREAM} releases must be built from the latest branch, not ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+          if [[ "$GITHUB_REF_NAME" != "latest" && ! "$GITHUB_REF_NAME" =~ ^${RELEASE_STREAM}-[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,2}$ ]]; then
+            echo "::error::${RELEASE_STREAM} releases must be built from latest or a ${RELEASE_STREAM}-YYYY.M.D branch, not ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v7
 
@@ -147,16 +171,29 @@ jobs:
 
       - name: Create GitHub Release
         run: |
-          gh release create "${{ inputs.release_tag }}" \
-          --title "${{ inputs.release_tag }}" \
+          # Beta and alpha are always pre-releases, and never GitHub's "Latest" release.
+          # A stable build is a pre-release only when it is not published to the registry.
+          if [[ "$RELEASE_STREAM" == "stable" ]]; then
+            TITLE="$RELEASE_TAG"
+            RELEASE_FLAGS=(--prerelease=${{ inputs.publish == false }})
+          else
+            TITLE="$(echo "$RELEASE_STREAM" | tr '[:lower:]' '[:upper:]'): Homebridge Raspbian Image Release $RELEASE_TAG"
+            RELEASE_FLAGS=(--prerelease --latest=false)
+          fi
+          # Tag the commit this run was started on, not the head of the default branch
+          gh release create "$RELEASE_TAG" \
+          --target "${GITHUB_SHA}" \
+          --title "$TITLE" \
           --notes-file ./release-assets/combined-release-body.md \
           --draft=false \
-          --prerelease=${{ inputs.publish == false }} \
+          "${RELEASE_FLAGS[@]}" \
           ./release-assets/*.zip \
           ./release-assets/*.json \
           ./release-assets/*manifest
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RELEASE_STREAM: ${{ inputs.release_stream }}
 
       - name: Release Created
         run: |
@@ -169,7 +206,8 @@ jobs:
   publish-to-registry:
     name: Publish to Homebridge Registry
     needs: [create-release]
-    if: ${{ inputs.publish }}
+    # Only a stable image is offered in Raspberry Pi Imager
+    if: ${{ inputs.publish && inputs.release_stream == 'stable' }}
     runs-on: ubuntu-latest
     steps:
       - name: Generate GitHub App Token
@@ -210,7 +248,7 @@ jobs:
   notify-discord:
     name: Send Discord Notification
     needs: [create-release, publish-to-registry]
-    if: ${{ always() && inputs.publish && needs.create-release.result == 'success' }}
+    if: ${{ always() && inputs.publish && inputs.release_stream == 'stable' && needs.create-release.result == 'success' }}
     uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
     with:
       title: "Homebridge Raspbian Image Release"
@@ -219,3 +257,31 @@ jobs:
       url: "https://github.com/homebridge/homebridge-raspbian-image/releases/tag/${{ inputs.release_tag }}"
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL_LATEST }}
+
+  # The images are large, so only the newest beta and alpha releases are kept
+  cleanup-old-releases-and-tags:
+    name: Cleanup Older Beta and Alpha Releases
+    needs: [create-release]
+    if: ${{ inputs.release_stream != 'stable' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.DEPENDENCY_BOT_APP_ID }}
+          private-key: ${{ secrets.DEPENDENCY_BOT_PRIVATE_KEY }}
+          owner: homebridge
+          repositories: homebridge-raspbian-image
+          permission-contents: write
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Cleanup older ${{ inputs.release_stream }} releases and tags
+        uses: ./.github/actions/cleanup-old-releases-and-tags
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          release-stream: ${{ inputs.release_stream }}
+          releases-to-keep: 5
+
