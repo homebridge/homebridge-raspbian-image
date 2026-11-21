@@ -1,4 +1,9 @@
+# NetworkManager and wpasupplicant are already part of Raspberry Pi OS Lite. They are listed
+# here because wifi-connect can not work without them.
 wpasupplicant
 network-manager
+
+# wifi-connect starts its own copies of these two while the setup hotspot is on.
+# The build turns their system services off (01-run.sh).
 dnsmasq
 hostapd

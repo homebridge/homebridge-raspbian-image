@@ -1,5 +1,5 @@
 name: 'Trigger and Wait for Workflow'
-description: 'Triggers a workflow and waits for its completion with timeout protection'
+description: 'Triggers a workflow, waits for it to finish, and fails unless it finished with success'
 inputs:
   workflow-file:
     description: 'The workflow file to trigger (e.g., release-stage-2_build_and_release.yml)'
@@ -16,11 +16,10 @@ inputs:
     required: false
     default: '30'
   run-name:
-    description: 'Unique name of the triggered workflow run'
-    required: false
-    default: ''
+    description: 'Unique name of the triggered workflow run. The workflow must take it as its run_name input and show it in its run-name.'
+    required: true
   workflow-fields:
-    description: 'Fields to pass to the workflow as key=value pairs (JSON or newline separated)'
+    description: 'Fields to pass to the workflow, one key=value per line'
     required: false
     default: ''
 
@@ -30,7 +29,7 @@ outputs:
     value: ${{ steps.wait-completion.outputs.conclusion }}
   run-id:
     description: 'The run ID of the triggered workflow'
-    value: ${{ steps.extract-run-id.outputs.run_id }}
+    value: ${{ steps.find-workflow.outputs.run_id }}
 
 runs:
   using: 'composite'
@@ -39,137 +38,79 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
+        WORKFLOW_FILE: ${{ inputs.workflow-file }}
+        WORKFLOW_REF: ${{ inputs.ref }}
+        RUN_NAME: ${{ inputs.run-name }}
+        WORKFLOW_FIELDS: ${{ inputs.workflow-fields }}
       run: |
-        echo "::notice::Triggering ${{ inputs.run-name }} workflow - ${{ inputs.workflow-file }}"
-        
-        # Parse workflow-fields input and build --field arguments
-        FIELD_ARGS=""
-        if [[ -n "${{ inputs.workflow-fields }}" ]]; then
-          while IFS='=' read -r key value; do
-            # Only add if both key and value are non-empty
-            if [[ -n "$key" && -n "$value" ]]; then
-              FIELD_ARGS+=" --field $key=$value"
-            fi
-          done <<< "${{ inputs.workflow-fields }}"
+        echo "::notice::Triggering ${RUN_NAME} workflow - ${WORKFLOW_FILE}"
+
+        # Build the --field arguments from the key=value lines
+        FIELD_ARGS=(--field "run_name=${RUN_NAME}")
+        while IFS='=' read -r key value; do
+          # Only add if both key and value are non-empty
+          if [[ -n "$key" && -n "$value" ]]; then
+            FIELD_ARGS+=(--field "${key}=${value}")
+          fi
+        done <<< "$WORKFLOW_FIELDS"
+
+        echo "::notice::Using fields: ${FIELD_ARGS[*]}"
+
+        if ! gh workflow run "$WORKFLOW_FILE" --ref "$WORKFLOW_REF" "${FIELD_ARGS[@]}"; then
+          echo "::error::Failed to trigger ${WORKFLOW_FILE} workflow"
+          exit 1
         fi
 
-        echo "::notice::Using fields: $FIELD_ARGS"
-
-        gh workflow run "${{ inputs.workflow-file }}" \
-          --ref "${{ inputs.ref }}" \
-          --field run_name="${{ inputs.run-name }}" \
-          $FIELD_ARGS || { 
-          echo "::error::Failed to trigger ${{ inputs.workflow-file }} workflow"; 
-          exit 1; 
-        }
-        
-        echo "::notice::${{ inputs.run-name }} workflow triggered successfully"
+        echo "::notice::${RUN_NAME} workflow triggered successfully"
 
     - name: Find ${{ inputs.run-name }} Workflow Run
       id: find-workflow
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
+        WORKFLOW_FILE: ${{ inputs.workflow-file }}
+        WORKFLOW_REF: ${{ inputs.ref }}
+        RUN_NAME: ${{ inputs.run-name }}
       run: |
-        echo "::group::Waiting for ${{ inputs.run-name }} workflow to appear in run list..."
+        echo "::group::Waiting for ${RUN_NAME} workflow to appear in run list..."
 
-        # Initialize variables
-        WORKFLOW_URL=""
+        RUN_ID=""
         MAX_RETRIES=12  # Retry for up to 1 minute (12 retries * 5 seconds)
         RETRY_COUNT=0
 
-        # Retry loop
-        while [[ -z "$WORKFLOW_URL" || "$WORKFLOW_URL" == "null" ]]; do
+        # The run is found by its unique name, so a run that was started earlier is never picked.
+        while [[ -z "$RUN_ID" ]]; do
           if [[ $RETRY_COUNT -ge $MAX_RETRIES ]]; then
-            echo "::error::Could not find triggered ${{ inputs.run-name }} workflow run after 1 minute"
-            gh run list --workflow "${{ inputs.workflow-file }}" --event workflow_dispatch --branch "${{ inputs.ref }}" --limit 5 --json url,name
+            echo "::error::Could not find triggered ${RUN_NAME} workflow run after 1 minute"
+            gh run list --workflow "$WORKFLOW_FILE" --event workflow_dispatch --branch "$WORKFLOW_REF" --limit 5 --json url,name || true
             exit 1
           fi
 
-          # Increment retry count
           RETRY_COUNT=$((RETRY_COUNT + 1))
 
-          # Check for the workflow run
-          WORKFLOW_URL=$(gh run list --workflow "${{ inputs.workflow-file }}" \
+          RUN_ID=$(gh run list --workflow "$WORKFLOW_FILE" \
             --event workflow_dispatch \
-            --branch "${{ inputs.ref }}" \
+            --branch "$WORKFLOW_REF" \
             --limit 10 \
-            --json url,name \
-            --jq '[.[] | select(.name | contains("${{ inputs.run-name }}"))] | .[].url' | \
-            head -n 1)
+            --json databaseId,name | jq -r --arg name "$RUN_NAME" '[.[] | select(.name | contains($name))][0].databaseId // empty') || RUN_ID=""
 
-          if [[ -z "$WORKFLOW_URL" || "$WORKFLOW_URL" == "null" ]]; then
-            echo "::notice::Retry $RETRY_COUNT/$MAX_RETRIES: ${{ inputs.run-name }} workflow not found. Retrying in 5 seconds..."
+          if [[ -z "$RUN_ID" ]]; then
+            echo "::notice::Retry $RETRY_COUNT/$MAX_RETRIES: ${RUN_NAME} workflow not found. Retrying in 5 seconds..."
             sleep 5
           fi
         done
 
         echo "::endgroup::"
-        echo "::notice::Found ${{ inputs.run-name }} workflow run: $WORKFLOW_URL"
-        echo "workflow_url=$WORKFLOW_URL" >> $GITHUB_OUTPUT
+        echo "::notice::Found ${RUN_NAME} workflow run: ${RUN_ID}"
+        echo "run_id=${RUN_ID}" >> "$GITHUB_OUTPUT"
 
-    - name: Extract ${{ inputs.run-name }} Workflow Run ID
-      id: extract-run-id
-      shell: bash
-      run: |
-        WORKFLOW_URL="${{ steps.find-workflow.outputs.workflow_url }}"
-        
-        # Extract run ID from the URL
-        if [[ "$WORKFLOW_URL" =~ actions/runs/([0-9]+) ]]; then
-          RUN_ID="${BASH_REMATCH[1]}"
-          echo "::notice::Extracted run ID: $RUN_ID"
-          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
-        else
-          echo "::error::Could not extract run ID from workflow URL: $WORKFLOW_URL"
-          exit 1
-        fi
-
+    # Fails this step (and so the calling job) unless the run finished with "success".
     - name: Wait for ${{ inputs.run-name }} Workflow Completion
       id: wait-completion
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
+        RUN_ID: ${{ steps.find-workflow.outputs.run_id }}
+        TIMEOUT_MINUTES: ${{ inputs.timeout-minutes }}
       run: |
-        RUN_ID="${{ steps.extract-run-id.outputs.run_id }}"
-        echo "::group::Waiting for ${{ inputs.run-name }} workflow (run $RUN_ID) to complete..."
-        
-        # Set maximum wait time (convert minutes to seconds)
-        MAX_WAIT_SECONDS=$(( ${{ inputs.timeout-minutes }} * 60 ))
-        START_TIME=$(date +%s)
-        
-        # Poll the workflow status until it completes
-        while true; do
-          # Check if we've exceeded the maximum wait time
-          CURRENT_TIME=$(date +%s)
-          ELAPSED_TIME=$((CURRENT_TIME - START_TIME))
-          
-          if [[ $ELAPSED_TIME -gt $MAX_WAIT_SECONDS ]]; then
-            echo "::error::${{ inputs.run-name }} workflow timed out after ${{ inputs.timeout-minutes }} minutes"
-            exit 0
-          fi
-          
-          STATUS=$(gh run view "$RUN_ID" --json status -q '.status')
-          
-          case "$STATUS" in
-            "completed")
-              CONCLUSION=$(gh run view "$RUN_ID" --json conclusion -q '.conclusion')
-              echo "conclusion=$CONCLUSION" >> $GITHUB_OUTPUT
-              if [[ "$CONCLUSION" == "success" ]]; then
-                echo "::notice::${{ inputs.run-name }} workflow completed successfully"
-                break
-              else
-                echo "::error::${{ inputs.run-name }} workflow failed with conclusion: $CONCLUSION"
-                break
-              fi
-              ;;
-            "in_progress"|"queued"|"requested"|"waiting")
-              echo "::notice::${{ inputs.run-name }} workflow status: $STATUS - continuing to wait... (elapsed: ${ELAPSED_TIME}s)"
-              sleep 30
-              ;;
-            *)
-              echo "::error::${{ inputs.run-name }} workflow has unexpected status: $STATUS"
-              break
-              ;;
-          esac
-        done
-        echo "::endgroup::"
+        "${GITHUB_ACTION_PATH}/wait-for-run.sh" "$RUN_ID" "$TIMEOUT_MINUTES"

@@ -6,6 +6,7 @@ import os
 import argparse
 from datetime import date
 import glob
+import re
 
 # Credits for this go to https://github.com/guysoft/CustomPiOS/blob/devel/src/make_rpi-imager-snipplet.py
 
@@ -85,13 +86,21 @@ if __name__ == "__main__":
     url = args.rpi_imager_url
     icon = handle_arg("RPI_IMAGER_ICON")
     website = handle_arg("RPI_IMAGER_WEBSITE", True)
-    release_date = date.today().strftime("%Y-%m-%d")
 
-    devices=[]
     devices = json.loads(handle_arg("RPI_IMAGER_DEVICES"))
 
- #   print("devices: ", devices)
-    zip_local = glob.glob(os.path.join(workspace_path, "*.zip"))[0]
+    # there must be exactly one image in the folder: a second one would mean the wrong file
+    # could be described
+    zips = sorted(glob.glob(os.path.join(workspace_path, "*.zip")))
+    if len(zips) != 1:
+        print("Error: expected one .zip file in " + workspace_path + ", found " + str(len(zips)))
+        exit(1)
+    zip_local = zips[0]
+
+    # The release date is the date in the file name (image_<date>-...), which pi-gen sets when
+    # the build starts. A build that runs past midnight then still gets one date in both places.
+    date_in_name = re.match(r"^image_(\d{4}-\d{2}-\d{2})-", os.path.basename(zip_local))
+    release_date = date_in_name.group(1) if date_in_name else date.today().strftime("%Y-%m-%d")
 
     if url == "MISSING_URL":
         url = os.path.basename(zip_local)

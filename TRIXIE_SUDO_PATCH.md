@@ -1,6 +1,16 @@
 # Trixie Sudo Permissions Patch
 
-If you have already installed a Homebridge Raspberry Pi image and upgraded to Debian Trixie, you may experience issues with the restart/shutdown functionality in the Homebridge UI.
+This patch is for images **v1.4.0, v1.4.1 and v1.4.2** (built between 3 and 8 December 2025). On those images the "Restart / Shut Down Server" buttons in the Homebridge UI do not work.
+
+* Newer images already have this fix. You do not need to do anything.
+* Older images (before v1.4.0) do not need it either: there Homebridge runs as the first user (`pi`), which may already use `sudo`.
+
+How to check if you need it (run over SSH):
+
+```bash
+systemctl show -p User --value homebridge   # prints "homebridge" on the affected images
+ls /etc/sudoers.d/010_homebridge-nopasswd   # "No such file" means the fix is missing
+```
 
 ## Quick Fix (One-liner)
 
@@ -30,7 +40,7 @@ This command will:
 
 ## What This Fixes
 
-This patch allows the homebridge user to run shutdown, reboot, and poweroff commands without requiring a password, which is necessary for the Homebridge UI's restart and shutdown features to work properly in Debian Trixie.
+This patch allows the homebridge user to run shutdown, reboot, and poweroff commands without requiring a password, which is necessary for the Homebridge UI's restart and shutdown features to work. It gives the homebridge user no other rights.
 
 ## Verification
 

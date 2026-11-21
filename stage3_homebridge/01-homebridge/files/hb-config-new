@@ -1,13 +1,34 @@
 #!/bin/sh
+#
+# The hb-config tool of every image built since May 2022. The image build installs this file as
+# /usr/local/sbin/hb-config ("sudo hb-config").
+#
+# Which images use which file:
+#   - hb-config-new (this file): every image built since May 2022.
+#       - Images up to v2.0.25 update the tool from this file on the "latest" branch.
+#       - Newer images update it from this file in the newest release (see do_update below).
+#     So the file must stay at this path.
+#   - hb-config: the old tool of images from before May 2022. It is not installed any more, and
+#     it is left as it is (decided by BP, 2026-11-18).
+#
+# This is a /bin/sh script. On a Pi /bin/sh is dash, so bash-only syntax does not work here.
+#
+# When this file changes, set HB_CONFIG_VERSION below to the date of the change. "Update" only
+# installs a tool with a newer version than the one that is running.
+#
 
-INTERACTIVE=True
-ASK_TO_REBOOT=0
-CONFIG=/boot/config.txt
-
-RED='\033[0;31m'
 GREEN='\033[0;32m'
-BOLD='\e[1m'
+BOLD='\033[1m'
 NC='\033[0m'
+
+# The version of this tool: the date of its last change. "Update" never replaces the tool with
+# an older one. Change this value whenever this file changes.
+HB_CONFIG_VERSION="2026.11.18"
+
+# The version of the WiFi setup tool (wifi-connect) that "Update" brings older images up to.
+# New images get their version from stable/package.json in the image repo.
+WIFI_CONNECT_WANTED="4.2.2"
+WIFI_CONNECT_DIR=/opt/wifi-connect/lib/node_modules/@homebridge/wifi-connect
 
 is_pi () {
   ARCH=$(dpkg --print-architecture)
@@ -16,75 +37,6 @@ is_pi () {
   else
     return 1
   fi
-}
-
-is_pione() {
-   if grep -q "^Revision\s*:\s*00[0-9a-fA-F][0-9a-fA-F]$" /proc/cpuinfo; then
-      return 0
-   elif grep -q "^Revision\s*:\s*[ 123][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]0[0-36][0-9a-fA-F]$" /proc/cpuinfo ; then
-      return 0
-   else
-      return 1
-   fi
-}
-
-is_pitwo() {
-   grep -q "^Revision\s*:\s*[ 123][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]04[0-9a-fA-F]$" /proc/cpuinfo
-   return $?
-}
-
-is_pizero() {
-   grep -q "^Revision\s*:\s*[ 123][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]0[9cC][0-9a-fA-F]$" /proc/cpuinfo
-   return $?
-}
-
-is_pifour() {
-   grep -q "^Revision\s*:\s*[ 123][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]11[0-9a-fA-F]$" /proc/cpuinfo
-   return $?
-}
-
-get_pi_type() {
-   if is_pione; then
-      echo 1
-   elif is_pitwo; then
-      echo 2
-   else
-      echo 0
-   fi
-}
-
-is_live() {
-    grep -q "boot=live" $CMDLINE
-    return $?
-}
-
-is_ssh() {
-  if pstree -p | egrep --quiet --extended-regexp ".*sshd.*\($$\)"; then
-    return 0
-  else
-    return 1
-  fi
-}
-
-is_fkms() {
-  if grep -q okay /proc/device-tree/soc/v3d@7ec00000/status 2> /dev/null || grep -q okay /proc/device-tree/soc/firmwarekms@7e600000/status 2> /dev/null ; then
-    return 0
-  else
-    return 1
-  fi
-}
-
-is_installed() {
-    if [ "$(dpkg -l "$1" 2> /dev/null | tail -n 1 | cut -d ' ' -f 1)" != "ii" ]; then
-      return 1
-    else
-      return 0
-    fi
-}
-
-deb_ver () {
-  ver=`cat /etc/debian_version | cut -d . -f 1`
-  echo $ver
 }
 
 calc_wt_size() {
@@ -100,100 +52,105 @@ calc_wt_size() {
   if [ "$WT_WIDTH" -gt 178 ]; then
     WT_WIDTH=120
   fi
-  WT_MENU_HEIGHT=$(($WT_HEIGHT-7))
+  WT_MENU_HEIGHT=$((WT_HEIGHT - 7))
 }
 
-set_config_var() {
-  lua - "$1" "$2" "$3" <<EOF > "$3.bak"
-local key=assert(arg[1])
-local value=assert(arg[2])
-local fn=assert(arg[3])
-local file=assert(io.open(fn))
-local made_change=false
-for line in file:lines() do
-  if line:match("^#?%s*"..key.."=.*$") then
-    line=key.."="..value
-    made_change=true
-  end
-  print(line)
-end
-if not made_change then
-  print(key.."="..value)
-end
-EOF
-mv "$3.bak" "$3"
-}
-
+# get_web_addresses <http|https> <port> [path]: prints the addresses this system is reached by
 get_web_addresses() {
   IP=$(hostname -I)
 
-  printf "  ${BOLD}*${NC} ${GREEN}$1://$(hostname).local:$2$3${NC}\n"
+  printf '  %b*%b %b%s://%s.local:%s%s%b\n' "$BOLD" "$NC" "$GREEN" "$1" "$(hostname)" "$2" "${3:-}" "$NC"
 
   for ip in $IP; do
     if expr "$ip" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null; then
-      printf "  ${BOLD}*${NC} ${GREEN}$1://$ip:$2$3${NC}\n"
+      printf '  %b*%b %b%s://%s:%s%s%b\n' "$BOLD" "$NC" "$GREEN" "$1" "$ip" "$2" "${3:-}" "$NC"
     else
-      printf "  ${BOLD}*${NC} ${GREEN}$1://[$ip]:$2$3${NC}\n"
+      printf '  %b*%b %b%s://[%s]:%s%s%b\n' "$BOLD" "$NC" "$GREEN" "$1" "$ip" "$2" "${3:-}" "$NC"
     fi
   done
 }
 
-get_ip_and_port() {
-  IP=$(hostname -I)
+HB_KEYRING=/usr/share/keyrings/homebridge.gpg
+HB_APT_LIST=/etc/apt/sources.list.d/homebridge.list
 
-  printf "  ${BOLD}*${NC} ${GREEN}$(hostname).local:$1$2${NC}\n"
-
-  for ip in $IP; do
-    if expr "$ip" : '[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$' >/dev/null; then
-      printf "  ${BOLD}*${NC} ${GREEN}$ip:$1$2${NC}\n"
-    else
-      printf "  ${BOLD}*${NC} ${GREEN}[$ip]:$1$2${NC}\n"
-    fi
-  done
-}
-
-do_finish() {
-  if [ $ASK_TO_REBOOT -eq 1 ]; then
-    whiptail --yesno "Would you like to reboot now?" 20 60 2
-    if [ $? -eq 0 ]; then # yes
-      sync
-      reboot
-    fi
+# Prints the Homebridge package channel this system uses (stable, beta, alpha or legacy).
+# It is read from the apt source file, so a user who chose beta stays on beta.
+hb_apt_channel() {
+  HB_CHANNEL=""
+  if [ -f "$HB_APT_LIST" ]; then
+    HB_CHANNEL=$(sed -n 's#^deb .*https://repo\.homebridge\.io/* \([a-z]*\) main.*#\1#p' "$HB_APT_LIST" | head -n 1)
   fi
-  exit 0
+  case "$HB_CHANNEL" in
+    stable | beta | alpha | legacy) ;;
+    *) HB_CHANNEL=stable ;;
+  esac
+  printf '%s\n' "$HB_CHANNEL"
 }
 
-get_first_user() {
-  printf "$(getent passwd 1000 | cut -d: -f1)"
+# Downloads the key of the Homebridge package repo and writes the apt source file.
+# The key in use is only replaced when the new one was downloaded and converted in full.
+# Returns 1, and changes nothing, when that fails (for example with no network).
+hb_refresh_apt_source() {
+  HB_TMP=$(mktemp -d) || return 1
+  if curl -sSfL https://repo.homebridge.io/KEY.gpg -o "$HB_TMP/KEY.gpg" \
+    && gpg --dearmor < "$HB_TMP/KEY.gpg" > "$HB_TMP/homebridge.gpg" \
+    && [ -s "$HB_TMP/homebridge.gpg" ]; then
+    HB_CHANNEL=$(hb_apt_channel)
+    install -m 644 "$HB_TMP/homebridge.gpg" "$HB_KEYRING"
+    echo "deb [signed-by=$HB_KEYRING] https://repo.homebridge.io $HB_CHANNEL main" > "$HB_APT_LIST"
+    rm -rf "$HB_TMP"
+    return 0
+  fi
+  rm -rf "$HB_TMP"
+  return 1
 }
 
 do_homebridge_update() {
-  pstree -s $$ | grep "hb-service" > /dev/null
-  if [ "$?" -eq 0 ]; then
+  if pstree -s $$ | grep -q "hb-service"; then
     whiptail --title "Error" --msgbox "You cannot run this command from the Homebridge UI Terminal.\n\nPlease connect using SSH (see wiki for instructions) and try again." 20 60 1
     printf "\n"
     return
   fi
 
-  curl -sfL https://repo.homebridge.io/KEY.gpg | sudo gpg --dearmor | sudo tee /usr/share/keyrings/homebridge.gpg  > /dev/null
-  echo "deb [signed-by=/usr/share/keyrings/homebridge.gpg] https://repo.homebridge.io stable main" | sudo tee /etc/apt/sources.list.d/homebridge.list > /dev/null
-  apt-get update --allow-releaseinfo-change
-  apt-get install -y homebridge
+  if ! hb_refresh_apt_source; then
+    whiptail --title "Error" --msgbox "The key of the Homebridge package repo could not be downloaded.\n\nCheck the network connection and try again. Nothing was changed." 20 60 1
+    return
+  fi
+
+  if ! apt-get update --allow-releaseinfo-change; then
+    whiptail --title "Error" --msgbox "The package lists could not be updated.\n\nCheck the network connection and try again. Homebridge was not changed." 20 60 1
+    return
+  fi
+
+  if ! apt-get install -y homebridge; then
+    whiptail --title "Error" --msgbox "The Homebridge package could not be updated. Review the log above." 20 60 1
+  fi
 }
 
 do_restore_config() {
-  pstree -s $$ | grep "hb-service" > /dev/null
-  if [ "$?" -eq 0 ]; then
+  if pstree -s $$ | grep -q "hb-service"; then
     whiptail --title "Error" --msgbox "You cannot run this command from the Homebridge UI Terminal.\n\nPlease connect using SSH (see wiki for instructions) and try again." 20 60 1
     printf "\n"
     return
   fi
 
-  whiptail --yesno "This will remove all custom Homebridge config, plugins and restore to the factory default. You will need to manually remove any existing connections to this instance in the iOS Home app.\n\nAre you sure you want to proceed?" 20 60 2
-  RET=$?
-  if [ $RET -eq 0 ]; then
-    apt-get purge -y homebridge
-    do_homebridge_update
+  if ! whiptail --defaultno --yesno "This will DELETE ALL Homebridge data on this device:\n\n* the Homebridge config\n* all plugins and their settings\n* the accessory cache\n* the backups stored on this device\n\nHomebridge is then installed again with its default settings. You will need to manually remove any existing connections to this instance in the iOS Home app.\n\nAre you sure you want to proceed?" 20 60 2; then
+    return
+  fi
+
+  # Nothing is deleted before the package is on this device again: the key, the package lists
+  # and the package file are downloaded first. With no network, this stops here.
+  if ! hb_refresh_apt_source \
+    || ! apt-get update --allow-releaseinfo-change \
+    || ! apt-get install -y --download-only --reinstall homebridge; then
+    whiptail --title "Error" --msgbox "The Homebridge package could not be downloaded.\n\nCheck the network connection and try again. Nothing was deleted." 20 60 1
+    return
+  fi
+
+  apt-get purge -y homebridge
+
+  if ! apt-get install -y homebridge; then
+    whiptail --title "Error" --msgbox "Homebridge was removed, but it could not be installed again. Review the log above, then run:\n\nsudo apt-get install homebridge" 20 60 1
   fi
 }
 
@@ -203,334 +160,117 @@ do_nodejs_update() {
 }
 
 do_install_pihole() {
-  pstree -s $$ | grep "hb-service" > /dev/null
-  if [ "$?" -eq 0 ]; then
+  if pstree -s $$ | grep -q "hb-service"; then
     whiptail --title "Error" --msgbox "You must not install Pi Hole via the Homebridge UI Terminal.\n\nFor a successful installation of Pi-Hole you must be logged in using SSH (see wiki for instructions)." 20 60 1
     printf "\n"
     return
   fi
 
-  whiptail --title "Warning" --yesno "Installing Pi-Hole will prevent you from accessing the Homebridge UI on port 80.\n\nYou will still be able to access the Homebridge UI on port $(cat /etc/hb-ui-port) and via:\n\n* http://homebridge.local:$(cat /etc/hb-ui-port)\n* https://homebridge.local\n\nWARNING: Failing to configure Pi-Hole correctly or attempting to uninstall Pi-Hole may result in Homebridge not working correctly. You should take a backup of your Homebridge instance via the UI before proceeding.\n\nAre you sure you want to continue?" 20 60 1
-  RET=$?
-  if [ $RET -eq 0 ]; then
-    if [ -f /etc/nginx/sites-available/homebridge.local ]; then
-      sed -i "/listen 80;/c\  # listen 80;                  # http IPv4 - disabled by Pi-Hole installer" /etc/nginx/sites-available/homebridge.local
-      sed -i "/listen \[::\]:80;/c\  # listen \[::\]:80;             # http IPv6 - disabled by Pi-Hole installer" /etc/nginx/sites-available/homebridge.local
-      if systemctl is-active --quiet nginx.service; then
-        echo "Restarting Nginx..."
-        systemctl restart nginx
-      fi
-    fi
-    printf "Starting Pi-hole installer...\n"
-    curl -sSL https://install.pi-hole.net | bash
+  if ! whiptail --title "Warning" --yesno "Installing Pi-Hole will prevent you from accessing the Homebridge UI on port 80.\n\nYou will still be able to access the Homebridge UI on port $(cat /etc/hb-ui-port) and via:\n\n* http://homebridge.local:$(cat /etc/hb-ui-port)\n* https://homebridge.local\n\nWARNING: Failing to configure Pi-Hole correctly or attempting to uninstall Pi-Hole may result in Homebridge not working correctly. You should take a backup of your Homebridge instance via the UI before proceeding.\n\nAre you sure you want to continue?" 20 60 1; then
+    return
+  fi
 
-    printf "\n${BOLD}Pi-hole has been installed${NC}\n"
+  # Pi-hole needs port 80. The Homebridge nginx config gives it up while the installer runs.
+  # A copy is kept, so port 80 can be given back if Pi-hole is not installed after all.
+  NGINX_SITE=/etc/nginx/sites-available/homebridge.local
+  NGINX_SITE_COPY=""
+  if [ -f "$NGINX_SITE" ]; then
+    NGINX_SITE_COPY=$(mktemp) || return 1
+    cat "$NGINX_SITE" > "$NGINX_SITE_COPY"
+    sed -i "/listen 80;/c\  # listen 80;                  # http IPv4 - disabled by Pi-Hole installer" "$NGINX_SITE"
+    sed -i "/listen \[::\]:80;/c\  # listen \[::\]:80;             # http IPv6 - disabled by Pi-Hole installer" "$NGINX_SITE"
+    if systemctl is-active --quiet nginx.service; then
+      echo "Restarting Nginx..."
+      systemctl restart nginx
+    fi
+  fi
+
+  printf "Starting Pi-hole installer...\n"
+  PIHOLE_INSTALLER=$(mktemp) || return 1
+  if curl -sSfL https://install.pi-hole.net -o "$PIHOLE_INSTALLER" && bash "$PIHOLE_INSTALLER"; then
+    rm -f "$PIHOLE_INSTALLER" "$NGINX_SITE_COPY"
+
+    printf '\n%bPi-hole has been installed%b\n' "$BOLD" "$NC"
     printf "Access Pi-hole in your browser by going to:\n"
     get_web_addresses http 80 /admin
 
     printf "\nYou can still access the Homebridge UI by going to:\n"
-    get_web_addresses http $(cat /etc/hb-ui-port)
+    get_web_addresses http "$(cat /etc/hb-ui-port)"
     get_web_addresses https 443
     printf "\n"
     exit 0
   fi
+
+  rm -f "$PIHOLE_INSTALLER"
+
+  # The installer was cancelled or failed: give port 80 back to the Homebridge UI.
+  if [ -n "$NGINX_SITE_COPY" ]; then
+    cat "$NGINX_SITE_COPY" > "$NGINX_SITE"
+    rm -f "$NGINX_SITE_COPY"
+    if systemctl is-active --quiet nginx.service; then
+      echo "Restarting Nginx..."
+      systemctl restart nginx
+    fi
+  fi
+
+  whiptail --title "Error" --msgbox "Pi-hole was NOT installed: the installer was cancelled or it failed. Review the log above.\n\nThe Homebridge UI is on port 80 again." 20 60 1
+  printf "\n"
 }
 
 do_install_adguard_home() {
   if [ -e /etc/systemd/system/AdGuardHome.service ]; then
-      whiptail --title "Remove AdGuard Home" --yesno "AdGuard Home is already installed.\n\nWould you like to UNINSTALL AdGuard Home?" 20 60 1
-      RET=$?
-      if [ $RET -eq 0 ]; then
-        systemctl stop AdGuardHome
-      	systemctl disable AdGuardHome
-	      rm -rf /etc/systemd/system/AdGuardHome.service
-        rm -rf /opt/AdGuardHome
-	      systemctl daemon-reload
-        whiptail --title "Success" --msgbox "AdGuard Home has been uninstalled." 20 60 1
-      	printf "\n"
-      fi
-  else
-    whiptail --title "Warning" --yesno "This will install the AdGuard Home software which uses the following ports:\n\n* 3000\n\nAre you sure you want to continue?" 20 60 1
-    RET=$?
-    if [ $RET -eq 0 ]; then
-      rm -rf /tmp/adguardhome
-      mkdir -p /tmp/adguardhome
-      cd /tmp/adguardhome
-      # AdGuard Home publishes a build for each architecture - use the one for this system
-      case "$(dpkg --print-architecture)" in
-        arm64) ADGUARD_ARCH="arm64" ;;
-        *) ADGUARD_ARCH="armv7" ;;
-      esac
-      wget "https://static.adguard.com/adguardhome/release/AdGuardHome_linux_${ADGUARD_ARCH}.tar.gz"
-      tar xvf "AdGuardHome_linux_${ADGUARD_ARCH}.tar.gz" -C /opt
-      rm -rf /tmp/adguardhome
-      cd /opt/AdGuardHome
-      ./AdGuardHome -s install
-      if [ $? -eq 0 ]; then
-        # Complete
-        ADGUARD_WEB=$(get_web_addresses http 3000 | sed 's/\x1b\[[0-9;]*m//g')
-        whiptail --title "Success" --msgbox "AdGuard Home has been installed.\n\nFinish setting up AdGuard Home via:\n\n$ADGUARD_WEB" 20 60 1
-        printf "\n"
-        exit 0
-      else
-        whiptail --title "Error" --msgbox "AdGuard Home failed to install correctly. Review log above." 20 60 1
-        printf "\n"
-        exit 0
-      fi
+    if whiptail --title "Remove AdGuard Home" --yesno "AdGuard Home is already installed.\n\nWould you like to UNINSTALL AdGuard Home?" 20 60 1; then
+      systemctl stop AdGuardHome
+      systemctl disable AdGuardHome
+      rm -rf /etc/systemd/system/AdGuardHome.service
+      rm -rf /opt/AdGuardHome
+      systemctl daemon-reload
+      whiptail --title "Success" --msgbox "AdGuard Home has been uninstalled." 20 60 1
+      printf "\n"
     fi
+    return
   fi
-}
 
-do_install_deconz() {
-  whiptail --title "Warning" --yesno "This will install the deCONZ and Phoscon software which will use the following ports:\n\n* 4530 - Phoscon Web App\n* 4531 - WebSockets\n\nAre you sure you want to continue?" 20 60 1
-  RET=$?
-  if [ $RET -eq 0 ]; then
-    isRaspbee="0"
-    isRaspbee2="0"
+  if ! whiptail --title "Warning" --yesno "This will install the AdGuard Home software which uses the following ports:\n\n* 3000\n\nAre you sure you want to continue?" 20 60 1; then
+    return
+  fi
 
-    do_raspbee_setup() {
-      echo "Setting up for RaspBee..."
-      isRaspbee="1"
+  # AdGuard Home publishes a build for each architecture - use the one for this system
+  case "$(dpkg --print-architecture)" in
+    arm64) ADGUARD_ARCH="arm64" ;;
+    *) ADGUARD_ARCH="armv7" ;;
+  esac
 
-      # Install deps
-      apt update --allow-releaseinfo-change
-      sudo apt install -y i2c-tools build-essential raspberrypi-kernel-headers
+  # The download goes into a new folder that only root can use. A fixed name in /tmp could be
+  # prepared by another user before this runs.
+  ADGUARD_TMP=$(mktemp -d) || return 1
 
-      # WiringPi is no longer packaged by Raspberry Pi OS, and the old download is gone,
-      # so install the package published by the maintained WiringPi project
-      WIRINGPI_ARCH=$(dpkg --print-architecture)
-      WIRINGPI_URL=$(curl -sL https://api.github.com/repos/WiringPi/WiringPi/releases/latest \
-        | grep -o "https://[^\"]*wiringpi_[^\"]*_${WIRINGPI_ARCH}\.deb" | head -n 1)
-      curl -L -o /tmp/wiringpi.deb "$WIRINGPI_URL"
-      dpkg -i /tmp/wiringpi.deb
-      rm -f /tmp/wiringpi.deb
+  if ! wget -O "$ADGUARD_TMP/AdGuardHome.tar.gz" "https://static.adguard.com/adguardhome/release/AdGuardHome_linux_${ADGUARD_ARCH}.tar.gz" \
+    || ! tar xf "$ADGUARD_TMP/AdGuardHome.tar.gz" -C /opt/; then
+    rm -rf "$ADGUARD_TMP"
+    whiptail --title "Error" --msgbox "AdGuard Home could not be downloaded or unpacked.\n\nCheck the network connection and try again. Nothing was installed." 20 60 1
+    printf "\n"
+    return
+  fi
 
-      # Enable UART
-      set_config_var enable_uart 1 $CONFIG
-    }
+  rm -rf "$ADGUARD_TMP"
 
-    do_raspbee2_setup() {
-      isRaspbee2="1"
-      do_raspbee_setup
-
-      # RTC-Installation
-      [ -d /tmp/raspbee2-rtc-master ] && rm -rf /tmp/raspbee2-rtc-master
-      curl -o /tmp/raspbee2-rtc.zip -L# https://github.com/dresden-elektronik/raspbee2-rtc/archive/master.zip
-      unzip /tmp/raspbee2-rtc.zip -d /tmp
-      cd /tmp/raspbee2-rtc-master
-      make
-      make install
-      cd ~
-      rm -rf /tmp/raspbee2-rtc-master
-    }
-
-    do_conbee_setup() {
-      echo "Setting up for ConBee / ConBee II..."
-      isRaspbee="0"
-    }
-
-    FUN=$(whiptail --title "Choose Device" --menu "\nPlease select the type of device you have:" 20 60 3 --cancel-button Cancel --ok-button Select \
-      "C1 ConBee or ConBee II" "" \
-      "C2 RaspBee I" "" \
-      "C3 RaspBee II" "" \
-      3>&1 1>&2 2>&3)
-    RET=$?
-    if [ $RET -eq 1 ]; then
-      return 0
-    elif [ $RET -eq 0 ]; then
-      case "$FUN" in
-        C1\ *) do_conbee_setup ;;
-        C2\ *) do_raspbee_setup ;;
-        C3\ *) do_raspbee2_setup ;;
-        *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
-      esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
-    fi
-
-    # Detect Debian version
-    if [ -f /etc/os-release ]; then
-      . /etc/os-release
-      DEBIAN_VERSION=$(echo $VERSION_ID | cut -d. -f1)
-      DEBIAN_CODENAME=$(lsb_release -cs)
-    else
-      whiptail --title "Error" --msgbox "Cannot detect OS version" 20 60 1
-      return 1
-    fi
-
-    echo "Detected Debian version: $DEBIAN_VERSION ($DEBIAN_CODENAME)"
-
-    # Determine which repository to use
-    if [ "$DEBIAN_VERSION" -ge 13 ]; then
-      echo "Debian 13+ detected - using bookworm repository as fallback"
-      REPO_CODENAME="bookworm"
-      USE_MODERN_METHOD=true
-    elif [ "$DEBIAN_VERSION" -ge 12 ]; then
-      echo "Debian 12 detected"
-      REPO_CODENAME="bookworm"
-      USE_MODERN_METHOD=true
-    else
-      echo "Debian < 12 detected"
-      REPO_CODENAME="${DEBIAN_CODENAME}"
-      USE_MODERN_METHOD=false
-    fi
-
-    if [ "$USE_MODERN_METHOD" = true ]; then
-      echo "Using modern keyring method"
-      
-      # Create keyrings directory if it doesn't exist
-      mkdir -p /etc/apt/keyrings
-      
-      # Download and install the deCONZ GPG key
-      wget -O - http://phoscon.de/apt/deconz.pub.key | gpg --dearmor -o /etc/apt/keyrings/deconz.gpg
-      
-      # Configure the APT repository with signed-by
-      sh -c "echo 'deb [signed-by=/etc/apt/keyrings/deconz.gpg] http://phoscon.de/apt/deconz ${REPO_CODENAME} main' > /etc/apt/sources.list.d/deconz.list"
-    else
-      echo "Using legacy apt-key method"
-      
-      # Legacy method with apt-key
-      wget -O - http://phoscon.de/apt/deconz.pub.key | apt-key add -
-      
-      # Configure the APT repository
-      sh -c "echo 'deb http://phoscon.de/apt/deconz ${REPO_CODENAME} main' > /etc/apt/sources.list.d/deconz.list"
-    fi
-
-    # Update APT package list
-    echo "Updating package lists..."
-    apt update --allow-releaseinfo-change
-
-    # Install deCONZ
-    echo "Installing deCONZ..."
-    apt install -y deconz
-
-    # Add override service
-    mkdir -p /etc/systemd/system/deconz.service.d
-    cat > /etc/systemd/system/deconz.service.d/override.conf <<EOL
-[Service]
-User=$(get_first_user)
-ExecStart=
-ExecStart=/usr/bin/deCONZ -platform minimal --http-port=4530 --ws-port=4531
-EOL
-
-    # Enable and start
-    systemctl daemon-reload
-
-    systemctl stop deconz-gui
-    systemctl disable deconz-gui
-
-    systemctl enable deconz
-    systemctl restart deconz
-
+  if /opt/AdGuardHome/AdGuardHome -s install; then
     # Complete
-    PHOSCON_WEB=$(get_web_addresses http 4530 | sed 's/\x1b\[[0-9;]*m//g')
-    whiptail --title "Success" --msgbox "deCONZ and Phoscon have been installed.\n\nYou can access the Phoscon web app via:\n\n$PHOSCON_WEB" 20 60 1
-
-    # Ask to reboot on RaspBee
-    if [ "$isRaspbee" = "1" ]; then
-      if [ "$isRaspbee2" = "1" ]; then
-        whiptail --title "Final Steps" --msgbox "You need to reboot your device to complete installation.\n\nOnce you have reboot you need to configure the RTC module by running:\n\nsudo hwclock --systohc\nsudo hwclock --verbose\n\nSee the RaspBee II install guide for further instructions: https://phoscon.de/en/raspbee2/install#raspbian" 20 60 1
-      else
-        whiptail --title "Final Steps" --msgbox "You need to reboot your device to complete installation." 20 60 1
-      fi
-      whiptail --title "Reboot Required" --yesno "Would you like to reboot now?" 20 60 2
-      if [ $? -eq 0 ]; then # yes
-        sync
-        reboot
-      fi
-    fi
+    ADGUARD_WEB=$(get_web_addresses http 3000 | sed 's/\x1b\[[0-9;]*m//g')
+    whiptail --title "Success" --msgbox "AdGuard Home has been installed.\n\nFinish setting up AdGuard Home via:\n\n$ADGUARD_WEB" 20 60 1
+  else
+    whiptail --title "Error" --msgbox "AdGuard Home failed to install correctly. Review log above." 20 60 1
   fi
-}
-
-do_install_desktop_and_vnc() {
-  get_vnc() {
-    if systemctl status vncserver-x11-serviced.service  | grep -q -w active; then
-      echo 0
-    else
-      echo 1
-    fi
-  }
-
-  do_vnc() {
-    DEFAULT=--defaultno
-    if [ $(get_vnc) -eq 0 ]; then
-      DEFAULT=
-    fi
-    whiptail --yesno "Would you like the VNC Server and virtual desktop service enabled?" $DEFAULT 20 60 2 --no-button "Disable" --yes-button "Enable"
-    RET=$?
-    if [ $RET -eq 0 ]; then
-
-      # install desktop
-      if is_installed raspberrypi-ui-mods; then
-        echo "Raspbian Desktop Already Installed"
-      else
-        whiptail --title "Warning" --yesno "The Raspbian Desktop will now be installed.\n\nThis may take between 5 and 45 minutes to complete depending on your device." 20 60 2 --no-button "Cancel" --yes-button "Continue"
-        if [ $? -eq 0 ]; then
-          apt update --allow-releaseinfo-change
-          apt install -y raspberrypi-ui-mods
-        else
-          return 0;
-        fi
-      fi
-
-      # install and setup VNC
-      if is_installed realvnc-vnc-server || (apt update --allow-releaseinfo-change && apt install -y realvnc-vnc-server); then
-#        cat > /etc/systemd/system/vncserver-pi.service <<EOL
-#[Unit]
-#Description=VNC Virtual Desktop Service
-#After=syslog.target network.target
-
-#[Service]
-#Type=forking
-#User=$(get_first_user)
-#Group=$(get_first_user)
-#WorkingDirectory=/home/$(get_first_user)
-
-#PIDFile=/home/$(get_first_user)/.vnc/%H:12.pid
-#ExecStartPre=-/usr/bin/vncserver -kill :12 > /dev/null 2>&1
-#ExecStart=/usr/bin/vncserver -depth 24 -geometry 1280x800 :12
-#ExecStop=/usr/bin/vncserver -kill :12
-
-#[Install]
-#WantedBy=multi-user.target
-#EOL
-        systemctl enable vncserver-x11-serviced.service &&
-        systemctl start vncserver-x11-serviced.service &&
-#        systemctl enable vncserver-pi.service &&
-#        systemctl start vncserver-pi.service &&
-        STATUS=enabled
-      else
-        return 1
-      fi
-    elif [ $RET -eq 1 ]; then
-      if is_installed realvnc-vnc-server; then
-          systemctl disable vncserver-x11-serviced.service
-          systemctl stop vncserver-x11-serviced.service
-#          systemctl disable vncserver-pi.service
-#          systemctl stop vncserver-pi.service
-      fi
-      STATUS=disabled
-    else
-      return $RET
-    fi
-
-    if [ "$STATUS" = "disabled" ]; then
-      whiptail --title "Success" --msgbox "The VNC Server and virtual desktop have been disabled." 20 60 1
-    else
-      # Complete
-      VNC_ACCESS_URI=$(get_ip_and_port 5912 | sed 's/\x1b\[[0-9;]*m//g')
-      whiptail --title "Success" --msgbox "The VNC Server and virtual desktop have been configured.\n\nYou can connect to the virtual desktop using the RealVNC Viewer on port 5912:\n\n$VNC_ACCESS_URI\n\nDownload RealVNC Viewer:\n\n  * https://www.realvnc.com/download/viewer/" 20 60 1
-    fi
-  }
-
-  do_vnc
+  printf "\n"
+  exit 0
 }
 
 do_extra_packages() {
-  FUN=$(whiptail --title "Homebridge Raspberry Pi Configuration Tool (hb-config)" --menu "Advanced Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Back --ok-button Select \
+  FUN=$(whiptail --title "Homebridge Raspberry Pi Configuration Tool (hb-config)" --menu "Advanced Options" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" --cancel-button Back --ok-button Select \
     "A0 AdGuard Home" "Install / Uninstall AdGuard Home" \
     "A1 Pi-hole" "Install / Reconfigure Pi-hole" \
-    "A2 deCONZ / Phoscon" "Install / Update to manage your ConBee or RaspBee device" \
     3>&1 1>&2 2>&3)
-    # "A3 RealVNC Server" "Enable / Disable desktop access over VNC" \
   RET=$?
   if [ $RET -eq 1 ]; then
     return 0
@@ -538,52 +278,76 @@ do_extra_packages() {
     case "$FUN" in
       A0\ *) do_install_adguard_home ;;
       A1\ *) do_install_pihole ;;
-      A2\ *) do_install_deconz ;;
-      # A3\ *) do_install_desktop_and_vnc ;;
       *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
     esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
   fi
 }
 
+# nginx 1.25.1 and newer want the line "http2 on;". Older versions (Debian 12 and before) do not
+# know that line: they need "http2" on the "listen" lines. Returns 0 for the newer kind.
+nginx_has_http2_setting() {
+  NGINX_VERSION=$(nginx -v 2>&1 | sed -n 's#^nginx version: nginx/\([0-9][0-9.]*\).*#\1#p')
+  [ -n "$NGINX_VERSION" ] && [ "$(printf '%s\n' "1.25.1" "$NGINX_VERSION" | sort -V | head -n 1)" = "1.25.1" ]
+}
+
 do_configure_nginx() {
-  whiptail --title "Warning" --yesno "Using this tool will overwrite any manual changes you may have made to the Homebridge Nginx config file.\n\nAre you sure you wish to continue?" 20 60 1
-  RET=$?
-  tempDir=$(mktemp -d)
-  if [ $RET -eq 0 ]; then
-    whiptail --title "Homebridge Raspberry Pi Configuration Tool (hb-config)" --separate-output --checklist "\nNGINX Options:"  20 80 5 --cancel-button Cancel --ok-button Save \
-      "1" "Listen on port 80 - http://        " 1  \
-      "2" "Listen on port 443 - https://      " 1 \
-      "3" "Redirect http:// to https://       " 0 2>$tempDir/results
+  if ! whiptail --title "Warning" --yesno "Using this tool will overwrite any manual changes you may have made to the Homebridge Nginx config file.\n\nAre you sure you wish to continue?" 20 60 1; then
+    return
+  fi
 
-    if [ $? -eq 0 ]; then
-       LISTEN_ON_PORT_80=false
-       LISTEN_ON_PORT_443=false
-       REDIRECT_HTTP_TO_HTTPS=false
+  tempDir=$(mktemp -d) || return 1
 
-       while read choice
-       do
-         case "$choice" in
-           1) LISTEN_ON_PORT_80=true ;;
-           2) LISTEN_ON_PORT_443=true ;;
-           3) REDIRECT_HTTP_TO_HTTPS=true ;;
-           *) ;;
-         esac
-       done < $tempDir/results
+  if ! whiptail --title "Homebridge Raspberry Pi Configuration Tool (hb-config)" --separate-output --checklist "\nNGINX Options:" 20 80 5 --cancel-button Cancel --ok-button Save \
+    "1" "Listen on port 80 - http://        " 1 \
+    "2" "Listen on port 443 - https://      " 1 \
+    "3" "Redirect http:// to https://       " 0 2> "$tempDir/results"; then
+    rm -rf "$tempDir"
+    return
+  fi
 
-NGINX_PORT_80_CONFIG=""
-if [ "$LISTEN_ON_PORT_80" = "true" ]; then
-  NGINX_PORT_80_CONFIG="# http://\n  listen 80;                  # http IPv4\n  listen [::]:80;             # http IPv6\n"
-fi
+  LISTEN_ON_PORT_80=false
+  LISTEN_ON_PORT_443=false
+  REDIRECT_HTTP_TO_HTTPS=false
 
-NGINX_PORT_443_CONFIG=""
-if [ "$LISTEN_ON_PORT_443" = "true" ]; then
-  NGINX_PORT_443_CONFIG="# https://\n  listen 443 ssl http2;       # https IPv4\n  listen [::]:443 ssl http2;  # https IPv6\n"
-fi
+  while read -r choice; do
+    case "$choice" in
+      1) LISTEN_ON_PORT_80=true ;;
+      2) LISTEN_ON_PORT_443=true ;;
+      3) REDIRECT_HTTP_TO_HTTPS=true ;;
+      *) ;;
+    esac
+  done < "$tempDir/results"
 
-NGINX_REDIRECT_HTTP_TO_HTTPS=""
-if [ "$REDIRECT_HTTP_TO_HTTPS" = "true" ] && [ "$LISTEN_ON_PORT_80" = "true" ]; then
+  rm -rf "$tempDir"
+
   NGINX_PORT_80_CONFIG=""
-  NGINX_REDIRECT_HTTP_TO_HTTPS="
+  if [ "$LISTEN_ON_PORT_80" = "true" ]; then
+    NGINX_PORT_80_CONFIG="# http://
+  listen 80;                  # http IPv4
+  listen [::]:80;             # http IPv6
+"
+  fi
+
+  NGINX_PORT_443_CONFIG=""
+  if [ "$LISTEN_ON_PORT_443" = "true" ]; then
+    if nginx_has_http2_setting; then
+      NGINX_PORT_443_CONFIG="# https://
+  listen 443 ssl;             # https IPv4
+  listen [::]:443 ssl;        # https IPv6
+  http2 on;
+"
+    else
+      NGINX_PORT_443_CONFIG="# https://
+  listen 443 ssl http2;       # https IPv4
+  listen [::]:443 ssl http2;  # https IPv6
+"
+    fi
+  fi
+
+  NGINX_REDIRECT_HTTP_TO_HTTPS=""
+  if [ "$REDIRECT_HTTP_TO_HTTPS" = "true" ] && [ "$LISTEN_ON_PORT_80" = "true" ]; then
+    NGINX_PORT_80_CONFIG=""
+    NGINX_REDIRECT_HTTP_TO_HTTPS="
 server {
   listen 80;                  # http IPv4
   listen [::]:80;             # http IPv6
@@ -595,9 +359,15 @@ server {
 
   return 302 https://\$host\$request_uri;
 }"
-fi
+  fi
 
-NGINX_TEMPLATE="# this file was generated using the hb-config tool
+  # the port of the Homebridge UI: digits only, or the default
+  UI_PORT=$(cat /etc/hb-ui-port 2> /dev/null)
+  case "$UI_PORT" in
+    "" | *[!0-9]*) UI_PORT=8581 ;;
+  esac
+
+  NGINX_TEMPLATE="# this file was generated using the hb-config tool
 
 server {
   $NGINX_PORT_80_CONFIG
@@ -636,14 +406,14 @@ server {
   }
 
   location / {
-    proxy_pass                  http://127.0.0.1:$(cat /etc/hb-ui-port);
+    proxy_pass                  http://127.0.0.1:$UI_PORT;
     proxy_http_version          1.1;
     proxy_buffering             off;
     proxy_set_header            Host \$host;
     proxy_set_header            Upgrade \$http_upgrade;
     proxy_set_header            Connection \"Upgrade\";
     proxy_set_header            X-Real-IP \$remote_addr;
-    proxy_set_header            X-Forward-For \$proxy_add_x_forwarded_for;
+    proxy_set_header            X-Forwarded-For \$proxy_add_x_forwarded_for;
   }
 
   location = /custom_502.html {
@@ -654,25 +424,22 @@ server {
 $NGINX_REDIRECT_HTTP_TO_HTTPS
 "
 
-      echo "$NGINX_TEMPLATE" > /etc/nginx/sites-available/homebridge.local
-      /usr/local/sbin/nginx-homebridge-self-signed-cert
-      systemctl enable nginx
+  echo "$NGINX_TEMPLATE" > /etc/nginx/sites-available/homebridge.local
+  /usr/local/sbin/nginx-homebridge-self-signed-cert
+  systemctl enable nginx
 
-      if systemctl is-active --quiet nginx.service; then
-        echo "Restarting Nginx..."
-        systemctl restart nginx
-      else
-        echo "Starting Nginx..."
-        systemctl start nginx
-      fi
+  if systemctl is-active --quiet nginx.service; then
+    echo "Restarting Nginx..."
+    NGINX_ACTION=restart
+  else
+    echo "Starting Nginx..."
+    NGINX_ACTION=start
+  fi
 
-      if [ $? -eq 0 ]; then
-        whiptail --title "Success" --msgbox "NGINX has been configured successfully." 20 60 1
-       else
-        whiptail --title "Error" --msgbox "An error occured while attempting to reload the NGINX config." 20 60 1
-      fi
-
-    fi
+  if systemctl "$NGINX_ACTION" nginx; then
+    whiptail --title "Success" --msgbox "NGINX has been configured successfully." 20 60 1
+  else
+    whiptail --title "Error" --msgbox "An error occured while attempting to reload the NGINX config." 20 60 1
   fi
 }
 
@@ -680,37 +447,185 @@ do_configure_raspbian() {
   raspi-config
 }
 
-do_update() {
-  tempDir=$(mktemp -d)
-  scriptUrl=https://raw.githubusercontent.com/homebridge/homebridge-raspbian-image/latest/stage3_homebridge/01-homebridge/files/hb-config-new
+# version_older <a> <b>: true when version a is older than version b
+version_older() {
+  [ "$1" != "$2" ] && [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n 1)" = "$1" ]
+}
 
-  # download the update to a temporary directory
-  scriptUrl=$scriptUrl?$(date --iso-8601)
-  printf "Downloading hb-config update...\n$scriptUrl\n"
-  curl -fL# $scriptUrl > $tempDir/hb-config
+# Writes the service file for the WiFi setup tool. It must be the same as
+# stage3_homebridge/02-wifi-connect/files/wifi-connect.service in the image repo (a test checks that).
+write_wifi_connect_service() {
+  cat > /etc/systemd/system/wifi-connect.service << 'UNIT'
+[Unit]
+Description=Homebridge WiFi setup hotspot
+After=NetworkManager.service
+Before=nginx.service
 
-  # check the download was a success
-  RET=$?
-  if [ $RET -ne 0 ]; then
-    whiptail --title "Error" --msgbox "An error occured while attempting to update the hb-config tool." 20 60 1
+[Service]
+Type=oneshot
+Environment="PATH=/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/opt/wifi-connect/bin/node /opt/wifi-connect/lib/node_modules/@homebridge/wifi-connect/main.js
+StandardOutput=journal+console
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+}
+
+# Brings the WiFi setup tool of an older image up to WIFI_CONNECT_WANTED. Nothing on a Pi
+# updates that tool by itself: the image build puts it in /opt/wifi-connect.
+#   - The package comes from npm. It is only used when its checksum is the one npm lists.
+#   - It is unpacked and tried out next to the old one, and swapped in only when it runs.
+#   - Any failure leaves the old tool in place.
+do_update_wifi_connect() {
+  # not an image with the WiFi setup tool
+  [ -f "$WIFI_CONNECT_DIR/package.json" ] || return 0
+
+  WIFI_CONNECT_HAVE=$(jq -r '.version // empty' "$WIFI_CONNECT_DIR/package.json" 2> /dev/null)
+  if [ -n "$WIFI_CONNECT_HAVE" ] && ! version_older "$WIFI_CONNECT_HAVE" "$WIFI_CONNECT_WANTED"; then
+    return 0
+  fi
+
+  printf 'Updating the WiFi setup tool from %s to %s...\n' "${WIFI_CONNECT_HAVE:-an unknown version}" "$WIFI_CONNECT_WANTED"
+
+  # the new tool needs Node.js 20 or newer
+  NODE_MAJOR=$(/opt/homebridge/bin/node -v 2> /dev/null | sed -n 's/^v\([0-9][0-9]*\)\..*/\1/p')
+  if [ -z "$NODE_MAJOR" ] || [ "$NODE_MAJOR" -lt 20 ]; then
+    whiptail --title "WiFi Setup Tool" --msgbox "The WiFi setup tool was not updated: it needs Node.js 20 or newer.\n\nUse 'Update Node.js' in the menu first, then run 'Update' again." 20 60 1
+    return 1
+  fi
+
+  WC_TMP=$(mktemp -d) || return 1
+  WC_URL="https://registry.npmjs.org/@homebridge/wifi-connect/-/wifi-connect-$WIFI_CONNECT_WANTED.tgz"
+  WC_NEW="$WIFI_CONNECT_DIR.new"
+  WC_OLD="$WIFI_CONNECT_DIR.old"
+
+  # 1. ask npm for the checksum of exactly this version, download the package, compare
+  WC_PROBLEM=""
+  if ! curl -sSfL "https://registry.npmjs.org/@homebridge/wifi-connect/$WIFI_CONNECT_WANTED" -o "$WC_TMP/meta.json"; then
+    WC_PROBLEM="npm could not be reached, or it does not have version $WIFI_CONNECT_WANTED."
+  elif [ "$(jq -r '.dist.tarball // empty' "$WC_TMP/meta.json" 2> /dev/null)" != "$WC_URL" ]; then
+    WC_PROBLEM="npm gave an unexpected download address."
+  elif ! curl -sSfL "$WC_URL" -o "$WC_TMP/wifi-connect.tgz"; then
+    WC_PROBLEM="The download failed."
   else
-    # syntax check the script is a valid bash script
-    if bash -n $tempDir/hb-config; then
-      chmod +x $tempDir/hb-config
-      mv $tempDir/hb-config /usr/local/sbin/hb-config
-      whiptail --title "Success" --msgbox "The hb-config tool has been updated and will now exit.\n\nIf you like the Homebridge Raspberry Pi image please show your support by starring the project on GitHub:\n\nhttps://github.com/homebridge/homebridge-raspbian-image" 20 60 1
-      exit 0
-    else
-      whiptail --title "Error" --msgbox "The downloaded script was corrupted and did not pass the syntax check." 20 60 1
+    WC_SUM=$(jq -r '.dist.integrity // empty' "$WC_TMP/meta.json" 2> /dev/null)
+    WC_GOT="sha512-$(openssl dgst -sha512 -binary "$WC_TMP/wifi-connect.tgz" | base64 | tr -d '\n')"
+    case "$WC_SUM" in
+      sha512-*) [ "$WC_GOT" = "$WC_SUM" ] || WC_PROBLEM="The download does not have the checksum npm lists." ;;
+      *) WC_PROBLEM="npm lists no SHA-512 checksum for the download." ;;
+    esac
+  fi
+
+  # 2. unpack it next to the old one
+  if [ -z "$WC_PROBLEM" ]; then
+    mkdir "$WC_TMP/unpacked"
+    if ! tar xzf "$WC_TMP/wifi-connect.tgz" -C "$WC_TMP/unpacked" --no-same-owner \
+      || [ ! -f "$WC_TMP/unpacked/package/main.js" ] || [ ! -d "$WC_TMP/unpacked/package/node_modules" ]; then
+      WC_PROBLEM="The download could not be unpacked."
     fi
   fi
+
+  # 3. a copy of Node.js that only root can change runs the tool (it runs as root at every boot)
+  if [ -z "$WC_PROBLEM" ]; then
+    rm -rf "$WC_NEW"
+    mv "$WC_TMP/unpacked/package" "$WC_NEW"
+    mkdir -p /opt/wifi-connect/bin
+    install -o root -g root -m 755 /opt/homebridge/bin/node /opt/wifi-connect/bin/node.new
+    chown -R root:root "$WC_NEW"
+    chmod -R go-w "$WC_NEW"
+    if [ "$(/opt/wifi-connect/bin/node.new "$WC_NEW/main.js" --version 2> /dev/null)" != "$WIFI_CONNECT_WANTED" ]; then
+      WC_PROBLEM="The new tool does not start."
+      rm -rf "$WC_NEW" /opt/wifi-connect/bin/node.new
+    fi
+  fi
+
+  rm -rf "$WC_TMP"
+
+  if [ -n "$WC_PROBLEM" ]; then
+    whiptail --title "WiFi Setup Tool" --msgbox "The WiFi setup tool was not updated.\n\n$WC_PROBLEM\n\nNothing was changed. Check the network connection and run 'Update' again." 20 60 1
+    return 1
+  fi
+
+  # 4. swap the new files in, with the service file that goes with them
+  rm -rf "$WC_OLD"
+  mv "$WIFI_CONNECT_DIR" "$WC_OLD"
+  mv "$WC_NEW" "$WIFI_CONNECT_DIR"
+  mv /opt/wifi-connect/bin/node.new /opt/wifi-connect/bin/node
+  rm -rf "$WC_OLD"
+  write_wifi_connect_service
+  systemctl daemon-reload
+
+  printf 'The WiFi setup tool is now version %s.\n' "$WIFI_CONNECT_WANTED"
+}
+
+HB_IMAGE_REPO_URL=https://github.com/homebridge/homebridge-raspbian-image
+HB_IMAGE_RAW_URL=https://raw.githubusercontent.com/homebridge/homebridge-raspbian-image
+
+# Prints the tag of the newest image release (for example v2.0.26), or nothing when it can not
+# be found. GitHub sends ".../releases/latest" on to ".../releases/tag/<tag>".
+hb_latest_release_tag() {
+  curl -sSfIL -o /dev/null -w '%{url_effective}' "$HB_IMAGE_REPO_URL/releases/latest" 2> /dev/null \
+    | sed -n 's#^.*/releases/tag/\(v[0-9][0-9.]*\)$#\1#p'
+}
+
+# Menu entry "Update": first the WiFi setup tool (older images only), then this tool itself.
+do_update() {
+  do_update_wifi_connect
+  do_update_tool
+}
+
+do_update_tool() {
+  tempDir=$(mktemp -d) || return 1
+
+  # The tool is taken from the newest release, not from the tip of the branch. So what is
+  # installed here went through a release build first.
+  releaseTag=$(hb_latest_release_tag)
+  if [ -z "$releaseTag" ]; then
+    rm -rf "$tempDir"
+    whiptail --title "Error" --msgbox "The newest release could not be found.\n\nCheck the network connection and try again." 20 60 1
+    return
+  fi
+
+  scriptUrl="$HB_IMAGE_RAW_URL/$releaseTag/stage3_homebridge/01-homebridge/files/hb-config-new"
+  printf 'Downloading hb-config from release %s...\n%s\n' "$releaseTag" "$scriptUrl"
+
+  if ! curl -fL# "$scriptUrl" -o "$tempDir/hb-config"; then
+    rm -rf "$tempDir"
+    whiptail --title "Error" --msgbox "An error occured while attempting to update the hb-config tool." 20 60 1
+    return
+  fi
+
+  # The download must be a complete script for the shell that runs this tool (/bin/sh).
+  if [ ! -s "$tempDir/hb-config" ] || [ "$(head -n 1 "$tempDir/hb-config")" != "#!/bin/sh" ] || ! sh -n "$tempDir/hb-config"; then
+    rm -rf "$tempDir"
+    whiptail --title "Error" --msgbox "The downloaded script was corrupted and did not pass the syntax check. The tool was not changed." 20 60 1
+    return
+  fi
+
+  # Never go back to an older tool. (Right after this tool changed, the newest release can
+  # still hold the tool from before the change.)
+  newVersion=$(sed -n 's/^HB_CONFIG_VERSION="\([0-9][0-9.]*\)"$/\1/p' "$tempDir/hb-config" | head -n 1)
+  if [ "${newVersion:-0}" = "$HB_CONFIG_VERSION" ] || version_older "${newVersion:-0}" "$HB_CONFIG_VERSION"; then
+    rm -rf "$tempDir"
+    whiptail --title "Up to date" --msgbox "The hb-config tool is already up to date (version $HB_CONFIG_VERSION).\n\nThe newest release ($releaseTag) has no newer one." 20 60 1
+    return
+  fi
+
+  install -m 755 "$tempDir/hb-config" /usr/local/sbin/hb-config
+  rm -rf "$tempDir"
+  whiptail --title "Success" --msgbox "The hb-config tool has been updated to the one from release $releaseTag and will now exit.\n\nIf you like the Homebridge Raspberry Pi image please show your support by starring the project on GitHub:\n\nhttps://github.com/homebridge/homebridge-raspbian-image" 20 60 1
+  exit 0
 }
 
 do_nmtui() {
   if systemctl is-active --quiet NetworkManager; then
     nmtui
   else
-    whiptail --title "Error" --msgbox "These network options not available when WiFi was configured via the Raspberry Pi Imager tool.\n\nSee https://www.raspberrypi.com/documentation/computers/configuration.html#wireless-networking-command-line" 20 60 1
+    whiptail --title "Error" --msgbox "NetworkManager is not running on this system, so these network options are not available.\n\nOn images from before 2024 this is the case when WiFi was set up with the Raspberry Pi Imager tool.\n\nSee https://www.raspberrypi.com/documentation/computers/configuration.html#wireless-networking-command-line" 20 60 1
   fi
 }
 
@@ -737,7 +652,7 @@ https://github.com/homebridge/homebridge-raspbian-image
 }
 
 # Everything else needs to be run as root
-if [ $(id -u) -ne 0 ]; then
+if [ "$(id -u)" -ne 0 ]; then
   printf "Script must be run as root. Try 'sudo hb-config'\n"
   exit 1
 fi
@@ -745,68 +660,43 @@ fi
 #
 # Interactive use loop
 #
-if [ "$INTERACTIVE" = True ]; then
-  [ -e $CONFIG ] || touch $CONFIG
-  calc_wt_size
-  while true; do
-    if is_pi ; then
-      FUN=$(whiptail --title "Homebridge Raspberry Pi Image Configuration Tool (hb-config)" --backtitle "$(cat /proc/device-tree/model)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
-        "1 Update Node.js" "Update Node.js to the latest LTS version" \
-        "2 Update Homebridge" "Update Homebridge and Node.js to the latest version" \
-        "3 Restore Config" "Restores the Homebridge config to the factory default" \
-        "4 Extra Packages" "Optional packages, eg. Pi-hole, AdGuard Home" \
-        "5 Nginx Options" "Configure Homebridge Nginx settings" \
-        "6 Configure OS" "Open the Raspberry Pi OS Configuration Tool" \
-        "7 Networking" "Open the NetworkManager UI" \
-        "8 Update" "Update this tool to the latest version" \
-        "9 About" "Information about this configuration tool" \
-        3>&1 1>&2 2>&3)
-    else
-      FUN=$(whiptail --title "Homebridge Raspberry Pi Image Configuration Tool (hb-config)" --menu "Setup Options" $WT_HEIGHT $WT_WIDTH $WT_MENU_HEIGHT --cancel-button Finish --ok-button Select \
-        "1 Update Node.js" "Update Node.js to the latest LTS version" \
-        "2 Update Homebridge" "Update Homebridge and Node.js to the latest version" \
-        "3 Restore Config" "Restores the Homebridge config to the factory default" \
-        "4 Extra Packages" "Optional packages, eg. Pi-hole, AdGuard Home" \
-        "5 Nginx Options" "Configure Homebridge Nginx settings" \
-        "6 Configure OS" "Open the Raspberry Pi OS Configuration Tool" \
-        "7 Networking" "Open the NetworkManager UI" \
-        "8 Update" "Update this tool to the latest version" \
-        "9 About" "Information about this configuration tool" \
-        3>&1 1>&2 2>&3)
-    fi
-    RET=$?
-    if [ $RET -eq 1 ]; then
-      do_finish
-    elif [ $RET -eq 0 ]; then
-      if is_pi ; then
-        case "$FUN" in
-          1\ *) do_nodejs_update ;;
-          2\ *) do_homebridge_update ;;
-          3\ *) do_restore_config ;;
-          4\ *) do_extra_packages ;;
-          5\ *) do_configure_nginx ;;
-          6\ *) do_configure_raspbian ;;
-          7\ *) do_nmtui ;;
-          8\ *) do_update ;;
-          9\ *) do_about ;;
-          *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
-        esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
-      else
-        case "$FUN" in
-          1\ *) do_nodejs_update ;;
-          2\ *) do_homebridge_update ;;
-          3\ *) do_restore_config ;;
-          4\ *) do_extra_packages ;;
-          5\ *) do_configure_nginx ;;
-          6\ *) do_configure_raspbian ;;
-          7\ *) do_nmtui ;;
-          8\ *) do_update ;;
-          9\ *) do_about ;;
-          *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
-        esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
-      fi
-    else
-      exit 1
-    fi
-  done
+calc_wt_size
+
+# on a Raspberry Pi the model is shown above the menu
+BACKTITLE=""
+if is_pi && [ -r /proc/device-tree/model ]; then
+  BACKTITLE=$(tr -d '\0' < /proc/device-tree/model)
 fi
+
+while true; do
+  FUN=$(whiptail --title "Homebridge Raspberry Pi Image Configuration Tool (hb-config)" --backtitle "$BACKTITLE" --menu "Setup Options" "$WT_HEIGHT" "$WT_WIDTH" "$WT_MENU_HEIGHT" --cancel-button Finish --ok-button Select \
+    "1 Update Node.js" "Update Node.js to the latest LTS version" \
+    "2 Update Homebridge" "Update Homebridge and Node.js to the latest version" \
+    "3 Restore Config" "Delete config, plugins and backups, then install Homebridge again" \
+    "4 Extra Packages" "Optional packages, eg. Pi-hole, AdGuard Home" \
+    "5 Nginx Options" "Configure Homebridge Nginx settings" \
+    "6 Configure OS" "Open the Raspberry Pi OS Configuration Tool" \
+    "7 Networking" "Open the NetworkManager UI" \
+    "8 Update" "Update this tool to the latest version" \
+    "9 About" "Information about this configuration tool" \
+    3>&1 1>&2 2>&3)
+  RET=$?
+  if [ $RET -eq 1 ]; then
+    exit 0
+  elif [ $RET -eq 0 ]; then
+    case "$FUN" in
+      1\ *) do_nodejs_update ;;
+      2\ *) do_homebridge_update ;;
+      3\ *) do_restore_config ;;
+      4\ *) do_extra_packages ;;
+      5\ *) do_configure_nginx ;;
+      6\ *) do_configure_raspbian ;;
+      7\ *) do_nmtui ;;
+      8\ *) do_update ;;
+      9\ *) do_about ;;
+      *) whiptail --msgbox "Programmer error: unrecognized option" 20 60 1 ;;
+    esac || whiptail --msgbox "There was an error running option $FUN" 20 60 1
+  else
+    exit 1
+  fi
+done

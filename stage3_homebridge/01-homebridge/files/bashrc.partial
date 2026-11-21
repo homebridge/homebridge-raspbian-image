@@ -1,4 +1,0 @@
-
-# include homebridge bashrc if loading from Homebridge UI Terminal
-pstree -s $$ | grep "hb-service" > /dev/null
-[ "$?" -eq 0 ] && [ -f /opt/homebridge/bashrc ] && . /opt/homebridge/bashrc

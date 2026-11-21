@@ -1,4 +1,15 @@
 #!/bin/sh
+#
+# THIS IS THE OLD hb-config TOOL. No image built since May 2022 installs it.
+#
+# Which images use which file:
+#   - hb-config (this file): images from before May 2022, which do not use the Homebridge apt
+#     package. Their "Update" menu entry downloads this file from the "latest" branch.
+#     So the file must stay at this path, and it is left as it is (decided by BP, 2026-11-18).
+#   - hb-config-new: every image built since May 2022. It is installed as /usr/local/sbin/hb-config.
+#
+# Changes belong in hb-config-new, not here.
+#
 
 INTERACTIVE=True
 ASK_TO_REBOOT=0

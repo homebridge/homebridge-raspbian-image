@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# Homebridge Raspbian Image - WiFi Connect
+#
+# NetworkManager runs this script when a network device changes (it is a "dispatcher" script).
+# When a network cable comes up, the WiFi setup hotspot is not needed any more, so the
+# wifi-connect service is stopped. Any cable device counts: eth0, end0, or a USB adapter.
+#
+# $1 = the device, $2 = what happened to it
+
+interface="$1"
+event="$2"
+
+[ "$event" = "up" ] || exit 0
+
+# Only a real network card counts (it has a "device" entry in /sys). The virtual cards that
+# Docker and other tools make are also called "ethernet" by NetworkManager, and are left out.
+[ -e "/sys/class/net/$interface/device" ] || exit 0
+
+if [ "$(nmcli -t -g GENERAL.TYPE device show "$interface" 2> /dev/null)" = "ethernet" ]; then
+  systemctl stop wifi-connect.service
+fi
+
+exit 0

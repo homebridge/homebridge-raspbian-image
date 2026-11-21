@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  pull_request:
+
+# no rights by default; each job asks for what it needs
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    container:
+      image: debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
+    steps:
+      - name: Install shellcheck
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            bash ca-certificates dash git python3 shellcheck > /dev/null
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # the checkout belongs to another user than the one the container runs as
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: shellcheck (every shell script except the old hb-config)
+        run: scripts/lint.sh
+
+      - name: Syntax check with the shells that run the scripts
+        run: |
+          dash -n stage3_homebridge/01-homebridge/files/hb-config-new
+          dash -n stage3_homebridge/01-homebridge/files/hb-config
+          dash -n stage3_homebridge/01-homebridge/files/first-boot-homebridge
+          python3 -m py_compile make_rpi-imager-snipplet.py combine-rpi-imager-snipplet.py scripts/check-imager-json.py
+
+  # actionlint checks the workflow files: YAML, expressions, and the shell lines inside them
+  actionlint:
+    name: Lint workflows
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The tool is run from its container image, named by digest (version 1.7.12).
+      # To update: docker pull rhysd/actionlint:<version>, then copy the new digest.
+      - name: actionlint
+        run: |
+          docker run --rm -v "$PWD":/repo:ro --workdir /repo \
+            rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color
+
+  tests:
+    name: Script tests
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    # The same Debian release as the image, so sh, sed, jq and nginx behave as they do on a Pi.
+    # The image is named by its digest, so it can not change without a commit here.
+    # To update: docker pull debian:trixie-slim, then copy the new digest.
+    container:
+      image: debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
+    steps:
+      - name: Install the tools the tests use
+        run: |
+          apt-get update -qq
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            bash ca-certificates dash git jq nginx openssl python3 python3-yaml > /dev/null
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # the checkout belongs to another user than the one the container runs as
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Run the tests
+        run: tests/run.sh

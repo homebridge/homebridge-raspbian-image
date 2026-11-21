@@ -1,14 +1,27 @@
 [Unit]
-Description=WiFi Captive Portal
+Description=Homebridge WiFi setup hotspot
 After=NetworkManager.service
-Before=nginx.service homebridge.service
+# The setup page and nginx both use port 80, so nginx starts when this unit has ended.
+# Homebridge is NOT ordered after this unit: it starts right away, with or without a network.
+Before=nginx.service
 
+# What wifi-connect (4.2.2 or newer) does:
+#   - it waits up to 20 seconds for a network connection, and ends if there is one;
+#   - it ends if a WiFi network is already saved (NetworkManager keeps trying that network);
+#   - only with no connection and no saved WiFi network it starts the setup hotspot;
+#   - a hotspot nobody uses is stopped after 5 minutes, and the check starts again.
 [Service]
 Type=oneshot
-Environment="PATH=/opt/homebridge/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-Environment="npm_config_prefix=/opt/wifi-connect"
-ExecStart=/opt/wifi-connect/bin/wifi-connect
+# This service runs as root. So it must not run anything that another user can change:
+#   - it has its own copy of Node.js in /opt/wifi-connect, which belongs to root
+#     (/opt/homebridge/bin/node belongs to the user Homebridge and its plugins run as);
+#   - its PATH holds the system folders only.
+Environment="PATH=/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/opt/wifi-connect/bin/node /opt/wifi-connect/lib/node_modules/@homebridge/wifi-connect/main.js
 StandardOutput=journal+console
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
 
 [Install]
 WantedBy=multi-user.target

@@ -10,7 +10,7 @@ body:
         * If your issue is specific to a certain plugin, create the issue on that plugin's GitHub project page instead.
         * If your issue is for Homebridge, create the issue on the Homebridge GitHub project page instead.
         * Support via GitHub issues is limited. You may find it more benefitial ask questions on the [Homebridge Discord](https://discord.gg/kqNCe2D) or [Reddit](https://www.reddit.com/r/homebridge/) communities instead.
-        * We do not provide support for extra packages, such as PiHole or Deconz, beyond the basic installation scripts.
+        * We do not provide support for extra packages, such as Pi-hole or AdGuard Home, beyond the basic installation scripts.
         * Search through existing issues (resolved or open) which might provide a solution to your problem already.
         * Aim to find a descriptive and precise title for your support request.
   - type: dropdown

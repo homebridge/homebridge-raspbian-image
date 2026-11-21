@@ -24,54 +24,71 @@ install -m 0440 files/010_homebridge-nopasswd "${ROOTFS_DIR}/etc/sudoers.d/"
 #
 # MOTD
 #
-install -m 755 files/issue "${ROOTFS_DIR}/etc/issue"
+install -m 644 files/issue "${ROOTFS_DIR}/etc/issue"
 install -m 755 files/motd-linux "${ROOTFS_DIR}/etc/update-motd.d/15-linux"
 install -m 755 files/motd-homebridge "${ROOTFS_DIR}/etc/update-motd.d/20-homebridge"
-install -m 633 files/bashrc.partial "${ROOTFS_DIR}/tmp/bashrc.partial"
-
-export 
 
 #
 # Set Version
 #
-echo "$IMG_NAME" > "${ROOTFS_DIR}/etc/hb-release"
+# /etc/hb-release holds the release this image was built as, for example "v2.0.26 (64bit)".
+# The login message and "hb-config -> About" show it. The homebridge package and the UI only
+# check that the file exists. The build passes the two values in (see the build workflow).
+: "${HB_IMAGE_VERSION:?HB_IMAGE_VERSION is not set}"
+: "${HB_IMAGE_BITS:?HB_IMAGE_BITS is not set}"
+echo "${HB_IMAGE_VERSION} (${HB_IMAGE_BITS})" > "${ROOTFS_DIR}/etc/hb-release"
+
+# The fingerprint of the key that signs the Homebridge package repo (repo.homebridge.io/KEY.gpg).
+# Every Homebridge apt user has this key. If it is ever replaced, this value must change with it.
+HB_KEY_FINGERPRINT="ACAA60814A7524504F07DE07DF5B0FE88C8F5D92"
 
 on_chroot << EOF
 
-curl -sSfL https://repo.homebridge.io/KEY.gpg | gpg --dearmor | sudo tee /usr/share/keyrings/homebridge.gpg  > /dev/null
-echo "deb [signed-by=/usr/share/keyrings/homebridge.gpg] https://repo.homebridge.io ${RELEASE_STREAM} main" | tee /etc/apt/sources.list.d/homebridge.list > /dev/null
+# The key of the Homebridge package repo is downloaded, and only used when it is the known key.
+HB_KEY_TMP=\$(mktemp -d)
+export GNUPGHOME="\$HB_KEY_TMP/gnupg"
+mkdir -m 700 "\$GNUPGHOME"
+curl -sSfL https://repo.homebridge.io/KEY.gpg -o "\$HB_KEY_TMP/KEY.gpg" < /dev/null
+HB_KEY_FOUND=\$(gpg --show-keys --with-colons "\$HB_KEY_TMP/KEY.gpg" < /dev/null | awk -F: '\$1 == "fpr" { print \$10; exit }')
+if [ "\$HB_KEY_FOUND" != "${HB_KEY_FINGERPRINT}" ]; then
+  echo "The key from repo.homebridge.io is not the known Homebridge key (found: \$HB_KEY_FOUND)" >&2
+  exit 1
+fi
+gpg --dearmor < "\$HB_KEY_TMP/KEY.gpg" > /usr/share/keyrings/homebridge.gpg
+rm -rf "\$HB_KEY_TMP"
+unset GNUPGHOME
+echo "deb [signed-by=/usr/share/keyrings/homebridge.gpg] https://repo.homebridge.io ${RELEASE_STREAM} main" > /etc/apt/sources.list.d/homebridge.list
 
-apt-get update
-echo apt-get install homebridge=${HOMEBRIDGE_APT_PKG_VERSION}
-apt-get install homebridge=${HOMEBRIDGE_APT_PKG_VERSION} 
-
-# Add the homebridge user to the sudo group
-usermod -aG sudo homebridge
+# on_chroot feeds these lines to a shell on its standard input. A command that reads its input
+# (apt-get does, when it asks "Do you want to continue?") would swallow the lines after it, and
+# the build would end "successfully" with half an image. So: -y, and no input for apt-get.
+apt-get update < /dev/null
+apt-get install -y homebridge=${HOMEBRIDGE_APT_PKG_VERSION} < /dev/null
 
 mkdir -p /etc/systemd/system/homebridge.service.d
 echo "[Service]" > /etc/systemd/system/homebridge.service.d/override.conf
 echo "Environment=\"UIX_CAN_SHUTDOWN_RESTART_HOST=1\"" >> /etc/systemd/system/homebridge.service.d/override.conf
 echo "Environment=\"UIX_STORAGE_PATH=/var/lib/homebridge\"" >> /etc/systemd/system/homebridge.service.d/override.conf
 
-# correct ownership
-# chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /var/lib/homebridge
-
 # empty motd
 > /etc/motd
 
 # make a symlink to the main config directory
-#[ -e /home/${FIRST_USER_NAME}/.homebridge ] || ln -fs /var/lib/homebridge /home/${FIRST_USER_NAME}/.homebridge
 [ -e /root/.homebridge ] || ln -fs /var/lib/homebridge /root/.homebridge
-
-# include homebridge bashrc in first user's bashrc
-cat /tmp/bashrc.partial >> /home/${FIRST_USER_NAME}/.bashrc
-rm -rf /tmp/bashrc.partial
 
 # set ui port for use in motd message
 echo "8581" > /etc/hb-ui-port
 
-# prioritise dns over mdns
-sed -i 's/files mdns4_minimal \[NOTFOUND=return\] dns/files dns mdns4_minimal \[NOTFOUND=return\]/' /etc/nsswitch.conf
+# prioritise dns over mdns: in the "hosts:" line, "dns" must come before "mdns4_minimal".
+# The build stops when the line has another form than expected, so this can not be skipped unseen.
+if grep -q '^hosts:.*mdns4_minimal' /etc/nsswitch.conf; then
+  sed -i 's/files mdns4_minimal \[NOTFOUND=return\] dns/files dns mdns4_minimal \[NOTFOUND=return\]/' /etc/nsswitch.conf
+  if ! grep -Eq '^hosts:.*[[:space:]]dns[[:space:]].*mdns4_minimal' /etc/nsswitch.conf; then
+    echo "The hosts line in /etc/nsswitch.conf has an unexpected form:" >&2
+    grep '^hosts:' /etc/nsswitch.conf >&2
+    exit 1
+  fi
+fi
 
 systemctl daemon-reload
 systemctl enable homebridge

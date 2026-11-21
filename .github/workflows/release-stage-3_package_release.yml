@@ -1,5 +1,5 @@
 name: Release Stage 3 - Package and Publish Raspbian Homebridge Image
-run-name: Release Stage 3 - Package and Publish Raspbian Homebridge Image - ${{ inputs.release_tag }} - Run ${{ inputs.run_id }}
+run-name: Release Stage 3 - Package and Publish Raspbian Homebridge Image - ${{ inputs.release_tag }} - Run ${{ inputs.run_id }} ${{ inputs.run_name }}
 
 on:
   workflow_dispatch:
@@ -16,21 +16,40 @@ on:
         description: 'Publish Release to RPI Imager Registry'
         type: boolean
         default: false
+      target_sha:
+        description: 'The commit the images were built from. The release tag is put on this commit (empty: the tip of the default branch)'
+        required: false
+        type: string
+        default: ''
+      run_name:
+        description: 'Unique name of the run (set by Stage 2, so it can find this run and wait for it)'
+        required: false
+        type: string
+        default: ''
 
 concurrency:
   group: release-stage-3-package-raspbian-image
   cancel-in-progress: false
 
+# No rights by default. Each job below asks for what it needs.
+permissions: {}
+
 jobs:
   download-and-prepare:
     name: Download Artifacts and Prepare Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read  # download the images that the Stage 2 run built
     outputs:
       has-32bit: ${{ steps.check-artifacts.outputs.has-32bit }}
       has-64bit: ${{ steps.check-artifacts.outputs.has-64bit }}
     steps:
+      # the full history and the tags are needed for the release notes
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Download Build Artifacts (32-bit)
         id: download-32bit
@@ -40,7 +59,7 @@ jobs:
           name: build-32bit
           path: ./artifacts/32bit
           run-id: ${{ inputs.run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
 
       - name: Download Build Artifacts (64-bit)
         id: download-64bit
@@ -50,29 +69,23 @@ jobs:
           name: build-64bit
           path: ./artifacts/64bit
           run-id: ${{ inputs.run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
 
       - name: Check Downloaded Artifacts
         id: check-artifacts
         run: |
           echo "Checking downloaded artifacts..."
-          ls -lR ./artifacts/
-          
-          if [ -d "./artifacts/32bit" ] && [ "$(ls -A ./artifacts/32bit)" ]; then
-            echo "has-32bit=true" >> $GITHUB_OUTPUT
-            echo "✅ 32-bit artifacts found"
-          else
-            echo "has-32bit=false" >> $GITHUB_OUTPUT
-            echo "⚠️ 32-bit artifacts not found"
-          fi
-          
-          if [ -d "./artifacts/64bit" ] && [ "$(ls -A ./artifacts/64bit)" ]; then
-            echo "has-64bit=true" >> $GITHUB_OUTPUT
-            echo "✅ 64-bit artifacts found"
-          else
-            echo "has-64bit=false" >> $GITHUB_OUTPUT
-            echo "⚠️ 64-bit artifacts not found"
-          fi
+          ls -lR ./artifacts/ || true
+
+          for name in 32bit 64bit; do
+            if [ -d "./artifacts/${name}" ] && [ -n "$(ls -A "./artifacts/${name}")" ]; then
+              echo "has-${name}=true" >> "$GITHUB_OUTPUT"
+              echo "✅ ${name} artifacts found"
+            else
+              echo "has-${name}=false" >> "$GITHUB_OUTPUT"
+              echo "⚠️ ${name} artifacts not found"
+            fi
+          done
 
       - name: Prepare Release Assets
         run: |
@@ -83,12 +96,14 @@ jobs:
             cp ./artifacts/32bit/*.zip ./release-assets/ 2>/dev/null || true
             cp ./artifacts/32bit/*manifest ./release-assets/ 2>/dev/null || true
             cp ./artifacts/32bit/rpi-image-repo-32bit.json ./release-assets/ 2>/dev/null || true
+            cp ./artifacts/32bit/image-check-32bit.log ./release-assets/ 2>/dev/null || true
           fi
           
           if [ -d "./artifacts/64bit" ]; then
             cp ./artifacts/64bit/*.zip ./release-assets/ 2>/dev/null || true
             cp ./artifacts/64bit/*manifest ./release-assets/ 2>/dev/null || true
             cp ./artifacts/64bit/rpi-image-repo-64bit.json ./release-assets/ 2>/dev/null || true
+            cp ./artifacts/64bit/image-check-64bit.log ./release-assets/ 2>/dev/null || true
           fi
           
           echo "Release assets prepared:"
@@ -96,24 +111,36 @@ jobs:
 
       - name: Combine RPI Imager JSON files
         if: steps.check-artifacts.outputs.has-32bit == 'true' || steps.check-artifacts.outputs.has-64bit == 'true'
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          # Copy individual JSON files for combination
-          [ -f "./release-assets/rpi-image-repo-32bit.json" ] && cp "./release-assets/rpi-image-repo-32bit.json" ./ || true
-          [ -f "./release-assets/rpi-image-repo-64bit.json" ] && cp "./release-assets/rpi-image-repo-64bit.json" ./ || true
-          
-          # Combine JSON files
-          ./combine-rpi-imager-snipplet.py
-          
-          # Move combined file to release assets
-          mv rpi-image-repo.json ./release-assets/
+          # the combine script uses the files that exist (32-bit first), and stops when there is none
+          cd ./release-assets
+          ../combine-rpi-imager-snipplet.py
 
-      - name: Create Combined Release Body
+          # The download links were written in Stage 2 with the tag it expected. A release with
+          # another tag would get a list whose links do not exist, so this stops here.
+          ../scripts/check-imager-json.py rpi-image-repo.json --tag "$RELEASE_TAG"
+
+      # The notes are built once for the whole release: the manifest of each image, the
+      # checksums, and what changed since the previous release.
+      - name: Create Release Body
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          TARGET_SHA: ${{ inputs.target_sha }}
         run: |
-          # Combine all manifest files and release body
-          cat ./artifacts/*/final-release-body.md > ./release-assets/combined-release-body.md 2>/dev/null || \
-            echo "# Homebridge Raspbian Image ${{ inputs.release_tag }}" > ./release-assets/combined-release-body.md
-          
-          echo "Release body created"
+          mkdir -p output
+          cp ./release-assets/*manifest output/ 2>/dev/null || true
+
+          if IMAGER_JSON=./release-assets/rpi-image-repo.json RELEASE_COMMIT="${TARGET_SHA:-HEAD}" ./scripts/create-release-body.sh stable; then
+            cp output/release-body.md ./release-assets/combined-release-body.md
+          else
+            echo "::warning::The release notes could not be built. The release gets a short text."
+            echo "# Homebridge Raspbian Image ${RELEASE_TAG}" > ./release-assets/combined-release-body.md
+          fi
+
+          cat ./release-assets/combined-release-body.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Prepared Assets
         uses: actions/upload-artifact@v7
@@ -121,11 +148,15 @@ jobs:
           name: release-assets
           path: ./release-assets/
           retention-days: 7
+          # the images are .zip files already, so compressing them again only costs time
+          compression-level: 0
 
   create-release:
     name: Create GitHub Release
     needs: download-and-prepare
     runs-on: ubuntu-latest
+    permissions:
+      contents: read  # the release itself is made with the App token from the first step
     steps:
       - name: Create GitHub App Token
         id: app-token
@@ -146,32 +177,49 @@ jobs:
           path: ./release-assets
 
       - name: Create GitHub Release
-        run: |
-          gh release create "${{ inputs.release_tag }}" \
-          --title "${{ inputs.release_tag }}" \
-          --notes-file ./release-assets/combined-release-body.md \
-          --draft=false \
-          --prerelease=${{ inputs.publish == false }} \
-          ./release-assets/*.zip \
-          ./release-assets/*.json \
-          ./release-assets/*manifest
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          TARGET_SHA: ${{ inputs.target_sha }}
+          PRERELEASE: ${{ inputs.publish == false }}
+        run: |
+          # the tag is put on the commit the images were built from, not on whatever is newest now
+          TARGET=()
+          if [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            TARGET=(--target "$TARGET_SHA")
+          elif [[ -n "$TARGET_SHA" ]]; then
+            echo "::error::target_sha is not a full commit id: ${TARGET_SHA}"
+            exit 1
+          fi
+
+          gh release create "$RELEASE_TAG" \
+            --title "$RELEASE_TAG" \
+            --notes-file ./release-assets/combined-release-body.md \
+            --draft=false \
+            --prerelease="$PRERELEASE" \
+            "${TARGET[@]}" \
+            ./release-assets/*.zip \
+            ./release-assets/*.json \
+            ./release-assets/*manifest
 
       - name: Release Created
-        run: |
-          echo "::notice::Release ${{ inputs.release_tag }} created successfully"
-          RELEASE_URL=$(gh release view "${{ inputs.release_tag }}" --json url --jq '.url')
-          echo "::notice::Release URL: $RELEASE_URL"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          echo "::notice::Release ${RELEASE_TAG} created successfully"
+          RELEASE_URL=$(gh release view "$RELEASE_TAG" --json url --jq '.url')
+          echo "::notice::Release URL: $RELEASE_URL"
 
   publish-to-registry:
     name: Publish to Homebridge Registry
     needs: [create-release]
     if: ${{ inputs.publish }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read  # homebridge.io is changed with its own App token, made in the first step
     steps:
+      # This token can change files in homebridge.io and nothing else.
       - name: Generate GitHub App Token
         id: app-token
         uses: actions/create-github-app-token@v3
@@ -180,6 +228,7 @@ jobs:
           private-key: ${{ secrets.PRIVATE_KEY }}
           repositories: 'homebridge.io'
           owner: 'homebridge'
+          permission-contents: write
 
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -190,27 +239,52 @@ jobs:
           name: release-assets
           path: ./release-assets
 
-      - name: Push Image Info to Homebridge Registry
-        uses: dmnemec/copy_file_to_another_repo_action@main
+      # The Raspberry Pi Imager list is only updated when all of these are true:
+      #   - both images passed the image check in Stage 2,
+      #   - the list has the shape Imager expects, with both images in it,
+      #   - every download link in the list is a file of this release, with the same size.
+      - name: Check before updating the Raspberry Pi Imager list
         env:
-          API_TOKEN_GITHUB: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          for name in 32bit 64bit; do
+            if ! grep -qx 'Image check passed.' "./release-assets/image-check-${name}.log"; then
+              echo "::error::No passed image check for the ${name} image. The Imager list is not updated."
+              exit 1
+            fi
+          done
+
+          gh release view "$RELEASE_TAG" --json assets > release-files.json
+          ./scripts/check-imager-json.py ./release-assets/rpi-image-repo.json --tag "$RELEASE_TAG" --entries 2 --assets release-files.json
+
+      # A push to the "source" branch of homebridge.io is a live deploy of the website.
+      # Only GitHub's own checkout action and plain git commands touch the token.
+      - name: Checkout homebridge.io
+        uses: actions/checkout@v7
         with:
-          source_file: './release-assets/rpi-image-repo.json'
-          destination_repo: 'homebridge/homebridge.io'
-          destination_branch: 'source'
-          destination_folder: 'src/public/'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
-          user_name: 'github-actions[bot]'
-          commit_message: 'New Homebridge Raspbian Image Release ${{ inputs.release_tag }}'
+          repository: homebridge/homebridge.io
+          ref: source
+          path: homebridge.io
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Push Image Info to Homebridge Registry
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: ./scripts/publish-imager-json.sh ./homebridge.io ./release-assets/rpi-image-repo.json "$RELEASE_TAG"
 
       - name: Registry Updated
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          echo "::notice::Homebridge registry updated with ${{ inputs.release_tag }}"
+          echo "::notice::Homebridge registry updated with ${RELEASE_TAG}"
 
   notify-discord:
     name: Send Discord Notification
     needs: [create-release, publish-to-registry]
-    if: ${{ always() && inputs.publish && needs.create-release.result == 'success' }}
+    # only announce a release that is also in the Raspberry Pi Imager list
+    if: ${{ always() && inputs.publish && needs.create-release.result == 'success' && needs.publish-to-registry.result == 'success' }}
+    permissions: {}
     uses: homebridge/.github/.github/workflows/discord-webhooks.yml@latest
     with:
       title: "Homebridge Raspbian Image Release"

@@ -14,6 +14,10 @@
           "tag": "latest"
         },
         {
+          "name": "@homebridge/wifi-connect",
+          "tag": "latest"
+        },
+        {
           "name": "ffmpeg-for-homebridge",
           "tag": "latest"
         }
