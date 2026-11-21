@@ -1,0 +1,23 @@
+{
+  "auto_merge": true,
+  "update_method": "push",
+  "git_user": {
+    "name": "homebridge-dependency-bot[bot]",
+    "email": "354207881+homebridge-dependency-bot[bot]@users.noreply.github.com"
+  },
+  "directories": [
+    {
+      "directory": "alpha",
+      "packages": [
+        {
+          "name": "@homebridge/homebridge-apt-pkg",
+          "tag": "alpha"
+        },
+        {
+          "name": "ffmpeg-for-homebridge",
+          "tag": "latest"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@homebridge/homebridge-raspbian-image",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Stub file to track versions of homebridge-apt-pkg and ffmpeg-for-homebridge for the 'beta' release stream of the homebridge-raspbian-image package",
+  "dependencies": {
+    "@homebridge/homebridge-apt-pkg": "2.0.27-beta.20261121",
+    "ffmpeg-for-homebridge": "2.2.2"
+  }
+}
