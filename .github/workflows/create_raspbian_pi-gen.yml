@@ -149,7 +149,7 @@ jobs:
         uses: docker/setup-qemu-action@v4
 
 # f022813 aka 1.7.0
-      - uses: usimd/pi-gen-action@v1
+      - uses: usimd/pi-gen-action@v2
         id: build
         with:
           # If you require the use of an apt proxy, set it here. This proxy setting will not 
